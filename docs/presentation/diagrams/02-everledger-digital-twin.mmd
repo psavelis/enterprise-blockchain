@@ -1,0 +1,14 @@
+graph LR
+    A[Mine Site<br/>IoT Sensors] -->|GS1 EPCIS Event| B[Fabric Peer<br/>Mining Org]
+    B -->|Endorsement| C[Fabric Peer<br/>Certification Lab]
+    C -->|Endorsement| D[Fabric Peer<br/>Retailer Org]
+    D -->|API| E[Consumer App<br/>Scan for Provenance]
+
+    subgraph Hyperledger Fabric Network
+        B
+        C
+        D
+        F[Ordering Service<br/>Raft 3-node]
+    end
+
+    G[Off-chain Storage<br/>Images / 3D Scans] -.->|Hash on-chain| B

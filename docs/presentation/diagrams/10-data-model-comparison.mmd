@@ -1,0 +1,23 @@
+graph LR
+    subgraph Fabric: Key-Value World State
+        direction TB
+        FA[putState key, val] --> FB[(CouchDB / LevelDB)]
+        FB --> FC[getState key → val]
+        FB --> FD[getHistoryForKey → tx log]
+        FB --> FE[getQueryResult → JSON query]
+    end
+
+    subgraph Corda: UTXO-like States
+        direction TB
+        CA[Input State<br/>CONSUMED] -->|Transaction| CB[Output State<br/>UNCONSUMED]
+        CB -->|Next Tx| CC[New Output State]
+        CA -.->|Notary validates<br/>no double-spend| CD[Notary Service]
+    end
+
+    subgraph Besu: Account / Storage Trie
+        direction TB
+        BA[Account Address] --> BB[Storage Trie]
+        BB --> BC[mapping slot → value]
+        BB --> BD[struct slot → fields]
+        BA --> BE[Balance + Nonce + CodeHash]
+    end

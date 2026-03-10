@@ -1,0 +1,21 @@
+graph TB
+    subgraph Data Sources
+        A[Health Records]
+        B[Judicial Records]
+        C[Property Registry]
+        D[e-Residency Data]
+    end
+
+    subgraph KSI Infrastructure
+        E[Hash of Record] -->|Aggregated| F[Aggregation Server<br/>Local Gateway]
+        F -->|Merkle Tree| G[Core Network<br/>Calendar Hash Chain]
+        G -->|Published| H[Publication Hash<br/>in newspapers / NIST]
+    end
+
+    A --> E
+    B --> E
+    C --> E
+    D --> E
+
+    style G fill:#FF9800,color:#fff
+    style H fill:#4CAF50,color:#fff

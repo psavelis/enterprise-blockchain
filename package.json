@@ -1,0 +1,42 @@
+{
+  "name": "enterprise-blockchain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Study case and demonstration repository for enterprise blockchain solution patterns in TypeScript.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/**/*.test.ts",
+    "examples": "tsx scripts/run-all-examples.ts",
+    "demo:adapters": "tsx scripts/adapter-projections-demo.ts",
+    "demo:integrations": "tsx scripts/integration-clients-demo.ts",
+    "ci:core": "npm run typecheck && npm run test && npm run examples",
+    "ci:protocol-projections": "npm run example:fabric-projection && npm run example:besu-projection && npm run example:corda-projection",
+    "ci:demos": "npm run demo:adapters && npm run demo:integrations",
+    "ci:integration-examples": "npm run example:fabric-gateway && npm run example:besu-ethers && npm run example:corda-rest",
+    "verify": "npm run typecheck && npm run test && npm run examples",
+    "example:food-recall": "tsx examples/food-recall-response/index.ts",
+    "example:order-sharing": "tsx examples/consortium-order-sharing/index.ts",
+    "example:staffing-clearance": "tsx examples/hospital-staffing-clearance/index.ts",
+    "example:aid-reconciliation": "tsx examples/aid-voucher-reconciliation/index.ts",
+    "example:fabric-projection": "tsx examples/fabric-traceability-projection/index.ts",
+    "example:besu-projection": "tsx examples/besu-order-privacy-projection/index.ts",
+    "example:corda-projection": "tsx examples/corda-clearance-flow-projection/index.ts",
+    "example:fabric-gateway": "tsx examples/fabric-gateway-integration-sketch/index.ts",
+    "example:besu-ethers": "tsx examples/besu-ethers-integration-sketch/index.ts",
+    "example:corda-rest": "tsx examples/corda-rest-integration-sketch/index.ts"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.3",
+    "@hyperledger/fabric-gateway": "^1.10.1",
+    "ethers": "^6.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

@@ -1,0 +1,21 @@
+graph TB
+    subgraph Certificate Batch
+        C1[Cert 1: Alice<br/>SHA-256 → h1]
+        C2[Cert 2: Bob<br/>SHA-256 → h2]
+        C3[Cert 3: Carol<br/>SHA-256 → h3]
+        C4[Cert 4: Dave<br/>SHA-256 → h4]
+    end
+
+    subgraph Merkle Tree
+        C1 --> H12[h12 = SHA256 h1+h2]
+        C2 --> H12
+        C3 --> H34[h34 = SHA256 h3+h4]
+        C4 --> H34
+        H12 --> ROOT[Merkle Root]
+        H34 --> ROOT
+    end
+
+    ROOT -->|OP_RETURN| BTC[Bitcoin Transaction<br/>or Ethereum tx data]
+
+    style ROOT fill:#FF9800,color:#fff
+    style BTC fill:#F44336,color:#fff

@@ -1,0 +1,17 @@
+graph TB
+    subgraph Building Blocks Network
+        A[WFP Node] --- B[UNHCR Node]
+        B --- C[UNICEF Node]
+        C --- D[NGO Partner Node]
+        D --- A
+    end
+
+    E[Beneficiary<br/>Anonymous ID] -->|Biometric scan<br/>at POS terminal| F[Transaction Request]
+    F --> A
+    A -->|Smart Contract| G{Check:<br/>1. Valid account?<br/>2. Sufficient balance?<br/>3. No duplicate aid?}
+    G -->|Yes| H[Transfer recorded<br/>on shared ledger]
+    G -->|No| I[Rejected — prevent<br/>duplicate assistance]
+
+    style E fill:#2196F3,color:#fff
+    style H fill:#4CAF50,color:#fff
+    style I fill:#f44336,color:#fff

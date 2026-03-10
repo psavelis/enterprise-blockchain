@@ -1,0 +1,22 @@
+sequenceDiagram
+    participant App as Client App
+    participant GW as Fabric Gateway
+    participant P1 as Peer (Walmart)
+    participant P2 as Peer (Supplier)
+    participant OS as Ordering Service (Raft)
+
+    App->>GW: Submit transaction proposal
+    GW->>P1: Forward for endorsement
+    GW->>P2: Forward for endorsement
+    P1->>P1: Execute chaincode (simulate)
+    P2->>P2: Execute chaincode (simulate)
+    P1-->>GW: Signed RW-set (endorsement)
+    P2-->>GW: Signed RW-set (endorsement)
+    GW->>GW: Verify endorsement policy<br/>AND(Walmart, Supplier)
+    GW->>OS: Submit endorsed transaction
+    OS->>OS: Order + batch into block
+    OS->>P1: Deliver block
+    OS->>P2: Deliver block
+    P1->>P1: Validate + commit to ledger
+    P2->>P2: Validate + commit to ledger
+    P1-->>App: Transaction event (committed)

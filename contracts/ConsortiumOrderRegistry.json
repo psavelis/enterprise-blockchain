@@ -1,0 +1,92 @@
+{
+  "contractName": "ConsortiumOrderRegistry",
+  "abi": [
+    {
+      "type": "function",
+      "name": "anchorOrder",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        { "name": "orderId", "type": "string" },
+        { "name": "buyer", "type": "string" },
+        { "name": "supplier", "type": "string" },
+        { "name": "auditProof", "type": "string" }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "publishAudienceView",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        { "name": "orderId", "type": "string" },
+        { "name": "audience", "type": "string" },
+        { "name": "payload", "type": "string" },
+        { "name": "auditProof", "type": "string" }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "getCanonicalOrder",
+      "stateMutability": "view",
+      "inputs": [
+        { "name": "orderId", "type": "string" }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "components": [
+            { "name": "orderId", "type": "string" },
+            { "name": "buyer", "type": "string" },
+            { "name": "supplier", "type": "string" },
+            { "name": "auditProof", "type": "string" },
+            { "name": "anchoredAt", "type": "uint256" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "getAudienceView",
+      "stateMutability": "view",
+      "inputs": [
+        { "name": "orderId", "type": "string" },
+        { "name": "audience", "type": "string" }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "components": [
+            { "name": "audience", "type": "string" },
+            { "name": "payload", "type": "string" },
+            { "name": "auditProof", "type": "string" },
+            { "name": "publishedAt", "type": "uint256" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "name": "OrderAnchored",
+      "inputs": [
+        { "name": "orderId", "type": "string", "indexed": true },
+        { "name": "buyer", "type": "string", "indexed": false },
+        { "name": "supplier", "type": "string", "indexed": false },
+        { "name": "auditProof", "type": "string", "indexed": false },
+        { "name": "anchoredAt", "type": "uint256", "indexed": false }
+      ]
+    },
+    {
+      "type": "event",
+      "name": "AudienceViewPublished",
+      "inputs": [
+        { "name": "orderId", "type": "string", "indexed": true },
+        { "name": "audience", "type": "string", "indexed": true },
+        { "name": "auditProof", "type": "string", "indexed": false },
+        { "name": "publishedAt", "type": "uint256", "indexed": false }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+graph TD
+    subgraph "Fabric: Channels + PDC"
+        F1[Channel A<br/>Orgs 1,2,3] --- F2[Channel B<br/>Orgs 2,4,5]
+        F3[Private Data Collection<br/>Only Orgs 1,2 see data<br/>Hash on-chain for all]
+        F1 -.-> F3
+    end
+
+    subgraph "Besu: Privacy Groups"
+        B1[Public State<br/>All validators see] --- B2[Private State<br/>Tessera enclaves]
+        B2 --> B3[Enclave A<br/>Org 1 + Org 2]
+        B2 --> B4[Enclave B<br/>Org 3 + Org 4]
+        B5[On-chain: privacy marker tx<br/>Off-chain: private payload in Tessera]
+    end
+
+    subgraph "Corda: Need-to-Know"
+        C1[Party A] -->|Direct P2P| C2[Party B]
+        C3[Party C sees NOTHING<br/>No shared ledger]
+        C4[Notary only sees<br/>input refs, not content]
+        C1 -.-> C4
+    end
+
+    subgraph "KSI: Data Never On-Chain"
+        K1[Source System] -->|SHA-256 hash only| K2[KSI Gateway]
+        K2 --> K3[Calendar Chain]
+        K4[Full data stays in<br/>source system forever]
+        K1 -.-> K4
+    end

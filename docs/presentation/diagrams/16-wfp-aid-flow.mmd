@@ -1,0 +1,27 @@
+sequenceDiagram
+    participant Agency as Aid Agency<br/>(WFP/UNHCR)
+    participant SC as HumanitarianAidLedger<br/>(Solidity)
+    participant POS as POS Terminal
+    participant Ben as Beneficiary<br/>(Anonymous)
+
+    Note over Agency,SC: SETUP — Register agency & allocate
+    Agency->>SC: registerAgency(agencyAddr)
+    SC->>SC: require(msg.sender == admin)
+    SC->>SC: authorizedAgencies[addr] = true
+    Agency->>SC: allocateAid(anonId, 500 USD)
+    SC->>SC: beneficiaries[anonId].allocatedAmount += 500
+
+    Note over Ben,POS: REDEMPTION — At refugee camp store
+    Ben->>POS: Iris scan → derives anonId
+    POS->>SC: disburseAid(anonId, 50 USD)
+    SC->>SC: require(authorizedAgencies[msg.sender])
+    SC->>SC: require(disbursed + 50 <= allocated)
+    SC->>SC: disbursedAmount += 50
+    SC->>SC: agencyDisbursements[anonId][agency] += 50
+    SC-->>POS: Emit AidDisbursed event
+    POS-->>Ben: Goods released ✓
+
+    Note over Agency,SC: AUDIT — Cross-agency duplicate check
+    Agency->>SC: checkDuplicateRisk(anonId)
+    SC-->>Agency: allocated: 500, disbursed: 50,<br/>remaining: 450
+    Note over Agency: Compare across agencies:<br/>Same anonId receiving from<br/>multiple sources? Flag it.

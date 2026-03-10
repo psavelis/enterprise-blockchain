@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant Manufacturer as Pharma Manufacturer
+    participant ML as MediLedger Network<br/>(Besu QBFT)
+    participant Wholesaler as Drug Wholesaler
+    participant Verifier as Verification Service
+
+    Manufacturer->>ML: Register product (NDC, serial, lot)
+    Manufacturer->>ML: Generate ZKP of product legitimacy
+    Wholesaler->>ML: Request verification (serial number)
+    ML->>ML: Execute ZKP verification contract
+    ML-->>Wholesaler: Verified ✓ (without revealing source data)
+    Wholesaler->>Verifier: Log DSCSA compliance event

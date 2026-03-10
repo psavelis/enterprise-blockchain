@@ -1,0 +1,16 @@
+graph LR
+    subgraph Industrial Site
+        D1[Sensor 1] --> GW[Edge Gateway<br/>Fabric Lite Peer]
+        D2[Sensor 2] --> GW
+        D3[Actuator] --> GW
+    end
+
+    GW -->|Device attestation tx| FN[Fabric Network<br/>Ordering + Endorsement]
+    FN -->|Policy check| SC[Chaincode:<br/>Device Identity Contract]
+    SC -->|Access granted/denied| GW
+    GW -->|Command| D3
+
+    ADMIN[Security Admin] -->|Update ACL policies| FN
+
+    style FN fill:#2196F3,color:#fff
+    style SC fill:#FF9800,color:#fff

@@ -1,0 +1,30 @@
+graph TD
+    subgraph "Raft (CFT) — Fabric Ordering"
+        R1[Leader Node] -->|AppendEntries| R2[Follower 1]
+        R1 -->|AppendEntries| R3[Follower 2]
+        R1 -->|AppendEntries| R4[Follower 3]
+        R1 -->|AppendEntries| R5[Follower 4]
+        R6["Fault Tolerance: (n-1)/2 crash failures<br/>5 nodes → tolerates 2 crashes<br/>No Byzantine protection"]
+    end
+
+    subgraph "QBFT (BFT) — Besu Consensus"
+        Q1[Proposer<br/>Round-Robin] -->|Pre-prepare| Q2[Validator 1]
+        Q1 -->|Pre-prepare| Q3[Validator 2]
+        Q1 -->|Pre-prepare| Q4[Validator 3]
+        Q2 -->|Prepare + Commit| Q5[2/3+ agreement → Block finalized]
+        Q3 -->|Prepare + Commit| Q5
+        Q4 -->|Prepare + Commit| Q5
+        Q6["Fault Tolerance: < n/3 Byzantine failures<br/>4 validators → tolerates 1 malicious<br/>Deterministic finality"]
+    end
+
+    subgraph "Notary (Pluggable) — Corda"
+        N1[Transaction Parties] -->|Request uniqueness check| N2[Notary Cluster]
+        N2 -->|Check: input states not consumed| N3{Already spent?}
+        N3 -->|No| N4[Sign + Finalize]
+        N3 -->|Yes| N5[Reject — double spend]
+        N6["Only checks uniqueness<br/>Does NOT see tx content<br/>Pluggable: Raft or BFT backend"]
+    end
+
+    style R6 fill:#fff,stroke:#4CAF50
+    style Q6 fill:#fff,stroke:#2196F3
+    style N6 fill:#fff,stroke:#9C27B0

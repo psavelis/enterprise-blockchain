@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant Brand as LVMH Brand
+    participant SC as LuxuryProductCertificate<br/>(ERC-721 on Besu)
+    participant Owner as First Owner
+    participant Buyer as Secondary Buyer
+
+    Note over Brand,SC: ISSUANCE — Brand mints certificate
+    Brand->>SC: issueCertificate(<br/>tokenId, firstOwner,<br/>brand, model, serial,<br/>materialOrigin, ipfsHash)
+    SC->>SC: Require: caller has BRAND_ROLE
+    SC->>SC: Store ProductCertificate struct
+    SC->>SC: _mint(firstOwner, tokenId)
+    SC->>SC: Push firstOwner to ownershipHistory[]
+    SC-->>Brand: Emit CertificateIssued event
+
+    Note over Owner,Buyer: TRANSFER — Ownership change
+    Owner->>SC: transferFrom(owner, buyer, tokenId)
+    SC->>SC: Verify: caller is owner or approved
+    SC->>SC: ERC-721 transfer
+    SC->>SC: Push buyer to ownershipHistory[]
+    SC-->>Owner: Emit OwnershipTransferred event
+
+    Note over Buyer,SC: VERIFICATION — Prove authenticity
+    Buyer->>SC: verifyCertificate(tokenId)
+    SC-->>Buyer: Return ProductCertificate struct<br/>(brand, model, serial, origin, ipfsHash)
+    Buyer->>SC: getOwnershipHistory(tokenId)
+    SC-->>Buyer: Return address[] full chain

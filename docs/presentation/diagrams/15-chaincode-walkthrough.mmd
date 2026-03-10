@@ -1,0 +1,32 @@
+sequenceDiagram
+    participant Client as Client App<br/>(Node.js SDK)
+    participant CC as FoodTraceContract<br/>(Chaincode)
+    participant WS as World State<br/>(CouchDB)
+    participant BL as Block Log<br/>(Immutable)
+
+    Note over Client,CC: CREATE — New product enters chain
+    Client->>CC: CreateProduct(gtin, origin, farm, date)
+    CC->>CC: Build product JSON<br/>{docType, gtin, origin, farm,<br/>status: HARVESTED, events: []}
+    CC->>WS: putState(gtin, productJSON)
+    CC->>CC: setEvent('ProductCreated', payload)
+    CC-->>Client: Return product JSON
+
+    Note over Client,CC: RECORD SHIPMENT — Track movement
+    Client->>CC: RecordShipment(gtin, carrier, temp, location)
+    CC->>WS: getState(gtin) → product
+    CC->>CC: product.status = 'IN_TRANSIT'
+    CC->>CC: product.events.push({<br/>type: SHIPMENT, carrier,<br/>temperature, location, txId})
+    CC->>WS: putState(gtin, updated)
+
+    Note over Client,CC: TRACE — Full provenance history
+    Client->>CC: TraceOrigin(gtin)
+    CC->>BL: getHistoryForKey(gtin)
+    BL-->>CC: Iterator of all versions
+    CC->>CC: Walk iterator → build history[]<br/>Each entry: {txId, timestamp, value}
+    CC-->>Client: Return full history JSON
+
+    Note over Client,CC: PRIVATE DATA — Sensitive pricing
+    Client->>CC: SetPrivatePricing(gtin)<br/>price in transient data map
+    CC->>CC: getTransient() → price bytes
+    CC->>WS: putPrivateData(<br/>'WalmartSupplierPrivateCollection',<br/>gtin_price, priceData)
+    Note over WS: Only Walmart + Supplier peers<br/>store actual data. Others get<br/>only the hash commitment.

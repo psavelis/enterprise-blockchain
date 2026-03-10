@@ -1,0 +1,23 @@
+graph TD
+    START[Enterprise Blockchain<br/>Decision] --> Q1{Multi-org<br/>consortium?}
+    Q1 -->|Yes| Q2{Need global<br/>state sharing?}
+    Q1 -->|No, bilateral| CORDA[R3 Corda<br/>Point-to-point]
+    Q2 -->|Yes| Q3{EVM/Solidity<br/>ecosystem?}
+    Q2 -->|No, per-channel| FABRIC[Hyperledger Fabric<br/>Channels + PDC]
+    Q3 -->|Yes| BESU[Hyperledger Besu<br/>QBFT Private Network]
+    Q3 -->|No| FABRIC
+
+    START --> Q4{Data integrity<br/>only? No smart<br/>contracts?}
+    Q4 -->|Yes| KSI[Guardtime KSI<br/>Hash-calendar]
+    Q4 -->|No| Q1
+
+    START --> Q5{Public<br/>anchoring<br/>needed?}
+    Q5 -->|Yes, credentials| BLOCKCERTS[Blockcerts<br/>Bitcoin/Ethereum]
+    Q5 -->|Yes, general| ALGORAND[Algorand / Public L1]
+
+    style FABRIC fill:#4CAF50,color:#fff
+    style BESU fill:#2196F3,color:#fff
+    style CORDA fill:#9C27B0,color:#fff
+    style KSI fill:#FF9800,color:#fff
+    style BLOCKCERTS fill:#F44336,color:#fff
+    style ALGORAND fill:#00BCD4,color:#fff
