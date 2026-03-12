@@ -23,18 +23,22 @@ jobs:
       matrix:
         suite:
           - id: core
+            order: 1
             name: Core validation
             command: npm run ci:core
             covers: TypeScript typecheck, unit tests, and primary business scenario examples
           - id: protocol-projections
+            order: 2
             name: Protocol projections
             command: npm run ci:protocol-projections
             covers: Fabric, Besu, and Corda protocol projection examples
           - id: demos
+            order: 3
             name: Demo scripts
             command: npm run ci:demos
             covers: Adapter projection demo and integration client demo outputs
           - id: integration-examples
+            order: 4
             name: Integration examples
             command: npm run ci:integration-examples
             covers: Fabric Gateway, Besu ethers, and Corda gateway integration entrypoints
@@ -64,6 +68,7 @@ jobs:
           cat <<EOF > ci-results/${{ matrix.suite.id }}.json
           {
             "id": "${{ matrix.suite.id }}",
+            "order": ${{ matrix.suite.order }},
             "name": "${{ matrix.suite.name }}",
             "command": "${{ matrix.suite.command }}",
             "covers": "${{ matrix.suite.covers }}",
@@ -105,7 +110,13 @@ jobs:
             const marker = '<!-- enterprise-blockchain-ci-report -->';
             const dir = path.join(process.cwd(), 'ci-results');
             const files = fs.readdirSync(dir).filter((file) => file.endsWith('.json')).sort();
-            const reports = files.map((file) => JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8')));
+            const reports = files
+              .map((file) => JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8')))
+              .sort((left, right) => {
+                const leftOrder = typeof left.order === 'number' ? left.order : Number.MAX_SAFE_INTEGER;
+                const rightOrder = typeof right.order === 'number' ? right.order : Number.MAX_SAFE_INTEGER;
+                return leftOrder - rightOrder || left.name.localeCompare(right.name);
+              });
 
             const passed = reports.filter((report) => report.outcome === 'success').length;
             const failed = reports.length - passed;
