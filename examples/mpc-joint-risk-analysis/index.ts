@@ -15,7 +15,7 @@ engine.registerParty({
 
 const partyIds = ["bank-meridian", "bank-hansa"];
 
-// Private risk metrics per bank (not revealed to the counterpart).
+// Private risk metrics per bank.
 const portfolioRisks: Record<
   string,
   { defaultRate: number; exposureUsd: number; avgCreditScore: number }
@@ -67,7 +67,9 @@ const exposureThreshold = engine.compute(
 
 console.log("MPC Joint Risk Analysis");
 
-console.log("\nAggregate metrics (individual portfolios not exposed):");
+console.log(
+  "\nAggregate metrics (built from per-bank reconstruction rounds in this demo):",
+);
 console.log(
   JSON.stringify(
     {

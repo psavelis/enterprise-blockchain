@@ -10,7 +10,7 @@
   "scripts": {
     "format": "prettier . --write --ignore-unknown",
     "format:check": "prettier . --check --ignore-unknown",
-    "lint": "eslint modules examples scripts tests --ext .ts --max-warnings=0",
+    "lint": "eslint modules examples scripts tests --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/**/*.test.ts",
     "examples": "tsx scripts/run-all-examples.ts",

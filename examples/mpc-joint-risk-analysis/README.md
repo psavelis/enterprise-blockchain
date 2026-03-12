@@ -1,11 +1,11 @@
 # MPC Joint Risk Analysis
 
-Two banks compute aggregate credit-risk metrics on overlapping portfolios using secret-shared inputs.
+Two banks model aggregate credit-risk reporting with secret-shared inputs and demo-time reconstruction of each bank's computation round.
 
 ## What it demonstrates
 
-- Secret-shared aggregation across institutions.
-- Portfolio metrics (default rates, exposure, credit scores) kept private.
+- Secret-sharing building blocks for cross-institution risk reporting.
+- Aggregate metrics derived from reconstructed per-bank rounds in the demo harness.
 - Threshold checks against regulatory limits.
 
 ## Run
