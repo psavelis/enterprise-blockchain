@@ -35,7 +35,9 @@ export interface FabricProposalPlan {
 }
 
 export class FabricGatewayClientSketch {
-  createProfileFromEnv(env: NodeJS.ProcessEnv = process.env): FabricGatewayProfile {
+  createProfileFromEnv(
+    env: NodeJS.ProcessEnv = process.env,
+  ): FabricGatewayProfile {
     const profile: FabricGatewayProfile = {
       mspId: getRequiredEnv("FABRIC_MSP_ID", env),
       channelName: getRequiredEnv("FABRIC_CHANNEL_NAME", env),
@@ -85,7 +87,9 @@ export class FabricGatewayClientSketch {
     return signers.newPrivateKeySigner(privateKey);
   }
 
-  async createGateway(profile: FabricGatewayProfile): Promise<{ gateway: Gateway; client: grpc.Client }> {
+  async createGateway(
+    profile: FabricGatewayProfile,
+  ): Promise<{ gateway: Gateway; client: grpc.Client }> {
     const client = await this.createGrpcClient(profile);
     const identity = await this.createIdentity(profile);
     const signer = await this.createSigner(profile);
@@ -130,11 +134,16 @@ export class FabricGatewayClientSketch {
         telemetryTimestamp: Buffer.from(input.telemetryTimestamp, "utf8"),
       },
       endorsingOrganizations: input.endorsingOrganizations,
-      payloadDigestHex: Buffer.from(hash.sha256(Buffer.from(payload, "utf8"))).toString("hex"),
+      payloadDigestHex: Buffer.from(
+        hash.sha256(Buffer.from(payload, "utf8")),
+      ).toString("hex"),
     };
   }
 
-  buildEvaluateRecallRequest(input: { lotId: string; reason: string }): FabricProposalPlan {
+  buildEvaluateRecallRequest(input: {
+    lotId: string;
+    reason: string;
+  }): FabricProposalPlan {
     const args = [input.lotId];
     const transientData = {
       recallReason: Buffer.from(input.reason, "utf8"),
@@ -153,7 +162,9 @@ export class FabricGatewayClientSketch {
       args,
       transientData,
       endorsingOrganizations: ["RetailerMSP", "SupplierMSP"],
-      payloadDigestHex: Buffer.from(hash.sha256(Buffer.from(payload, "utf8"))).toString("hex"),
+      payloadDigestHex: Buffer.from(
+        hash.sha256(Buffer.from(payload, "utf8")),
+      ).toString("hex"),
     };
   }
 }

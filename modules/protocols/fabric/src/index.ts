@@ -1,4 +1,8 @@
-import type { ProductLot, Shipment, TelemetryReading } from "../../../traceability/src/index";
+import type {
+  ProductLot,
+  Shipment,
+  TelemetryReading,
+} from "../../../traceability/src/index";
 
 export interface FabricInvocation {
   contract: string;
@@ -18,7 +22,10 @@ export class FabricTraceabilityAdapter {
     };
   }
 
-  recordShipmentCommand(shipment: Shipment, reading?: TelemetryReading): FabricInvocation {
+  recordShipmentCommand(
+    shipment: Shipment,
+    reading?: TelemetryReading,
+  ): FabricInvocation {
     const invocation: FabricInvocation = {
       contract: "FoodTraceContract",
       transaction: "RecordShipment",

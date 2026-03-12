@@ -39,7 +39,11 @@ export class CordaCredentialingAdapter {
     return {
       flow: "IssueProviderClearanceFlow",
       initiator: assignment.facility,
-      participants: [assignment.facility, assignment.providerId, "MedicalBoardObserver"],
+      participants: [
+        assignment.facility,
+        assignment.providerId,
+        "MedicalBoardObserver",
+      ],
       inputStateRefs: [],
       outputState: state,
       command: decision.approved ? "ApproveClearance" : "RejectClearance",

@@ -12,12 +12,12 @@ Use this repository for architecture reviews, interviews, and technical demonstr
 
 ## Primary Files By Scenario
 
-| Scenario | Scenario file | Domain logic | Protocol layer | Integration layer |
-|---|---|---|---|---|
-| Food recall response | `examples/food-recall-response/index.ts` | `modules/traceability/src/index.ts` | `modules/protocols/fabric/src/index.ts` | `modules/integrations/fabric-gateway/src/index.ts` |
-| Consortium order sharing | `examples/consortium-order-sharing/index.ts` | `modules/privacy/src/index.ts` | `modules/protocols/besu/src/index.ts` | `modules/integrations/besu-client/src/index.ts` |
-| Hospital staffing clearance | `examples/hospital-staffing-clearance/index.ts` | `modules/credentialing/src/index.ts` | `modules/protocols/corda/src/index.ts` | `modules/integrations/corda-gateway/src/index.ts` |
-| Aid voucher reconciliation | `examples/aid-voucher-reconciliation/index.ts` | `modules/aid-settlement/src/index.ts` | `docs/architecture/platform-decision-matrix.md` | `docs/architecture/integration-boundaries.md` |
+| Scenario                    | Scenario file                                   | Domain logic                          | Protocol layer                                  | Integration layer                                  |
+| --------------------------- | ----------------------------------------------- | ------------------------------------- | ----------------------------------------------- | -------------------------------------------------- |
+| Food recall response        | `examples/food-recall-response/index.ts`        | `modules/traceability/src/index.ts`   | `modules/protocols/fabric/src/index.ts`         | `modules/integrations/fabric-gateway/src/index.ts` |
+| Consortium order sharing    | `examples/consortium-order-sharing/index.ts`    | `modules/privacy/src/index.ts`        | `modules/protocols/besu/src/index.ts`           | `modules/integrations/besu-client/src/index.ts`    |
+| Hospital staffing clearance | `examples/hospital-staffing-clearance/index.ts` | `modules/credentialing/src/index.ts`  | `modules/protocols/corda/src/index.ts`          | `modules/integrations/corda-gateway/src/index.ts`  |
+| Aid voucher reconciliation  | `examples/aid-voucher-reconciliation/index.ts`  | `modules/aid-settlement/src/index.ts` | `docs/architecture/platform-decision-matrix.md` | `docs/architecture/integration-boundaries.md`      |
 
 ## Recommended Demo Flow
 

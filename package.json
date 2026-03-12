@@ -8,16 +8,19 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "format": "prettier . --write --ignore-unknown",
+    "format:check": "prettier . --check --ignore-unknown",
+    "lint": "eslint modules examples scripts tests --ext .ts --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/**/*.test.ts",
     "examples": "tsx scripts/run-all-examples.ts",
     "demo:adapters": "tsx scripts/adapter-projections-demo.ts",
     "demo:integrations": "tsx scripts/integration-clients-demo.ts",
-    "ci:core": "npm run typecheck && npm run test && npm run examples",
+    "ci:core": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run examples",
     "ci:protocol-projections": "npm run example:fabric-projection && npm run example:besu-projection && npm run example:corda-projection",
     "ci:demos": "npm run demo:adapters && npm run demo:integrations",
     "ci:integration-examples": "npm run example:fabric-gateway && npm run example:besu-ethers && npm run example:corda-rest",
-    "verify": "npm run typecheck && npm run test && npm run examples",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run examples",
     "example:food-recall": "tsx examples/food-recall-response/index.ts",
     "example:order-sharing": "tsx examples/consortium-order-sharing/index.ts",
     "example:staffing-clearance": "tsx examples/hospital-staffing-clearance/index.ts",
@@ -38,8 +41,14 @@
     "ethers": "^6.16.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.13.10",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.57.0"
   }
 }

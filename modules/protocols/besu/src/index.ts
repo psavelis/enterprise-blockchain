@@ -1,4 +1,7 @@
-import type { PurchaseOrder, SharedOrderView } from "../../../privacy/src/index";
+import type {
+  PurchaseOrder,
+  SharedOrderView,
+} from "../../../privacy/src/index";
 
 export interface BesuContractCall {
   contractName: string;
@@ -23,7 +26,12 @@ export class BesuSelectiveDisclosureAdapter {
     return {
       contractName: "ConsortiumOrderRegistry",
       method: "publishAudienceView",
-      args: [view.orderId, view.audience, JSON.stringify(view.data), view.auditProof],
+      args: [
+        view.orderId,
+        view.audience,
+        JSON.stringify(view.data),
+        view.auditProof,
+      ],
       privacyGroup: `view-${view.audience}`,
       note: "Distribute a role-specific payload to the appropriate privacy group.",
     };

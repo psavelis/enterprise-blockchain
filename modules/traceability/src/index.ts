@@ -68,7 +68,9 @@ export class TraceabilityLedger {
     for (const lot of this.lots.values()) {
       if (rule.flaggedLotIds.includes(lot.id)) {
         impactedLotIds.add(lot.id);
-        reasons.add(`Lot ${lot.id} was explicitly flagged by quality assurance.`);
+        reasons.add(
+          `Lot ${lot.id} was explicitly flagged by quality assurance.`,
+        );
       }
 
       if (rule.suspectSuppliers.includes(lot.supplier)) {

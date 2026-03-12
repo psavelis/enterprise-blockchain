@@ -33,24 +33,24 @@
 
 ## 1. Protocol & Platform Reference Matrix
 
-| Platform | Data Model | Consensus (Default) | Smart Contract Language | Privacy Model | Tx Finality |
-|---|---|---|---|---|---|
-| **Hyperledger Fabric** | Key-Value (World State) + Block log | Raft (CFT) / SmartBFT | Go, Node.js, Java (Chaincode) | Channels + Private Data Collections | Deterministic (immediate) |
-| **Hyperledger Besu** | Account-based (EVM) | QBFT (BFT), IBFT 2.0 | Solidity, Vyper | Privacy Groups (Tessera) | Deterministic in PoA |
-| **R3 Corda** | UTXO-like (States) | Notary (pluggable: Raft, BFT) | Kotlin, Java (CorDapps) | Point-to-point (need-to-know) | Notary-finalized |
-| **Guardtime KSI** | Hash-chain (Merkle calendar) | Custom hash-calendar | N/A (data integrity layer) | Off-chain data, on-chain hashes | Mathematically provable |
-| **Algorand** | Account-based | Pure Proof of Stake (PPoS) | TEAL / PyTeal / ARC-4 | Public (layer-2 for privacy) | Instant (~3.3s) |
-| **Bitcoin (Blockcerts)** | UTXO | Proof of Work (Nakamoto) | Script (OP_RETURN) | Pseudonymous | Probabilistic (~6 blocks) |
+| Platform                 | Data Model                          | Consensus (Default)           | Smart Contract Language       | Privacy Model                       | Tx Finality               |
+| ------------------------ | ----------------------------------- | ----------------------------- | ----------------------------- | ----------------------------------- | ------------------------- |
+| **Hyperledger Fabric**   | Key-Value (World State) + Block log | Raft (CFT) / SmartBFT         | Go, Node.js, Java (Chaincode) | Channels + Private Data Collections | Deterministic (immediate) |
+| **Hyperledger Besu**     | Account-based (EVM)                 | QBFT (BFT), IBFT 2.0          | Solidity, Vyper               | Privacy Groups (Tessera)            | Deterministic in PoA      |
+| **R3 Corda**             | UTXO-like (States)                  | Notary (pluggable: Raft, BFT) | Kotlin, Java (CorDapps)       | Point-to-point (need-to-know)       | Notary-finalized          |
+| **Guardtime KSI**        | Hash-chain (Merkle calendar)        | Custom hash-calendar          | N/A (data integrity layer)    | Off-chain data, on-chain hashes     | Mathematically provable   |
+| **Algorand**             | Account-based                       | Pure Proof of Stake (PPoS)    | TEAL / PyTeal / ARC-4         | Public (layer-2 for privacy)        | Instant (~3.3s)           |
+| **Bitcoin (Blockcerts)** | UTXO                                | Proof of Work (Nakamoto)      | Script (OP_RETURN)            | Pseudonymous                        | Probabilistic (~6 blocks) |
 
 ### Key References
 
-| Platform | Documentation | GitHub | Community |
-|---|---|---|---|
-| Hyperledger Fabric | [fabric.readthedocs.io](https://hyperledger-fabric.readthedocs.io/en/latest/) | [hyperledger/fabric](https://github.com/hyperledger/fabric) | [Discord](https://discord.com/invite/hyperledger) |
-| Hyperledger Besu | [besu.hyperledger.org](https://besu.hyperledger.org/) | [hyperledger/besu](https://github.com/hyperledger/besu/) | [Discord](https://discord.gg/hyperledger) |
-| R3 Corda | [docs.r3.com](https://docs.r3.com/en/platform/corda/4.12/community.html) | [corda/corda-runtime-os](https://github.com/corda/corda-runtime-os) | [Slack](https://join.slack.com/t/cordaledger/shared_invite/zt-1t1dsbs9z) |
-| Algorand | [developer.algorand.org](https://developer.algorand.org/docs/) | [algorand/go-algorand](https://github.com/algorand/go-algorand) | [Discord](https://discord.gg/algorand) |
-| Blockcerts | [blockcerts.org](https://www.blockcerts.org/) | [blockchain-certificates](https://github.com/blockchain-certificates) | [Forum](http://community.blockcerts.org/) |
+| Platform           | Documentation                                                                 | GitHub                                                                | Community                                                                |
+| ------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Hyperledger Fabric | [fabric.readthedocs.io](https://hyperledger-fabric.readthedocs.io/en/latest/) | [hyperledger/fabric](https://github.com/hyperledger/fabric)           | [Discord](https://discord.com/invite/hyperledger)                        |
+| Hyperledger Besu   | [besu.hyperledger.org](https://besu.hyperledger.org/)                         | [hyperledger/besu](https://github.com/hyperledger/besu/)              | [Discord](https://discord.gg/hyperledger)                                |
+| R3 Corda           | [docs.r3.com](https://docs.r3.com/en/platform/corda/4.12/community.html)      | [corda/corda-runtime-os](https://github.com/corda/corda-runtime-os)   | [Slack](https://join.slack.com/t/cordaledger/shared_invite/zt-1t1dsbs9z) |
+| Algorand           | [developer.algorand.org](https://developer.algorand.org/docs/)                | [algorand/go-algorand](https://github.com/algorand/go-algorand)       | [Discord](https://discord.gg/algorand)                                   |
+| Blockcerts         | [blockcerts.org](https://www.blockcerts.org/)                                 | [blockchain-certificates](https://github.com/blockchain-certificates) | [Forum](http://community.blockcerts.org/)                                |
 
 ---
 
@@ -153,96 +153,102 @@ World State (CouchDB):
 ```javascript
 // SPDX-License-Identifier: Apache-2.0
 // Hyperledger Fabric Chaincode — Food Trace Contract
-'use strict';
+"use strict";
 
-const { Contract } = require('fabric-contract-api');
+const { Contract } = require("fabric-contract-api");
 
 class FoodTraceContract extends Contract {
+  async CreateProduct(ctx, gtin, origin, farm, harvestDate) {
+    const product = {
+      docType: "product",
+      gtin,
+      origin,
+      farm,
+      harvestDate,
+      status: "HARVESTED",
+      events: [],
+      timestamp: ctx.stub.getTxTimestamp().seconds.low,
+    };
 
-    async CreateProduct(ctx, gtin, origin, farm, harvestDate) {
-        const product = {
-            docType: 'product',
-            gtin,
-            origin,
-            farm,
-            harvestDate,
-            status: 'HARVESTED',
-            events: [],
-            timestamp: ctx.stub.getTxTimestamp().seconds.low
-        };
+    // Endorsement policy: AND('WalmartMSP.peer', 'SupplierMSP.peer')
+    await ctx.stub.putState(gtin, Buffer.from(JSON.stringify(product)));
 
-        // Endorsement policy: AND('WalmartMSP.peer', 'SupplierMSP.peer')
-        await ctx.stub.putState(gtin, Buffer.from(JSON.stringify(product)));
+    // Emit event for downstream consumers
+    ctx.stub.setEvent(
+      "ProductCreated",
+      Buffer.from(
+        JSON.stringify({
+          gtin,
+          origin,
+          farm,
+        }),
+      ),
+    );
 
-        // Emit event for downstream consumers
-        ctx.stub.setEvent('ProductCreated', Buffer.from(JSON.stringify({
-            gtin, origin, farm
-        })));
+    return JSON.stringify(product);
+  }
 
-        return JSON.stringify(product);
+  async RecordShipment(ctx, gtin, carrier, temperature, location) {
+    const productJSON = await ctx.stub.getState(gtin);
+    if (!productJSON || productJSON.length === 0) {
+      throw new Error(`Product ${gtin} does not exist`);
     }
 
-    async RecordShipment(ctx, gtin, carrier, temperature, location) {
-        const productJSON = await ctx.stub.getState(gtin);
-        if (!productJSON || productJSON.length === 0) {
-            throw new Error(`Product ${gtin} does not exist`);
-        }
+    const product = JSON.parse(productJSON.toString());
+    product.status = "IN_TRANSIT";
+    product.events.push({
+      type: "SHIPMENT",
+      carrier,
+      temperature,
+      location,
+      timestamp: ctx.stub.getTxTimestamp().seconds.low,
+      txId: ctx.stub.getTxID(),
+    });
 
-        const product = JSON.parse(productJSON.toString());
-        product.status = 'IN_TRANSIT';
-        product.events.push({
-            type: 'SHIPMENT',
-            carrier,
-            temperature,
-            location,
-            timestamp: ctx.stub.getTxTimestamp().seconds.low,
-            txId: ctx.stub.getTxID()
-        });
+    await ctx.stub.putState(gtin, Buffer.from(JSON.stringify(product)));
+    return JSON.stringify(product);
+  }
 
-        await ctx.stub.putState(gtin, Buffer.from(JSON.stringify(product)));
-        return JSON.stringify(product);
+  async TraceOrigin(ctx, gtin) {
+    // Rich query using CouchDB (JSON query)
+    const product = await ctx.stub.getState(gtin);
+    if (!product || product.length === 0) {
+      throw new Error(`Product ${gtin} does not exist`);
     }
 
-    async TraceOrigin(ctx, gtin) {
-        // Rich query using CouchDB (JSON query)
-        const product = await ctx.stub.getState(gtin);
-        if (!product || product.length === 0) {
-            throw new Error(`Product ${gtin} does not exist`);
-        }
+    // Return full history using getHistoryForKey
+    const history = [];
+    const iterator = await ctx.stub.getHistoryForKey(gtin);
+    let result = await iterator.next();
 
-        // Return full history using getHistoryForKey
-        const history = [];
-        const iterator = await ctx.stub.getHistoryForKey(gtin);
-        let result = await iterator.next();
-
-        while (!result.done) {
-            const record = {
-                txId: result.value.txId,
-                timestamp: result.value.timestamp,
-                isDelete: result.value.isDelete,
-                value: JSON.parse(result.value.value.toString('utf8'))
-            };
-            history.push(record);
-            result = await iterator.next();
-        }
-        await iterator.close();
-
-        return JSON.stringify(history);
+    while (!result.done) {
+      const record = {
+        txId: result.value.txId,
+        timestamp: result.value.timestamp,
+        isDelete: result.value.isDelete,
+        value: JSON.parse(result.value.value.toString("utf8")),
+      };
+      history.push(record);
+      result = await iterator.next();
     }
+    await iterator.close();
 
-    // Private Data Collection — share sensitive pricing only between
-    // Walmart and a specific supplier (not all channel members)
-    async SetPrivatePricing(ctx, gtin, price) {
-        const transientData = ctx.stub.getTransient();
-        const priceData = transientData.get('price');
+    return JSON.stringify(history);
+  }
 
-        // Stored in private data collection (off-chain from other orgs)
-        await ctx.stub.putPrivateData(
-            'WalmartSupplierPrivateCollection',
-            `${gtin}_price`,
-            priceData
-        );
-    }
+  // Private Data Collection — share sensitive pricing only between
+  // Walmart and a specific supplier (not all channel members)
+  async SetPrivatePricing(ctx, gtin, price) {
+    const transientData = ctx.stub.getTransient();
+    const priceData = transientData.get("price");
+
+    // Stored in private data collection (off-chain from other orgs)
+    await ctx.stub.putPrivateData(
+      "WalmartSupplierPrivateCollection",
+      `${gtin}_price`,
+      priceData,
+    );
+  }
 }
 
 module.exports = FoodTraceContract;
@@ -257,15 +263,15 @@ Fabric **Private Data Collections** allow subsets of channel members to share co
 ```yaml
 # collections_config.json
 [
-    {
-        "name": "WalmartSupplierPrivateCollection",
-        "policy": "OR('WalmartMSP.member', 'SupplierMSP.member')",
-        "requiredPeerCount": 1,
-        "maxPeerCount": 3,
-        "blockToLive": 0,
-        "memberOnlyRead": true,
-        "memberOnlyWrite": true
-    }
+  {
+    "name": "WalmartSupplierPrivateCollection",
+    "policy": "OR('WalmartMSP.member', 'SupplierMSP.member')",
+    "requiredPeerCount": 1,
+    "maxPeerCount": 3,
+    "blockToLive": 0,
+    "memberOnlyRead": true,
+    "memberOnlyWrite": true,
+  },
 ]
 ```
 
@@ -285,16 +291,16 @@ Fabric **Private Data Collections** allow subsets of channel members to share co
 
 #### References
 
-| Resource | Link |
-|---|---|
-| Fabric Documentation | [hyperledger-fabric.readthedocs.io](https://hyperledger-fabric.readthedocs.io/en/latest/) |
-| Fabric Samples (GitHub) | [hyperledger/fabric-samples](https://github.com/hyperledger/fabric-samples) |
-| Transaction Flow | [Fabric Tx Flow](https://hyperledger-fabric.readthedocs.io/en/latest/txflow.html) |
-| Private Data | [Private Data Arch](https://hyperledger-fabric.readthedocs.io/en/latest/private-data-arch.html) |
-| Ordering Service | [Ordering Service Docs](https://hyperledger-fabric.readthedocs.io/en/latest/orderer/ordering_service.html) |
-| Raft Protocol Paper | [raft.github.io](https://raft.github.io/raft.pdf) |
-| SmartBFT Paper | [arXiv:2107.06922](https://arxiv.org/abs/2107.06922) |
-| Fabric Gateway | [Gateway Docs](https://hyperledger-fabric.readthedocs.io/en/latest/gateway.html) |
+| Resource                | Link                                                                                                       |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Fabric Documentation    | [hyperledger-fabric.readthedocs.io](https://hyperledger-fabric.readthedocs.io/en/latest/)                  |
+| Fabric Samples (GitHub) | [hyperledger/fabric-samples](https://github.com/hyperledger/fabric-samples)                                |
+| Transaction Flow        | [Fabric Tx Flow](https://hyperledger-fabric.readthedocs.io/en/latest/txflow.html)                          |
+| Private Data            | [Private Data Arch](https://hyperledger-fabric.readthedocs.io/en/latest/private-data-arch.html)            |
+| Ordering Service        | [Ordering Service Docs](https://hyperledger-fabric.readthedocs.io/en/latest/orderer/ordering_service.html) |
+| Raft Protocol Paper     | [raft.github.io](https://raft.github.io/raft.pdf)                                                          |
+| SmartBFT Paper          | [arXiv:2107.06922](https://arxiv.org/abs/2107.06922)                                                       |
+| Fabric Gateway          | [Gateway Docs](https://hyperledger-fabric.readthedocs.io/en/latest/gateway.html)                           |
 
 ---
 
@@ -424,11 +430,11 @@ func (c *DiamondContract) TransferCustody(ctx contractapi.TransactionContextInte
 
 #### References
 
-| Resource | Link |
-|---|---|
-| Everledger Platform | [everledger.io](https://everledger.io/) |
+| Resource               | Link                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| Everledger Platform    | [everledger.io](https://everledger.io/)                                         |
 | Fabric Go Contract API | [fabric-contract-api-go](https://github.com/hyperledger/fabric-contract-api-go) |
-| GS1 EPCIS Standard | [gs1.org/epcis](https://www.gs1.org/standards/epcis) |
+| GS1 EPCIS Standard     | [gs1.org/epcis](https://www.gs1.org/standards/epcis)                            |
 
 ---
 
@@ -441,6 +447,7 @@ func (c *DiamondContract) TransferCustody(ctx contractapi.TransactionContextInte
 #### Technical Motivation: Why Ethereum-Based
 
 Luxury brands chose an EVM-compatible platform because:
+
 1. **NFT-like digital certificates**: ERC-721-style token per product, representing a unique certificate of authenticity.
 2. **Account-based model**: Natural fit for ownership transfer semantics (account A → account B).
 3. **Solidity ecosystem**: Mature tooling (Hardhat, OpenZeppelin, Ethers.js).
@@ -458,20 +465,20 @@ QBFT is the recommended PoA consensus for Hyperledger Besu private networks. It 
 ```json
 // QBFT Genesis configuration (Hyperledger Besu)
 {
-    "config": {
-        "chainId": 2025,
-        "berlinBlock": 0,
-        "qbft": {
-            "epochlength": 30000,
-            "blockperiodseconds": 5,
-            "requesttimeoutseconds": 10
-        }
-    },
-    "nonce": "0x0",
-    "timestamp": "0x5b3d92d7",
-    "gasLimit": "0x29b92700",
-    "difficulty": "0x1",
-    "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365"
+  "config": {
+    "chainId": 2025,
+    "berlinBlock": 0,
+    "qbft": {
+      "epochlength": 30000,
+      "blockperiodseconds": 5,
+      "requesttimeoutseconds": 10
+    }
+  },
+  "nonce": "0x0",
+  "timestamp": "0x5b3d92d7",
+  "gasLimit": "0x29b92700",
+  "difficulty": "0x1",
+  "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365"
 }
 ```
 
@@ -578,15 +585,15 @@ besu --data-path=data \
 
 #### References
 
-| Resource | Link |
-|---|---|
-| Aura Blockchain Consortium | [auraluxuryblockchain.com](https://auraluxuryblockchain.com/) |
-| Hyperledger Besu Docs | [besu.hyperledger.org](https://besu.hyperledger.org/) |
-| Besu GitHub | [hyperledger/besu](https://github.com/hyperledger/besu/) |
-| QBFT Consensus Config | [QBFT Docs](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft) |
-| Besu Private Networks | [Private Networks](https://besu.hyperledger.org/private-networks) |
-| OpenZeppelin Contracts | [openzeppelin.com/contracts](https://www.openzeppelin.com/contracts) |
-| ConsenSys | [consensys.io](https://consensys.io/) |
+| Resource                   | Link                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------ |
+| Aura Blockchain Consortium | [auraluxuryblockchain.com](https://auraluxuryblockchain.com/)                              |
+| Hyperledger Besu Docs      | [besu.hyperledger.org](https://besu.hyperledger.org/)                                      |
+| Besu GitHub                | [hyperledger/besu](https://github.com/hyperledger/besu/)                                   |
+| QBFT Consensus Config      | [QBFT Docs](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft) |
+| Besu Private Networks      | [Private Networks](https://besu.hyperledger.org/private-networks)                          |
+| OpenZeppelin Contracts     | [openzeppelin.com/contracts](https://www.openzeppelin.com/contracts)                       |
+| ConsenSys                  | [consensys.io](https://consensys.io/)                                                      |
 
 ---
 
@@ -614,9 +621,9 @@ This approach makes **mass-balance accounting** transparent and auditable: if a 
 
 #### References
 
-| Resource | Link |
-|---|---|
-| TextileGenesis Platform | [textilegenesis.com](https://textilegenesis.com/) |
+| Resource                  | Link                                                                                                  |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| TextileGenesis Platform   | [textilegenesis.com](https://textilegenesis.com/)                                                     |
 | Fjällräven Sustainability | [fjallraven.com/sustainability](https://www.fjallraven.com/us/en-us/about-fjallraven/sustainability/) |
 
 ---
@@ -632,8 +639,8 @@ Tracr assigns each diamond a **unique digital identity** at the point of extract
 
 #### References
 
-| Resource | Link |
-|---|---|
+| Resource       | Link                                |
+| -------------- | ----------------------------------- |
 | Tracr Platform | [tracr.com](https://www.tracr.com/) |
 
 ---
@@ -648,6 +655,7 @@ Tracr assigns each diamond a **unique digital identity** at the point of extract
 #### Technical Motivation
 
 MediLedger chose an EVM-based platform for:
+
 1. **Zero-Knowledge Proofs (ZKPs)**: Verify drug authenticity and legitimacy without revealing proprietary business data. Each participant can prove a product is genuine without exposing pricing, quantities, or routing.
 2. **Intercompany messaging**: Smart contracts serve as a shared business rules engine between pharma manufacturers, wholesalers, and dispensers.
 3. **Account-based model**: Natural for tracking organizational permissions and contract states.
@@ -671,11 +679,11 @@ sequenceDiagram
 
 #### References
 
-| Resource | Link |
-|---|---|
-| MediLedger Network | [mediledger.com](https://www.mediledger.com/) |
+| Resource           | Link                                                                                                        |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| MediLedger Network | [mediledger.com](https://www.mediledger.com/)                                                               |
 | DSCSA Requirements | [fda.gov/dscsa](https://www.fda.gov/drugs/drug-supply-chain-integrity/drug-supply-chain-security-act-dscsa) |
-| Hyperledger Besu | [besu.hyperledger.org](https://besu.hyperledger.org/) |
+| Hyperledger Besu   | [besu.hyperledger.org](https://besu.hyperledger.org/)                                                       |
 
 ---
 
@@ -835,12 +843,12 @@ class IssueCredentialFlow(
 
 #### References
 
-| Resource | Link |
-|---|---|
-| Corda Documentation | [docs.r3.com](https://docs.r3.com/en/platform/corda/4.12/community.html) |
-| Corda GitHub | [corda/corda-runtime-os](https://github.com/corda/corda-runtime-os) |
-| Corda Key Concepts | [Key Concepts](https://docs.r3.com/en/platform/corda/4.12/community/key-concepts-states.html) |
-| Corda Samples | [corda/samples-kotlin](https://github.com/corda/samples-kotlin) |
+| Resource            | Link                                                                                          |
+| ------------------- | --------------------------------------------------------------------------------------------- |
+| Corda Documentation | [docs.r3.com](https://docs.r3.com/en/platform/corda/4.12/community.html)                      |
+| Corda GitHub        | [corda/corda-runtime-os](https://github.com/corda/corda-runtime-os)                           |
+| Corda Key Concepts  | [Key Concepts](https://docs.r3.com/en/platform/corda/4.12/community/key-concepts-states.html) |
+| Corda Samples       | [corda/samples-kotlin](https://github.com/corda/samples-kotlin)                               |
 
 ---
 
@@ -855,8 +863,8 @@ BurstIQ's "LifeGraph" combines blockchain-secured consent records with off-chain
 
 #### References
 
-| Resource | Link |
-|---|---|
+| Resource         | Link                                    |
+| ---------------- | --------------------------------------- |
 | BurstIQ Platform | [burstiq.com](https://www.burstiq.com/) |
 
 ---
@@ -905,13 +913,13 @@ graph TB
 
 #### Key Technical Properties
 
-| Property | Description |
-|---|---|
-| **Keyless** | No long-lived cryptographic keys needed for verification — removes key management risk. |
+| Property               | Description                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| **Keyless**            | No long-lived cryptographic keys needed for verification — removes key management risk.            |
 | **Post-quantum ready** | Security relies on hash functions (not RSA/ECC), making it resistant to quantum computing attacks. |
-| **O(1) verification** | Verification time is constant regardless of history length — no need to replay the chain. |
-| **Data privacy** | Only hashes are on-chain. Full data stays in source systems. GDPR-compliant by design. |
-| **Scale** | Processes billions of hash operations per second across Estonian government systems. |
+| **O(1) verification**  | Verification time is constant regardless of history length — no need to replay the chain.          |
+| **Data privacy**       | Only hashes are on-chain. Full data stays in source systems. GDPR-compliant by design.             |
+| **Scale**              | Processes billions of hash operations per second across Estonian government systems.               |
 
 #### Verification Process
 
@@ -924,7 +932,7 @@ import hashlib
 def verify_ksi_signature(record_data: str, ksi_signature: dict) -> bool:
     """
     Verify that a record has not been tampered with since signing.
-    
+
     KSI signatures contain:
     1. The hash chain path from the record to the calendar root
     2. The publication reference (newspaper, NIST)
@@ -946,7 +954,7 @@ def verify_ksi_signature(record_data: str, ksi_signature: dict) -> bool:
 
     # Step 3: Compare against the published calendar value
     published_root = ksi_signature['publication_hash']
-    
+
     return computed_root == published_root
     # If True → data integrity is mathematically proven
     # If False → data has been tampered with
@@ -960,12 +968,12 @@ def verify_ksi_signature(record_data: str, ksi_signature: dict) -> bool:
 
 #### References
 
-| Resource | Link |
-|---|---|
+| Resource                 | Link                                                                                           |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
 | e-Estonia KSI Blockchain | [e-estonia.com/ksi-blockchain](https://e-estonia.com/solutions/cyber-security/ksi-blockchain/) |
-| Guardtime | [guardtime.com](https://guardtime.com/) |
-| KSI Technology Paper | [Guardtime KSI Whitepaper](https://guardtime.com/technology) |
-| e-Estonia Platform | [e-estonia.com](https://e-estonia.com/) |
+| Guardtime                | [guardtime.com](https://guardtime.com/)                                                        |
+| KSI Technology Paper     | [Guardtime KSI Whitepaper](https://guardtime.com/technology)                                   |
+| e-Estonia Platform       | [e-estonia.com](https://e-estonia.com/)                                                        |
 
 ---
 
@@ -987,9 +995,9 @@ def verify_ksi_signature(record_data: str, ksi_signature: dict) -> bool:
 
 #### References
 
-| Resource | Link |
-|---|---|
-| Smart Dubai | [smartdubai.ae](https://www.smartdubai.ae/) |
+| Resource                | Link                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| Smart Dubai             | [smartdubai.ae](https://www.smartdubai.ae/)                                      |
 | UAE Blockchain Strategy | [government.ae](https://u.ae/en/about-the-uae/digital-uae/blockchain-in-the-uae) |
 
 ---
@@ -1102,23 +1110,23 @@ contract HumanitarianAidLedger {
 
 #### Key Outcomes (as of 2025–2026)
 
-| Metric | Value |
-|---|---|
-| People served | > 6 million |
-| Transactions processed | > 40 million |
-| Value processed | > USD 760 million |
-| Bank fees saved | > USD 3.5 million |
+| Metric                                    | Value             |
+| ----------------------------------------- | ----------------- |
+| People served                             | > 6 million       |
+| Transactions processed                    | > 40 million      |
+| Value processed                           | > USD 760 million |
+| Bank fees saved                           | > USD 3.5 million |
 | Duplicate aid prevented (Ukraine + Syria) | > USD 287 million |
-| Participating organizations | 159+ |
+| Participating organizations               | 159+              |
 
 #### References
 
-| Resource | Link |
-|---|---|
-| WFP Building Blocks | [innovation.wfp.org/building-blocks](https://innovation.wfp.org/project/building-blocks) |
-| WFP Innovation | [innovation.wfp.org](https://innovation.wfp.org/) |
+| Resource                                                  | Link                                                                                                                             |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| WFP Building Blocks                                       | [innovation.wfp.org/building-blocks](https://innovation.wfp.org/project/building-blocks)                                         |
+| WFP Innovation                                            | [innovation.wfp.org](https://innovation.wfp.org/)                                                                                |
 | Medium — 3 Ways Blockchain Enhances Humanitarian Response | [Medium Article](https://wfpinnovation.medium.com/3-ways-that-blockchain-innovation-is-enhancing-humanitarian-work-e40dd3e85dee) |
-| Blockchain Against Hunger | [WFP Blog](https://innovation.wfp.org/blog/blockchain-against-hunger-harnessing-technology-support-syrian-refugees) |
+| Blockchain Against Hunger                                 | [WFP Blog](https://innovation.wfp.org/blog/blockchain-against-hunger-harnessing-technology-support-syrian-refugees)              |
 
 ---
 
@@ -1182,35 +1190,37 @@ The `OP_RETURN` output is an **unspendable** output that permanently embeds data
 
 ```json
 {
-    "@context": [
-        "https://www.w3.org/2018/credentials/v1",
-        "https://w3id.org/blockcerts/v3"
-    ],
-    "id": "urn:uuid:bbba8553-8ec1-445f-82c9-a57251dd731c",
-    "type": ["VerifiableCredential", "BlockcertsCredential"],
-    "issuer": "did:ion:EiA_Z6LQILbB2zj_eVrqfQ2xDm4HNqeJUw5Kj2Z7bFOOeQ",
-    "issuanceDate": "2026-01-15T00:00:00Z",
-    "credentialSubject": {
-        "id": "did:example:ebfeb1f712ebc6f1c276e12ec21",
-        "name": "Jane Smith",
-        "degree": {
-            "type": "MasterDegree",
-            "name": "Master of Science in Computer Science",
-            "college": "MIT — School of Engineering"
-        }
-    },
-    "proof": {
-        "type": "MerkleProof2019",
-        "created": "2026-01-15T00:00:00Z",
-        "proofValue": "z2LkWs...base58-encoded-merkle-proof",
-        "proofPurpose": "assertionMethod",
-        "verificationMethod": "did:ion:EiA_Z6LQILbB2zj_eVrqfQ2xDm4HNqeJUw5Kj2Z7bFOOeQ#key-1",
-        "anchors": [{
-            "sourceId": "d75b7a5bdb3d5244b753e6b84e987267cfa4ffa7a532a2ed49ad3848be1d82f8",
-            "type": "BTCOpReturn",
-            "chain": "bitcoinMainnet"
-        }]
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1",
+    "https://w3id.org/blockcerts/v3"
+  ],
+  "id": "urn:uuid:bbba8553-8ec1-445f-82c9-a57251dd731c",
+  "type": ["VerifiableCredential", "BlockcertsCredential"],
+  "issuer": "did:ion:EiA_Z6LQILbB2zj_eVrqfQ2xDm4HNqeJUw5Kj2Z7bFOOeQ",
+  "issuanceDate": "2026-01-15T00:00:00Z",
+  "credentialSubject": {
+    "id": "did:example:ebfeb1f712ebc6f1c276e12ec21",
+    "name": "Jane Smith",
+    "degree": {
+      "type": "MasterDegree",
+      "name": "Master of Science in Computer Science",
+      "college": "MIT — School of Engineering"
     }
+  },
+  "proof": {
+    "type": "MerkleProof2019",
+    "created": "2026-01-15T00:00:00Z",
+    "proofValue": "z2LkWs...base58-encoded-merkle-proof",
+    "proofPurpose": "assertionMethod",
+    "verificationMethod": "did:ion:EiA_Z6LQILbB2zj_eVrqfQ2xDm4HNqeJUw5Kj2Z7bFOOeQ#key-1",
+    "anchors": [
+      {
+        "sourceId": "d75b7a5bdb3d5244b753e6b84e987267cfa4ffa7a532a2ed49ad3848be1d82f8",
+        "type": "BTCOpReturn",
+        "chain": "bitcoinMainnet"
+      }
+    ]
+  }
 }
 ```
 
@@ -1245,27 +1255,29 @@ Blockcerts v3 uses **Decentralized Identifiers (DIDs)** for issuer identity, ena
 
 ```json
 {
-    "id": "did:ion:EiA_Z6LQILbB2zj_eVrqfQ2xDm4HNqeJUw5Kj2Z7bFOOeQ",
-    "service": [{
-        "id": "#service-1",
-        "type": "IssuerProfile",
-        "serviceEndpoint": "https://www.blockcerts.org/samples/3.0/issuer-blockcerts.json"
-    }]
+  "id": "did:ion:EiA_Z6LQILbB2zj_eVrqfQ2xDm4HNqeJUw5Kj2Z7bFOOeQ",
+  "service": [
+    {
+      "id": "#service-1",
+      "type": "IssuerProfile",
+      "serviceEndpoint": "https://www.blockcerts.org/samples/3.0/issuer-blockcerts.json"
+    }
+  ]
 }
 ```
 
 #### References
 
-| Resource | Link |
-|---|---|
-| Blockcerts Standard | [blockcerts.org](https://www.blockcerts.org/) |
-| cert-issuer (GitHub) | [blockchain-certificates/cert-issuer](https://github.com/blockchain-certificates/cert-issuer) |
-| cert-verifier-js | [blockchain-certificates/cert-verifier-js](https://github.com/blockchain-certificates/cert-verifier-js) |
-| cert-tools | [blockchain-certificates/cert-tools](https://github.com/blockchain-certificates/cert-tools) |
-| W3C Verifiable Credentials | [w3.org/TR/vc-data-model](https://www.w3.org/TR/vc-data-model/) |
-| W3C DID Core | [w3.org/TR/did-core](https://www.w3.org/TR/did-core/) |
-| MerkleProof2019 Spec | [w3c-ccg.github.io](https://w3c-ccg.github.io/lds-merkle-proof-2019/) |
-| DIF Universal Resolver | [uniresolver.io](https://uniresolver.io/) |
+| Resource                   | Link                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Blockcerts Standard        | [blockcerts.org](https://www.blockcerts.org/)                                                           |
+| cert-issuer (GitHub)       | [blockchain-certificates/cert-issuer](https://github.com/blockchain-certificates/cert-issuer)           |
+| cert-verifier-js           | [blockchain-certificates/cert-verifier-js](https://github.com/blockchain-certificates/cert-verifier-js) |
+| cert-tools                 | [blockchain-certificates/cert-tools](https://github.com/blockchain-certificates/cert-tools)             |
+| W3C Verifiable Credentials | [w3.org/TR/vc-data-model](https://www.w3.org/TR/vc-data-model/)                                         |
+| W3C DID Core               | [w3.org/TR/did-core](https://www.w3.org/TR/did-core/)                                                   |
+| MerkleProof2019 Spec       | [w3c-ccg.github.io](https://w3c-ccg.github.io/lds-merkle-proof-2019/)                                   |
+| DIF Universal Resolver     | [uniresolver.io](https://uniresolver.io/)                                                               |
 
 ---
 
@@ -1307,9 +1319,9 @@ Each device has a blockchain-registered identity. Access control policies are en
 
 #### References
 
-| Resource | Link |
-|---|---|
-| Xage Security | [xage.com](https://xage.com/) |
+| Resource             | Link                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| Xage Security        | [xage.com](https://xage.com/)                                                              |
 | Fabric IoT Use Cases | [Hyperledger Use Cases](https://hyperledger-fabric.readthedocs.io/en/latest/usecases.html) |
 
 ---
@@ -1327,7 +1339,7 @@ graph TD
     Q2 -->|No, per-channel| FABRIC[Hyperledger Fabric<br/>Channels + PDC]
     Q3 -->|Yes| BESU[Hyperledger Besu<br/>QBFT Private Network]
     Q3 -->|No| FABRIC
-    
+
     START --> Q4{Data integrity<br/>only? No smart<br/>contracts?}
     Q4 -->|Yes| KSI[Guardtime KSI<br/>Hash-calendar]
     Q4 -->|No| Q1
@@ -1346,25 +1358,25 @@ graph TD
 
 ### Comparative Architecture Matrix
 
-| Dimension | Fabric | Besu (QBFT) | Corda | KSI |
-|---|---|---|---|---|
-| **Tx Model** | Execute-Order-Validate | Order-Execute (EVM) | Flow-based point-to-point | Hash-aggregate-publish |
-| **State** | Key-value World State | Account/Storage trie | UTXO-like vault | No state (integrity only) |
-| **Privacy** | Channels + PDC | Privacy Groups (Tessera) | Need-to-know (default) | Data never on-chain |
-| **Throughput** | ~3,500 TPS (benchmarked) | ~800 TPS (QBFT, 4 val.) | ~1,000 TPS (notary-dependent) | Billions of hashes/sec |
-| **Finality** | Immediate (deterministic) | Immediate (BFT) | Notary-finalized | Mathematical proof |
-| **Smart Contract** | Chaincode (Go/JS/Java) | Solidity/Vyper (EVM) | CorDapps (Kotlin/Java) | N/A |
-| **Best For** | Multi-org supply chain | DeFi-adjacent enterprise | Bilateral agreements | Data integrity at scale |
+| Dimension          | Fabric                    | Besu (QBFT)              | Corda                         | KSI                       |
+| ------------------ | ------------------------- | ------------------------ | ----------------------------- | ------------------------- |
+| **Tx Model**       | Execute-Order-Validate    | Order-Execute (EVM)      | Flow-based point-to-point     | Hash-aggregate-publish    |
+| **State**          | Key-value World State     | Account/Storage trie     | UTXO-like vault               | No state (integrity only) |
+| **Privacy**        | Channels + PDC            | Privacy Groups (Tessera) | Need-to-know (default)        | Data never on-chain       |
+| **Throughput**     | ~3,500 TPS (benchmarked)  | ~800 TPS (QBFT, 4 val.)  | ~1,000 TPS (notary-dependent) | Billions of hashes/sec    |
+| **Finality**       | Immediate (deterministic) | Immediate (BFT)          | Notary-finalized              | Mathematical proof        |
+| **Smart Contract** | Chaincode (Go/JS/Java)    | Solidity/Vyper (EVM)     | CorDapps (Kotlin/Java)        | N/A                       |
+| **Best For**       | Multi-org supply chain    | DeFi-adjacent enterprise | Bilateral agreements          | Data integrity at scale   |
 
 ### Challenges & Mitigations
 
-| Challenge | Engineering Mitigation |
-|---|---|
-| **Scalability** | Fabric channels for horizontal partitioning; Besu layer-2 (Linea); Corda notary clusters. |
+| Challenge              | Engineering Mitigation                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Scalability**        | Fabric channels for horizontal partitioning; Besu layer-2 (Linea); Corda notary clusters.                            |
 | **Legacy Integration** | REST/gRPC APIs wrapping chaincode; Corda's JDBC vault for SQL integration; KSI gateway servers for existing systems. |
-| **GDPR Compliance** | Off-chain data + on-chain hash (all platforms); Fabric PDC with `blockToLive` auto-purge; Corda need-to-know. |
-| **HIPAA Compliance** | BurstIQ consent contracts; encrypted off-chain storage; Fabric private data with ACL. |
-| **Interoperability** | Hyperledger Cacti (cross-chain); W3C DID/VC standards; GS1 EPCIS for supply chain. |
+| **GDPR Compliance**    | Off-chain data + on-chain hash (all platforms); Fabric PDC with `blockToLive` auto-purge; Corda need-to-know.        |
+| **HIPAA Compliance**   | BurstIQ consent contracts; encrypted off-chain storage; Fabric private data with ACL.                                |
+| **Interoperability**   | Hyperledger Cacti (cross-chain); W3C DID/VC standards; GS1 EPCIS for supply chain.                                   |
 
 ---
 

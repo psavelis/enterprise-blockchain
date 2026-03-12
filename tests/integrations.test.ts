@@ -20,7 +20,10 @@ test("fabric gateway sketch builds shipment proposal plans with transient data",
 
   assert.equal(plan.transactionName, "RecordShipment");
   assert.deepEqual(plan.endorsingOrganizations, ["RetailerMSP", "CarrierMSP"]);
-  assert.equal(plan.transientData?.telemetryTimestamp instanceof Uint8Array, true);
+  assert.equal(
+    plan.transientData?.telemetryTimestamp instanceof Uint8Array,
+    true,
+  );
   assert.equal(plan.payloadDigestHex.length, 64);
 });
 
@@ -53,13 +56,19 @@ test("besu ethers sketch encodes audience view transactions", () => {
   );
 
   assert.equal(transaction.privacyGroupId, "regulator-group");
-  assert.equal(transaction.transaction.to, "0x0000000000000000000000000000000000001001");
+  assert.equal(
+    transaction.transaction.to,
+    "0x0000000000000000000000000000000000001001",
+  );
   assert.equal(typeof transaction.transaction.data, "string");
-  assert.equal(client.createContract({
-    rpcUrl: "https://rpc.example.org",
-    chainId: 1337,
-    contractAddress: "0x0000000000000000000000000000000000001001",
-  }).target, "0x0000000000000000000000000000000000001001");
+  assert.equal(
+    client.createContract({
+      rpcUrl: "https://rpc.example.org",
+      chainId: 1337,
+      contractAddress: "0x0000000000000000000000000000000000001001",
+    }).target,
+    "0x0000000000000000000000000000000000001001",
+  );
 });
 
 test("besu audience view transactions require a privacy group", () => {

@@ -2,9 +2,21 @@ import { MPCEngine } from "../../modules/mpc/src/index";
 
 const engine = new MPCEngine();
 
-engine.registerParty({ id: "supplier-a", name: "Nordic Steel", endpoint: "node-a.example.com" });
-engine.registerParty({ id: "supplier-b", name: "Baltic Alloys", endpoint: "node-b.example.com" });
-engine.registerParty({ id: "supplier-c", name: "Rhine Components", endpoint: "node-c.example.com" });
+engine.registerParty({
+  id: "supplier-a",
+  name: "Nordic Steel",
+  endpoint: "node-a.example.com",
+});
+engine.registerParty({
+  id: "supplier-b",
+  name: "Baltic Alloys",
+  endpoint: "node-b.example.com",
+});
+engine.registerParty({
+  id: "supplier-c",
+  name: "Rhine Components",
+  endpoint: "node-c.example.com",
+});
 
 const partyIds = ["supplier-a", "supplier-b", "supplier-c"];
 
@@ -29,7 +41,12 @@ for (const [bidderId, amount] of Object.entries(bids)) {
 const results = partyIds.map((bidderId) => {
   const result = engine.compute(`bid-${bidderId}`, "sum");
   const valid = engine.verifyIntegrity(`bid-${bidderId}`);
-  return { bidderId, reconstructedBid: result.result, integrityOk: valid, proof: result.integrityProof };
+  return {
+    bidderId,
+    reconstructedBid: result.result,
+    integrityOk: valid,
+    proof: result.integrityProof,
+  };
 });
 
 // --- Compare reconstructed totals to determine winner ---
@@ -46,4 +63,10 @@ console.log("\nReconstructed bids from exchanged shares:");
 console.log(JSON.stringify(results, null, 2));
 
 console.log("\nWinner:");
-console.log(JSON.stringify({ winner: winner.bidderId, amount: winner.reconstructedBid }, null, 2));
+console.log(
+  JSON.stringify(
+    { winner: winner.bidderId, amount: winner.reconstructedBid },
+    null,
+    2,
+  ),
+);

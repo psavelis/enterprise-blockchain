@@ -55,7 +55,9 @@ test("threshold computation detects exceeded limit", () => {
   const shares = engine.splitSecret(500, ["a", "b"]);
   for (const s of shares) engine.submitShare("threshold-round", s);
 
-  const result = engine.compute("threshold-round", "threshold", { threshold: 400 });
+  const result = engine.compute("threshold-round", "threshold", {
+    threshold: 400,
+  });
   assert.equal(result.meta.exceeded, true);
   assert.equal(result.result, 1);
 });
@@ -110,7 +112,11 @@ test("distribute and reconstruct with full share set", () => {
 
 test("below-threshold reconstruction returns null", () => {
   const vault = new QuantumResistantVault();
-  const shares = vault.distributeSecret(1234, ["n1", "n2", "n3", "n4", "n5"], 3);
+  const shares = vault.distributeSecret(
+    1234,
+    ["n1", "n2", "n3", "n4", "n5"],
+    3,
+  );
   const twoShares = [...shares.values()].slice(0, 2);
 
   assert.equal(vault.reconstructSecret(twoShares, 3), null);
@@ -119,7 +125,11 @@ test("below-threshold reconstruction returns null", () => {
 test("any k-of-n shares reconstruct the secret (Shamir)", () => {
   const vault = new QuantumResistantVault();
   const secret = 55_555;
-  const shares = vault.distributeSecret(secret, ["n1", "n2", "n3", "n4", "n5"], 3);
+  const shares = vault.distributeSecret(
+    secret,
+    ["n1", "n2", "n3", "n4", "n5"],
+    3,
+  );
 
   const firstThree = [...shares.values()].slice(0, 3);
   assert.equal(vault.reconstructSecret(firstThree, 3), secret);
@@ -158,5 +168,8 @@ test("distributeSecret rejects threshold below 2", () => {
 
 test("distributeSecret rejects threshold exceeding party count", () => {
   const vault = new QuantumResistantVault();
-  assert.throws(() => vault.distributeSecret(1, ["a", "b"], 5), /exceed party count/i);
+  assert.throws(
+    () => vault.distributeSecret(1, ["a", "b"], 5),
+    /exceed party count/i,
+  );
 });

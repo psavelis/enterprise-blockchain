@@ -79,7 +79,12 @@ export class MPCEngine {
       shareCount: partyIds.length,
       value: remaining,
       nonce: lastNonce,
-      commitment: this.commit(partyIds[partyIds.length - 1]!, partyIds.length - 1, remaining, lastNonce),
+      commitment: this.commit(
+        partyIds[partyIds.length - 1]!,
+        partyIds.length - 1,
+        remaining,
+        lastNonce,
+      ),
     });
 
     return shares;
@@ -98,11 +103,15 @@ export class MPCEngine {
     }
 
     if (share.shareCount !== round.expectedShareCount) {
-      throw new Error(`Inconsistent share count for computation ${computationId}`);
+      throw new Error(
+        `Inconsistent share count for computation ${computationId}`,
+      );
     }
 
     if (round.shares.has(share.partyId)) {
-      throw new Error(`Party ${share.partyId} already submitted a share for ${computationId}`);
+      throw new Error(
+        `Party ${share.partyId} already submitted a share for ${computationId}`,
+      );
     }
 
     round.shares.set(share.partyId, share);
@@ -174,13 +183,23 @@ export class MPCEngine {
     if (!round) return false;
 
     for (const share of round.shares.values()) {
-      const expected = this.commit(share.partyId, share.shareIndex, share.value, share.nonce);
+      const expected = this.commit(
+        share.partyId,
+        share.shareIndex,
+        share.value,
+        share.nonce,
+      );
       if (expected !== share.commitment) return false;
     }
     return true;
   }
 
-  private commit(partyId: string, index: number, value: number, nonce: string): string {
+  private commit(
+    partyId: string,
+    index: number,
+    value: number,
+    nonce: string,
+  ): string {
     return this.hash(`${nonce}:${partyId}:${index}:${value}`);
   }
 

@@ -8,8 +8,15 @@ import {
 } from "ethers";
 
 import consortiumRegistryArtifact from "../../../../contracts/ConsortiumOrderRegistry.json";
-import type { PurchaseOrder, SharedOrderView } from "../../../privacy/src/index";
-import { getOptionalEnv, getNumberEnv, getRequiredEnv } from "../../shared/src/env";
+import type {
+  PurchaseOrder,
+  SharedOrderView,
+} from "../../../privacy/src/index";
+import {
+  getOptionalEnv,
+  getNumberEnv,
+  getRequiredEnv,
+} from "../../shared/src/env";
 
 const consortiumInterface = new Interface(consortiumRegistryArtifact.abi);
 
@@ -65,7 +72,11 @@ export class BesuEthersClientSketch {
 
   createContract(profile: BesuRpcProfile, runner?: ContractRunner): Contract {
     const resolvedRunner = runner ?? this.createProvider(profile);
-    return new Contract(profile.contractAddress, consortiumRegistryArtifact.abi, resolvedRunner);
+    return new Contract(
+      profile.contractAddress,
+      consortiumRegistryArtifact.abi,
+      resolvedRunner,
+    );
   }
 
   buildAnchorOrderTransaction(
@@ -90,7 +101,9 @@ export class BesuEthersClientSketch {
     view: SharedOrderView,
   ): BesuPrivateTransactionRequest {
     if (!profile.privacyGroupId) {
-      throw new Error("privacyGroupId is required to build a Besu private transaction");
+      throw new Error(
+        "privacyGroupId is required to build a Besu private transaction",
+      );
     }
 
     return {

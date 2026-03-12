@@ -49,6 +49,7 @@ style: |
 ---
 
 <!-- _class: lead -->
+
 # Enterprise Blockchain Case Studies
 
 TypeScript repository for enterprise blockchain design, protocol mapping, and integration boundaries.
@@ -63,12 +64,12 @@ TypeScript repository for enterprise blockchain design, protocol mapping, and in
 
 # Repository Structure
 
-| Area | Purpose |
-|---|---|
-| `modules/` | Domain logic, protocol adapters, and integration clients |
-| `examples/` | Runnable case studies and protocol projections |
-| `contracts/` | Solidity contract source and ABI artifact |
-| `docs/` | Research, architecture notes, and presentation material |
+| Area         | Purpose                                                  |
+| ------------ | -------------------------------------------------------- |
+| `modules/`   | Domain logic, protocol adapters, and integration clients |
+| `examples/`  | Runnable case studies and protocol projections           |
+| `contracts/` | Solidity contract source and ABI artifact                |
+| `docs/`      | Research, architecture notes, and presentation material  |
 
 ---
 
@@ -84,6 +85,7 @@ These scenarios were selected because they require provenance, privacy, cross-or
 ---
 
 <!-- _class: compact -->
+
 ![bg right:48% contain](./diagrams/09-decision-framework.png)
 
 # Architecture Model
@@ -96,6 +98,7 @@ These scenarios were selected because they require provenance, privacy, cross-or
 ---
 
 <!-- _class: compact -->
+
 ![bg right:50% contain](./diagrams/01-fabric-tx-flow.png)
 
 # Food Recall Response
@@ -109,6 +112,7 @@ These scenarios were selected because they require provenance, privacy, cross-or
 ---
 
 <!-- _class: compact -->
+
 ![bg right:50% contain](./diagrams/12-privacy-patterns.png)
 
 # Selective Disclosure
@@ -120,6 +124,7 @@ The same commercial record can be anchored once and disclosed differently to log
 ---
 
 <!-- _class: compact -->
+
 ![bg right:50% contain](./diagrams/13-corda-credential-flow.png)
 
 # Credential Verification
@@ -131,6 +136,7 @@ Need-to-know distribution is often a better fit than broad ledger replication fo
 ---
 
 <!-- _class: compact -->
+
 ![bg right:50% contain](./diagrams/16-wfp-aid-flow.png)
 
 # Reconciliation And Controls
@@ -142,6 +148,7 @@ Shared ledgers matter when multiple organizations need one settlement view witho
 ---
 
 <!-- _class: compact -->
+
 ![bg right:50% contain](./diagrams/11-consensus-comparison.png)
 
 # Platform Fit
@@ -156,6 +163,7 @@ Decision criteria in this repository:
 ---
 
 <!-- _class: compact -->
+
 # From Domain Logic To Runtime
 
 1. Domain module defines the business rule.
@@ -166,6 +174,7 @@ Decision criteria in this repository:
 ---
 
 <!-- _class: compact -->
+
 ![bg right:48% contain](./diagrams/14-aura-erc721-flow.png)
 
 # Besu Path
@@ -179,6 +188,7 @@ Repository assets:
 ---
 
 <!-- _class: compact -->
+
 ![bg right:48% contain](./diagrams/15-chaincode-walkthrough.png)
 
 # Fabric Path
@@ -192,6 +202,7 @@ Repository assets:
 ---
 
 <!-- _class: compact -->
+
 # Corda Path
 
 TypeScript is the integration layer, not the CorDapp runtime.

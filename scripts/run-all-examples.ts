@@ -7,7 +7,10 @@ const examples = [
   ["aid reconciliation", "examples/aid-voucher-reconciliation/index.ts"],
   ["mpc sealed-bid auction", "examples/mpc-sealed-bid-auction/index.ts"],
   ["mpc joint risk analysis", "examples/mpc-joint-risk-analysis/index.ts"],
-  ["quantum-resistant key sharing", "examples/quantum-resistant-key-sharing/index.ts"],
+  [
+    "quantum-resistant key sharing",
+    "examples/quantum-resistant-key-sharing/index.ts",
+  ],
 ] as const;
 
 for (const [label, path] of examples) {

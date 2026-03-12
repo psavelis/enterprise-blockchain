@@ -26,7 +26,7 @@ jobs:
             order: 1
             name: Core validation
             command: npm run ci:core
-            covers: TypeScript typecheck, unit tests, and primary business scenario examples
+            covers: Prettier format check, ESLint, TypeScript typecheck, unit tests, and primary business scenario examples
           - id: protocol-projections
             order: 2
             name: Protocol projections
@@ -140,7 +140,7 @@ jobs:
               '',
               '**Repository coverage**',
               '',
-              '- Core quality gate: typecheck, tests, and primary business scenarios',
+              '- Core quality gate: format check, lint, typecheck, tests, and primary business scenarios',
               '- Protocol projection coverage: Fabric, Besu, and Corda projection entrypoints',
               '- Demonstration coverage: adapter and integration demo scripts',
               '- Integration coverage: Fabric Gateway, Besu ethers, and Corda gateway examples',

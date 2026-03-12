@@ -73,7 +73,10 @@ export class QuantumResistantVault {
    * Reconstruct the secret from a set of shares via Lagrange interpolation.
    * Returns `null` when fewer than `threshold` shares are supplied.
    */
-  reconstructSecret(shares: ThresholdShare[], threshold: number): number | null {
+  reconstructSecret(
+    shares: ThresholdShare[],
+    threshold: number,
+  ): number | null {
     if (shares.length < threshold) {
       return null;
     }
@@ -157,7 +160,12 @@ export class QuantumResistantVault {
     return result;
   }
 
-  private commit(partyId: string, index: number, value: number, nonce: string): string {
+  private commit(
+    partyId: string,
+    index: number,
+    value: number,
+    nonce: string,
+  ): string {
     return this.hash(`${nonce}:${partyId}:${index}:${value}`);
   }
 
