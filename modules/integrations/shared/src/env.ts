@@ -1,4 +1,7 @@
-export function getRequiredEnv(name: string, env: NodeJS.ProcessEnv = process.env): string {
+export function getRequiredEnv(
+  name: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
   const value = env[name];
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
@@ -7,7 +10,10 @@ export function getRequiredEnv(name: string, env: NodeJS.ProcessEnv = process.en
   return value;
 }
 
-export function getOptionalEnv(name: string, env: NodeJS.ProcessEnv = process.env): string | undefined {
+export function getOptionalEnv(
+  name: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
   return env[name];
 }
 
