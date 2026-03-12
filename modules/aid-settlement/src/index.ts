@@ -63,13 +63,21 @@ export class AidSettlementLedger {
           claim.merchantCategory,
         );
         const duplicateInvoice = seenInvoices.has(claim.invoiceReference);
-        const exceedsBalance = consumedAmountUsd + claim.amountUsd > grant.amountUsd;
+        const exceedsBalance =
+          consumedAmountUsd + claim.amountUsd > grant.amountUsd;
 
-        if (isExpired || disallowedCategory || duplicateInvoice || exceedsBalance) {
+        if (
+          isExpired ||
+          disallowedCategory ||
+          duplicateInvoice ||
+          exceedsBalance
+        ) {
           rejectedClaimIds.push(claim.id);
 
           if (isExpired) {
-            exceptions.push(`Claim ${claim.id} was submitted after grant ${grantId} expired.`);
+            exceptions.push(
+              `Claim ${claim.id} was submitted after grant ${grantId} expired.`,
+            );
           }
           if (disallowedCategory) {
             exceptions.push(
@@ -77,10 +85,14 @@ export class AidSettlementLedger {
             );
           }
           if (duplicateInvoice) {
-            exceptions.push(`Claim ${claim.id} duplicated invoice ${claim.invoiceReference}.`);
+            exceptions.push(
+              `Claim ${claim.id} duplicated invoice ${claim.invoiceReference}.`,
+            );
           }
           if (exceedsBalance) {
-            exceptions.push(`Claim ${claim.id} would overspend grant ${grantId}.`);
+            exceptions.push(
+              `Claim ${claim.id} would overspend grant ${grantId}.`,
+            );
           }
           continue;
         }

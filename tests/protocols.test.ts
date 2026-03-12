@@ -19,7 +19,12 @@ test("fabric adapter emits chaincode-style invocations", () => {
 
   assert.equal(invocation.contract, "FoodTraceContract");
   assert.equal(invocation.transaction, "CreateProduct");
-  assert.deepEqual(invocation.args, ["LOT-1", "ES", "Supplier A", "2026-02-01"]);
+  assert.deepEqual(invocation.args, [
+    "LOT-1",
+    "ES",
+    "Supplier A",
+    "2026-02-01",
+  ]);
 });
 
 test("besu adapter emits privacy-group contract calls", () => {
@@ -64,5 +69,8 @@ test("corda adapter emits state-and-flow clearance commands", () => {
 
   assert.equal(command.flow, "IssueProviderClearanceFlow");
   assert.equal(command.command, "RejectClearance");
-  assert.deepEqual(command.outputState.requiredCredentials, ["medical-license", "bls"]);
+  assert.deepEqual(command.outputState.requiredCredentials, [
+    "medical-license",
+    "bls",
+  ]);
 });

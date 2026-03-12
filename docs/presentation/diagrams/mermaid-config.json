@@ -1,37 +1,37 @@
 {
-    "theme": "dark",
-    "themeVariables": {
-        "primaryColor": "#2196F3",
-        "primaryTextColor": "#fff",
-        "primaryBorderColor": "#1976D2",
-        "lineColor": "#90CAF9",
-        "secondaryColor": "#FF9800",
-        "tertiaryColor": "#4CAF50",
-        "background": "#1a1a2e",
-        "mainBkg": "#16213e",
-        "nodeBorder": "#0f3460",
-        "clusterBkg": "#1a1a2e",
-        "clusterBorder": "#333",
-        "titleColor": "#fff",
-        "edgeLabelBackground": "#1a1a2e",
-        "fontSize": "16px"
-    },
-    "flowchart": {
-        "useMaxWidth": false,
-        "htmlLabels": true,
-        "curve": "basis"
-    },
-    "sequence": {
-        "useMaxWidth": false,
-        "diagramMarginX": 30,
-        "diagramMarginY": 20,
-        "actorMargin": 80,
-        "width": 200,
-        "height": 50,
-        "boxMargin": 10,
-        "boxTextMargin": 5,
-        "noteMargin": 10,
-        "messageMargin": 35,
-        "mirrorActors": false
-    }
+  "theme": "dark",
+  "themeVariables": {
+    "primaryColor": "#2196F3",
+    "primaryTextColor": "#fff",
+    "primaryBorderColor": "#1976D2",
+    "lineColor": "#90CAF9",
+    "secondaryColor": "#FF9800",
+    "tertiaryColor": "#4CAF50",
+    "background": "#1a1a2e",
+    "mainBkg": "#16213e",
+    "nodeBorder": "#0f3460",
+    "clusterBkg": "#1a1a2e",
+    "clusterBorder": "#333",
+    "titleColor": "#fff",
+    "edgeLabelBackground": "#1a1a2e",
+    "fontSize": "16px"
+  },
+  "flowchart": {
+    "useMaxWidth": false,
+    "htmlLabels": true,
+    "curve": "basis"
+  },
+  "sequence": {
+    "useMaxWidth": false,
+    "diagramMarginX": 30,
+    "diagramMarginY": 20,
+    "actorMargin": 80,
+    "width": 200,
+    "height": 50,
+    "boxMargin": 10,
+    "boxTextMargin": 5,
+    "noteMargin": 10,
+    "messageMargin": 35,
+    "mirrorActors": false
+  }
 }

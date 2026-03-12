@@ -12,12 +12,17 @@ Use this repository for architecture reviews, interviews, and technical demonstr
 
 ## Primary Files By Scenario
 
-| Scenario | Scenario file | Domain logic | Protocol layer | Integration layer |
-|---|---|---|---|---|
-| Food recall response | `examples/food-recall-response/index.ts` | `modules/traceability/src/index.ts` | `modules/protocols/fabric/src/index.ts` | `modules/integrations/fabric-gateway/src/index.ts` |
-| Consortium order sharing | `examples/consortium-order-sharing/index.ts` | `modules/privacy/src/index.ts` | `modules/protocols/besu/src/index.ts` | `modules/integrations/besu-client/src/index.ts` |
-| Hospital staffing clearance | `examples/hospital-staffing-clearance/index.ts` | `modules/credentialing/src/index.ts` | `modules/protocols/corda/src/index.ts` | `modules/integrations/corda-gateway/src/index.ts` |
-| Aid voucher reconciliation | `examples/aid-voucher-reconciliation/index.ts` | `modules/aid-settlement/src/index.ts` | `docs/architecture/platform-decision-matrix.md` | `docs/architecture/integration-boundaries.md` |
+| Scenario                      | Scenario file                                     | Domain logic                          | Protocol layer                                  | Integration layer                                  |
+| ----------------------------- | ------------------------------------------------- | ------------------------------------- | ----------------------------------------------- | -------------------------------------------------- |
+| Food recall response          | `examples/food-recall-response/index.ts`          | `modules/traceability/src/index.ts`   | `modules/protocols/fabric/src/index.ts`         | `modules/integrations/fabric-gateway/src/index.ts` |
+| Consortium order sharing      | `examples/consortium-order-sharing/index.ts`      | `modules/privacy/src/index.ts`        | `modules/protocols/besu/src/index.ts`           | `modules/integrations/besu-client/src/index.ts`    |
+| Hospital staffing clearance   | `examples/hospital-staffing-clearance/index.ts`   | `modules/credentialing/src/index.ts`  | `modules/protocols/corda/src/index.ts`          | `modules/integrations/corda-gateway/src/index.ts`  |
+| Aid voucher reconciliation    | `examples/aid-voucher-reconciliation/index.ts`    | `modules/aid-settlement/src/index.ts` | `docs/architecture/platform-decision-matrix.md` | `docs/architecture/integration-boundaries.md`      |
+| MPC sealed-bid auction        | `examples/mpc-sealed-bid-auction/index.ts`        | `modules/mpc/src/index.ts`            | `docs/architecture/mpc-quantum-resistance.md`   | `docs/architecture/integration-boundaries.md`      |
+| MPC joint risk analysis       | `examples/mpc-joint-risk-analysis/index.ts`       | `modules/mpc/src/index.ts`            | `docs/architecture/mpc-quantum-resistance.md`   | `docs/architecture/integration-boundaries.md`      |
+| Quantum-resistant key sharing | `examples/quantum-resistant-key-sharing/index.ts` | `modules/mpc/src/quantum.ts`          | `docs/architecture/mpc-quantum-resistance.md`   | `docs/architecture/integration-boundaries.md`      |
+
+For the MPC and quantum-resistance scenarios, the protocol and integration columns point to the architecture notes because these examples are intentionally off-chain and are not mapped to a single ledger adapter implementation.
 
 ## Recommended Demo Flow
 

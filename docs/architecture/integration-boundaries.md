@@ -10,11 +10,11 @@ This repository includes an integration layer that sits after the domain and pro
 
 ## Included Integration Patterns
 
-| Integration | File | Purpose |
-|---|---|---|
-| Fabric Gateway | `modules/integrations/fabric-gateway/src/index.ts` | Builds gateway profile data, gRPC transport setup, and proposal plans for endorsement-driven chaincode submission. |
-| Besu via ethers | `modules/integrations/besu-client/src/index.ts` | Builds providers, signers, contracts, and encoded transaction requests for JSON-RPC submission. |
-| Corda gateway | `modules/integrations/corda-gateway/src/index.ts` | Builds HTTP requests for flow invocation in a workflow-oriented network boundary. |
+| Integration     | File                                               | Purpose                                                                                                            |
+| --------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Fabric Gateway  | `modules/integrations/fabric-gateway/src/index.ts` | Builds gateway profile data, gRPC transport setup, and proposal plans for endorsement-driven chaincode submission. |
+| Besu via ethers | `modules/integrations/besu-client/src/index.ts`    | Builds providers, signers, contracts, and encoded transaction requests for JSON-RPC submission.                    |
+| Corda gateway   | `modules/integrations/corda-gateway/src/index.ts`  | Builds HTTP requests for flow invocation in a workflow-oriented network boundary.                                  |
 
 ## SDK Choices
 

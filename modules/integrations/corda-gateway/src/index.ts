@@ -26,7 +26,9 @@ export interface ProviderClearancePayload {
 }
 
 export class CordaGatewayClientSketch {
-  createProfileFromEnv(env: NodeJS.ProcessEnv = process.env): CordaGatewayProfile {
+  createProfileFromEnv(
+    env: NodeJS.ProcessEnv = process.env,
+  ): CordaGatewayProfile {
     return {
       baseUrl: getRequiredEnv("CORDA_GATEWAY_BASE_URL", env),
       network: getRequiredEnv("CORDA_GATEWAY_NETWORK", env),

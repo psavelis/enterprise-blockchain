@@ -38,7 +38,8 @@ export class CredentialRegistry {
   }
 
   issueCredential(credential: ClinicalCredential): void {
-    const providerCredentials = this.credentials.get(credential.providerId) ?? [];
+    const providerCredentials =
+      this.credentials.get(credential.providerId) ?? [];
     providerCredentials.push(credential);
     this.credentials.set(credential.providerId, providerCredentials);
   }
@@ -49,7 +50,8 @@ export class CredentialRegistry {
       throw new Error(`Unknown provider ${assignment.providerId}`);
     }
 
-    const providerCredentials = this.credentials.get(assignment.providerId) ?? [];
+    const providerCredentials =
+      this.credentials.get(assignment.providerId) ?? [];
     const reasons: string[] = [];
     const missingCredentials: string[] = [];
     const expiringSoon: string[] = [];
@@ -62,7 +64,8 @@ export class CredentialRegistry {
     for (const requiredCredential of assignment.requiredCredentials) {
       const credential = providerCredentials.find(
         (item) =>
-          item.type === requiredCredential && item.jurisdictions.includes(assignment.jurisdiction),
+          item.type === requiredCredential &&
+          item.jurisdictions.includes(assignment.jurisdiction),
       );
 
       if (!credential) {
@@ -76,7 +79,9 @@ export class CredentialRegistry {
       const validUntil = new Date(credential.validUntil);
       if (validUntil < scheduleDate) {
         missingCredentials.push(requiredCredential);
-        reasons.push(`${requiredCredential} expires before the scheduled procedure.`);
+        reasons.push(
+          `${requiredCredential} expires before the scheduled procedure.`,
+        );
         continue;
       }
 
@@ -84,13 +89,17 @@ export class CredentialRegistry {
         (validUntil.getTime() - scheduleDate.getTime()) / (1000 * 60 * 60 * 24),
       );
       if (daysUntilExpiry <= 30) {
-        expiringSoon.push(`${requiredCredential} (${daysUntilExpiry} days remaining)`);
+        expiringSoon.push(
+          `${requiredCredential} (${daysUntilExpiry} days remaining)`,
+        );
       }
     }
 
     return {
       approved:
-        reasons.length === 0 && missingCredentials.length === 0 && provider.sanctionStatus === "clear",
+        reasons.length === 0 &&
+        missingCredentials.length === 0 &&
+        provider.sanctionStatus === "clear",
       missingCredentials,
       expiringSoon,
       reasons,

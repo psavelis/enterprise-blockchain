@@ -100,6 +100,12 @@ test("assessRecall includes earlier shipments when a later shipment breaches tem
   });
 
   assert.deepEqual(assessment.impactedLotIds, ["LOT-A"]);
-  assert.deepEqual(assessment.impactedShipmentIds.sort(), ["SHIP-EARLY", "SHIP-LATE"]);
-  assert.deepEqual(assessment.impactedDestinations.sort(), ["Berlin DC", "Hamburg DC"]);
+  assert.deepEqual(assessment.impactedShipmentIds.sort(), [
+    "SHIP-EARLY",
+    "SHIP-LATE",
+  ]);
+  assert.deepEqual(assessment.impactedDestinations.sort(), [
+    "Berlin DC",
+    "Hamburg DC",
+  ]);
 });

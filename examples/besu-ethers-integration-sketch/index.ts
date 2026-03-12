@@ -25,7 +25,10 @@ const profile = client.createProfile({
   privacyGroupId: "bank-review-group",
 });
 
-const privateTransaction = client.buildAudienceViewTransaction(profile, bankView);
+const privateTransaction = client.buildAudienceViewTransaction(
+  profile,
+  bankView,
+);
 
 console.log("Besu Ethers Integration Sketch");
 console.log(JSON.stringify({ profile, privateTransaction }, null, 2));
