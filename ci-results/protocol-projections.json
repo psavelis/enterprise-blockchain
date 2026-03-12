@@ -1,7 +1,0 @@
-{
-  "id": "protocol-projections",
-  "name": "Protocol projections",
-  "command": "npm run ci:protocol-projections",
-  "covers": "Fabric, Besu, and Corda protocol projection examples",
-  "outcome": "success"
-}

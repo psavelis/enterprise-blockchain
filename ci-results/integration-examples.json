@@ -1,7 +1,0 @@
-{
-  "id": "integration-examples",
-  "name": "Integration examples",
-  "command": "npm run ci:integration-examples",
-  "covers": "Fabric Gateway, Besu ethers, and Corda gateway integration entrypoints",
-  "outcome": "success"
-}

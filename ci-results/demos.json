@@ -1,7 +1,0 @@
-{
-  "id": "demos",
-  "name": "Demo scripts",
-  "command": "npm run ci:demos",
-  "covers": "Adapter projection demo and integration client demo outputs",
-  "outcome": "success"
-}

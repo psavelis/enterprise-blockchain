@@ -1,7 +1,0 @@
-{
-  "id": "core",
-  "name": "Core validation",
-  "command": "npm run ci:core",
-  "covers": "TypeScript typecheck, unit tests, and primary business scenario examples",
-  "outcome": "success"
-}
