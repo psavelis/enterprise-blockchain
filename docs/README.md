@@ -19,3 +19,4 @@ Recommended starting points:
 - `architecture/corda-clearance-flow.md`
 - `architecture/integration-boundaries.md`
 - `architecture/local-demo-blueprint.md`
+- `architecture/mpc-quantum-resistance.md`

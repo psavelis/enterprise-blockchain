@@ -26,6 +26,14 @@ In addition to the business scenarios, the repository includes protocol-focused 
 2. `besu-order-privacy-projection`: Besu privacy-group contract calls for selective disclosure.
 3. `corda-clearance-flow-projection`: Corda flow/state payloads for staffing clearance decisions.
 
+## MPC and Key Management Examples
+
+Three examples cover off-chain cryptographic techniques that complement the ledger-based scenarios.
+
+1. `mpc-sealed-bid-auction`: Sealed-bid procurement auction using additive secret sharing across three competing suppliers.
+2. `mpc-joint-risk-analysis`: Cross-institution aggregate credit-risk reporting with secret-shared inputs and threshold checks.
+3. `quantum-resistant-key-sharing`: Threshold key distribution with Shamir secret sharing (3-of-5) and hash-ladder anchoring.
+
 ## Quick Start
 
 ```bash
@@ -50,6 +58,9 @@ npm run example:corda-projection
 npm run example:fabric-gateway
 npm run example:besu-ethers
 npm run example:corda-rest
+npm run example:mpc-auction
+npm run example:mpc-risk-analysis
+npm run example:quantum-key-sharing
 ```
 
 ## Design Goals
@@ -67,6 +78,10 @@ The repository includes protocol adapters that map domain events into platform-s
 - `modules/protocols/corda/`: State-and-flow style command generation for point-to-point regulated workflows.
 
 These modules model protocol semantics. They are not full application runtimes.
+
+## MPC Module
+
+- `modules/mpc/`: `MPCEngine` (additive secret sharing) and `QuantumResistantVault` (Shamir threshold sharing, hash-ladder anchoring). MPC operates off-chain; results can be anchored on-chain through the existing Besu or Fabric adapters.
 
 ## Integration Sketches
 
