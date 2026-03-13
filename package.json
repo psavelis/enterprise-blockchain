@@ -20,7 +20,7 @@
     "ci:protocol-projections": "npm run example:fabric-projection && npm run example:besu-projection && npm run example:corda-projection",
     "ci:demos": "npm run demo:adapters && npm run demo:integrations",
     "ci:integration-examples": "npm run example:fabric-gateway && npm run example:besu-ethers && npm run example:corda-rest",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run examples",
+    "verify": "npm run ci:core",
     "example:food-recall": "tsx examples/food-recall-response/index.ts",
     "example:order-sharing": "tsx examples/consortium-order-sharing/index.ts",
     "example:staffing-clearance": "tsx examples/hospital-staffing-clearance/index.ts",

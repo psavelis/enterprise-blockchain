@@ -20,7 +20,7 @@ test("split and reconstruct a secret via additive shares", () => {
   for (const s of shares) engine.submitShare("round-1", s);
 
   const result = engine.compute("round-1", "sum");
-  assert.equal(result.result, secret);
+  assert.equal(result.aggregate, secret);
   assert.equal(result.participantCount, 3);
 });
 
@@ -58,8 +58,8 @@ test("threshold computation detects exceeded limit", () => {
   const result = engine.compute("threshold-round", "threshold", {
     threshold: 400,
   });
-  assert.equal(result.meta.exceeded, true);
-  assert.equal(result.result, 1);
+  assert.equal(result.exceeded, true);
+  assert.equal(result.meta.threshold, 400);
 });
 
 test("submitShare rejects duplicate submission from same party", () => {

@@ -1,4 +1,6 @@
-import { createHash, randomBytes, randomInt } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
+
+import { commitShare, sha256hex } from "./crypto";
 
 export interface PartyConfig {
   id: string;
@@ -17,14 +19,25 @@ export interface SecretShare {
 
 export type ComputationOp = "sum" | "threshold";
 
-export interface ComputationResult {
+export interface SumResult {
   computationId: string;
-  op: ComputationOp;
+  op: "sum";
   participantCount: number;
-  result: number;
+  aggregate: number;
   meta: Record<string, string | number | boolean>;
   integrityProof: string;
 }
+
+export interface ThresholdResult {
+  computationId: string;
+  op: "threshold";
+  participantCount: number;
+  exceeded: boolean;
+  meta: Record<string, string | number | boolean>;
+  integrityProof: string;
+}
+
+export type ComputationResult = SumResult | ThresholdResult;
 
 interface ComputationRound {
   expectedShareCount: number;
@@ -68,7 +81,7 @@ export class MPCEngine {
         shareCount: partyIds.length,
         value,
         nonce,
-        commitment: this.commit(partyIds[i]!, i, value, nonce),
+        commitment: commitShare(partyIds[i]!, i, value, nonce),
       });
     }
 
@@ -79,7 +92,7 @@ export class MPCEngine {
       shareCount: partyIds.length,
       value: remaining,
       nonce: lastNonce,
-      commitment: this.commit(
+      commitment: commitShare(
         partyIds[partyIds.length - 1]!,
         partyIds.length - 1,
         remaining,
@@ -124,6 +137,16 @@ export class MPCEngine {
    */
   compute(
     computationId: string,
+    op: "sum",
+    opts?: { threshold?: number },
+  ): SumResult;
+  compute(
+    computationId: string,
+    op: "threshold",
+    opts?: { threshold?: number },
+  ): ThresholdResult;
+  compute(
+    computationId: string,
     op: ComputationOp,
     opts?: { threshold?: number },
   ): ComputationResult {
@@ -139,43 +162,52 @@ export class MPCEngine {
       );
     }
 
-    let result: number;
-    const meta: Record<string, string | number | boolean> = {};
-
     switch (op) {
       case "sum": {
-        result = 0;
+        let aggregate = 0;
         for (const share of round.shares.values()) {
-          result += share.value;
+          aggregate += share.value;
         }
-        meta.operation = "additive-reconstruction";
-        break;
+        return {
+          computationId,
+          op: "sum",
+          participantCount,
+          aggregate,
+          meta: { operation: "additive-reconstruction" },
+          integrityProof: sha256hex(
+            JSON.stringify({
+              computationId,
+              op: "sum",
+              participantCount,
+              aggregate,
+            }),
+          ),
+        };
       }
       case "threshold": {
         const t = opts?.threshold ?? 0;
-        result = 0;
+        let total = 0;
         for (const share of round.shares.values()) {
-          result += share.value;
+          total += share.value;
         }
-        meta.operation = "threshold-check";
-        meta.threshold = t;
-        meta.exceeded = result >= t;
-        // Do not expose the raw aggregate — only the boolean matters.
-        result = result >= t ? 1 : 0;
-        break;
+        const exceeded = total >= t;
+        return {
+          computationId,
+          op: "threshold",
+          participantCount,
+          exceeded,
+          meta: { operation: "threshold-check", threshold: t },
+          integrityProof: sha256hex(
+            JSON.stringify({
+              computationId,
+              op: "threshold",
+              participantCount,
+              exceeded,
+            }),
+          ),
+        };
       }
     }
-
-    return {
-      computationId,
-      op,
-      participantCount,
-      result,
-      meta,
-      integrityProof: this.hash(
-        JSON.stringify({ computationId, op, participantCount, result }),
-      ),
-    };
   }
 
   verifyIntegrity(computationId: string): boolean {
@@ -183,7 +215,7 @@ export class MPCEngine {
     if (!round) return false;
 
     for (const share of round.shares.values()) {
-      const expected = this.commit(
+      const expected = commitShare(
         share.partyId,
         share.shareIndex,
         share.value,
@@ -192,18 +224,5 @@ export class MPCEngine {
       if (expected !== share.commitment) return false;
     }
     return true;
-  }
-
-  private commit(
-    partyId: string,
-    index: number,
-    value: number,
-    nonce: string,
-  ): string {
-    return this.hash(`${nonce}:${partyId}:${index}:${value}`);
-  }
-
-  private hash(value: string): string {
-    return createHash("sha256").update(value).digest("hex");
   }
 }

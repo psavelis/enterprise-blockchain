@@ -3,6 +3,21 @@ import assert from "node:assert/strict";
 
 import { TraceabilityLedger } from "../modules/traceability/src/index";
 
+test("dispatchShipment rejects an unknown lot reference", () => {
+  const ledger = new TraceabilityLedger();
+  assert.throws(
+    () =>
+      ledger.dispatchShipment({
+        id: "SHIP-X",
+        lotId: "NONEXISTENT-LOT",
+        from: "A",
+        to: "B",
+        departedAt: "2026-01-01T00:00:00Z",
+      }),
+    /unknown lot/i,
+  );
+});
+
 test("traceability ledger identifies supplier and telemetry recall impact", () => {
   const ledger = new TraceabilityLedger();
 
