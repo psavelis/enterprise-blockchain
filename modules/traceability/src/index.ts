@@ -54,6 +54,9 @@ export class TraceabilityLedger {
   }
 
   recordTelemetry(reading: TelemetryReading): void {
+    if (!this.shipments.has(reading.shipmentId)) {
+      throw new Error(`Unknown shipment ${reading.shipmentId}`);
+    }
     const readings = this.telemetry.get(reading.shipmentId) ?? [];
     readings.push(reading);
     this.telemetry.set(reading.shipmentId, readings);

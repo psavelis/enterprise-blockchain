@@ -57,6 +57,11 @@ export class FabricGatewayClientSketch {
   }
 
   createProfile(profile: FabricGatewayProfile): FabricGatewayProfile {
+    if (!profile.peerEndpoint.includes(":")) {
+      throw new Error(
+        "FabricGatewayProfile.peerEndpoint must be in host:port format",
+      );
+    }
     return profile;
   }
 
@@ -148,22 +153,13 @@ export class FabricGatewayClientSketch {
     const transientData = {
       recallReason: Buffer.from(input.reason, "utf8"),
     };
-    const payload = JSON.stringify({
-      transactionName: "TraceOrigin",
-      args,
-      transientData: {
-        recallReason: input.reason,
-      },
-      endorsingOrganizations: ["RetailerMSP", "SupplierMSP"],
-    });
-
     return {
       transactionName: "TraceOrigin",
       args,
       transientData,
       endorsingOrganizations: ["RetailerMSP", "SupplierMSP"],
       payloadDigestHex: Buffer.from(
-        hash.sha256(Buffer.from(payload, "utf8")),
+        hash.sha256(Buffer.from(JSON.stringify(input), "utf8")),
       ).toString("hex"),
     };
   }

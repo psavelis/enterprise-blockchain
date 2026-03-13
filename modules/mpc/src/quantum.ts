@@ -1,4 +1,6 @@
-import { createHash, randomBytes, randomInt } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
+
+import { commitShare, sha256hex } from "./crypto";
 
 export interface ThresholdShare {
   partyId: string;
@@ -24,6 +26,8 @@ export interface QuantumResistantAnchor {
 
 // Mersenne prime 2^31 − 1.  Large enough for the demo secrets used in
 // examples while keeping share values within safe-integer range.
+// For production Shamir SSS protecting key material, use a prime at least as
+// large as the secret space: 2^127 − 1 or 2^255 − 19 for 128/256-bit security.
 const PRIME = 2_147_483_647n;
 
 export class QuantumResistantVault {
@@ -62,7 +66,7 @@ export class QuantumResistantVault {
         shareIndex: i,
         value: y,
         nonce,
-        commitment: this.commit(parties[i]!, i, y, nonce),
+        commitment: commitShare(parties[i]!, i, y, nonce),
       });
     }
 
@@ -91,10 +95,10 @@ export class QuantumResistantVault {
 
   /** Build a SHA-256 hash chain of `depth` iterations from a random seed. */
   createHashLadder(depth: number): HashLadderKey {
-    let current = this.hash(String(randomInt(0, 2 ** 48 - 1)));
+    let current = sha256hex(randomBytes(32).toString("hex"));
 
     for (let i = 0; i < depth; i++) {
-      current = this.hash(current);
+      current = sha256hex(current);
     }
 
     return { publicRoot: current, depth, scheme: "sha256-chain" };
@@ -105,7 +109,7 @@ export class QuantumResistantVault {
     const ladder = this.createHashLadder(256);
 
     return {
-      dataHash: this.hash(data),
+      dataHash: sha256hex(data),
       ladderRoot: ladder.publicRoot,
       depth: ladder.depth,
       timestamp: new Date().toISOString(),
@@ -158,18 +162,5 @@ export class QuantumResistantVault {
       base = this.mod(base * base);
     }
     return result;
-  }
-
-  private commit(
-    partyId: string,
-    index: number,
-    value: number,
-    nonce: string,
-  ): string {
-    return this.hash(`${nonce}:${partyId}:${index}:${value}`);
-  }
-
-  private hash(value: string): string {
-    return createHash("sha256").update(value).digest("hex");
   }
 }

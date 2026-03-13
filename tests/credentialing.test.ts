@@ -3,6 +3,29 @@ import assert from "node:assert/strict";
 
 import { CredentialRegistry } from "../modules/credentialing/src/index";
 
+test("evaluateAssignment blocks a provider with non-clear sanction status", () => {
+  const registry = new CredentialRegistry();
+
+  registry.registerProvider({
+    id: "PROV-SANCTIONED",
+    name: "Test Provider",
+    specialties: [],
+    sanctionStatus: "blocked",
+  });
+
+  const decision = registry.evaluateAssignment({
+    providerId: "PROV-SANCTIONED",
+    facility: "Hospital",
+    jurisdiction: "NL",
+    requiredCredentials: [],
+    procedure: "Consultation",
+    scheduledAt: "2026-03-10T00:00:00Z",
+  });
+
+  assert.equal(decision.approved, false);
+  assert.ok(decision.reasons.some((r) => r.includes("blocked")));
+});
+
 test("credential registry blocks assignments with missing or expired requirements", () => {
   const registry = new CredentialRegistry();
 

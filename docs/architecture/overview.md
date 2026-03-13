@@ -14,11 +14,15 @@ flowchart TD
     A2[Consortium Order Sharing] --> A
     A3[Hospital Staffing Clearance] --> A
     A4[Aid Voucher Reconciliation] --> A
+    A5[MPC Sealed-Bid Auction] --> A
+    A6[MPC Joint Risk Analysis] --> A
+    A7[Quantum-Resistant Key Sharing] --> A
 
     B1[Traceability] --> B
     B2[Selective Disclosure] --> B
     B3[Credentialing] --> B
     B4[Aid Settlement] --> B
+    B5[MPC / Secret Sharing] --> B
 
     C1[Fabric Adapter] --> C
     C2[Besu Adapter] --> C
@@ -39,5 +43,6 @@ flowchart TD
 
 - Start with the scenario in `examples/`.
 - Inspect the corresponding domain logic in `modules/`.
-- Review the protocol adapter to see how the same domain event could map to Fabric, Besu, or Corda.
+- For ledger-bound scenarios, review the protocol adapter to see how the domain event maps to Fabric, Besu, or Corda.
+- For MPC and key management scenarios, see `docs/architecture/mpc-quantum-resistance.md`; these examples are intentionally off-chain.
 - Use the platform decision matrix to discuss deployment tradeoffs.

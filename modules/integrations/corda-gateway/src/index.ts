@@ -3,6 +3,7 @@ import { getNumberEnv, getRequiredEnv } from "../../shared/src/env";
 export interface CordaGatewayProfile {
   baseUrl: string;
   network: string;
+  // NOTE: sketch only — use a secrets manager or token provider in production
   bearerToken: string;
   timeoutMs: number;
 }
@@ -62,11 +63,17 @@ export class CordaGatewayClientSketch {
   }
 
   async invokeFlow(request: CordaGatewayRequest): Promise<Response> {
-    return fetch(request.url, {
+    const response = await fetch(request.url, {
       method: request.method,
       headers: request.headers,
       body: request.body,
       signal: AbortSignal.timeout(request.timeoutMs),
     });
+    if (!response.ok) {
+      throw new Error(
+        `Corda gateway error: ${response.status} ${response.statusText}`,
+      );
+    }
+    return response;
   }
 }
