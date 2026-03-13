@@ -81,7 +81,7 @@ These modules model protocol semantics. They are not full application runtimes.
 
 ## MPC Module
 
-- `modules/mpc/`: `MPCEngine` (additive secret sharing) and `QuantumResistantVault` (Shamir threshold sharing, hash-ladder anchoring). MPC operates off-chain; results can be anchored on-chain through the existing Besu or Fabric adapters.
+- `modules/mpc/`: `MPCEngine` (additive secret sharing) and `QuantumResistantVault` (Shamir threshold sharing, hash-ladder anchoring). MPC operates off-chain; results can be anchored on-chain via the Besu adapter's `anchorOrder` pattern, or via a custom transaction in a Fabric chaincode.
 
 ## Integration Sketches
 
