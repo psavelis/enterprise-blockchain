@@ -4,6 +4,7 @@ import {
   JsonRpcProvider,
   Wallet,
   type ContractRunner,
+  type InterfaceAbi,
   type TransactionRequest,
 } from "ethers";
 
@@ -18,12 +19,15 @@ import {
   getRequiredEnv,
 } from "../../shared/src/env";
 
-const consortiumInterface = new Interface(consortiumRegistryArtifact.abi);
+const consortiumInterface = new Interface(
+  consortiumRegistryArtifact.abi as InterfaceAbi,
+);
 
 export interface BesuRpcProfile {
   rpcUrl: string;
   chainId: number;
   contractAddress: string;
+  // NOTE: sketch only — do not store key material as plain strings in production
   walletPrivateKey?: string;
   privacyGroupId?: string;
 }
@@ -55,6 +59,12 @@ export class BesuEthersClientSketch {
   }
 
   createProfile(profile: BesuRpcProfile): BesuRpcProfile {
+    if (!profile.rpcUrl.startsWith("http")) {
+      throw new Error("BesuRpcProfile.rpcUrl must be an HTTP(S) URL");
+    }
+    if (profile.chainId <= 0) {
+      throw new Error("BesuRpcProfile.chainId must be a positive integer");
+    }
     return profile;
   }
 
@@ -74,7 +84,7 @@ export class BesuEthersClientSketch {
     const resolvedRunner = runner ?? this.createProvider(profile);
     return new Contract(
       profile.contractAddress,
-      consortiumRegistryArtifact.abi,
+      consortiumRegistryArtifact.abi as InterfaceAbi,
       resolvedRunner,
     );
   }

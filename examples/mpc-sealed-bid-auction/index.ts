@@ -43,7 +43,7 @@ const results = partyIds.map((bidderId) => {
   const valid = engine.verifyIntegrity(`bid-${bidderId}`);
   return {
     bidderId,
-    reconstructedBid: result.result,
+    reconstructedBid: result.aggregate,
     integrityOk: valid,
     proof: result.integrityProof,
   };

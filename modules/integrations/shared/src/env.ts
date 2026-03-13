@@ -3,7 +3,7 @@ export function getRequiredEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): string {
   const value = env[name];
-  if (!value) {
+  if (value === undefined) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
 
@@ -23,7 +23,7 @@ export function getNumberEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): number {
   const value = env[name];
-  if (!value) {
+  if (value === undefined) {
     if (fallback === undefined) {
       throw new Error(`Missing required numeric environment variable: ${name}`);
     }

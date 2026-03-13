@@ -45,15 +45,15 @@ for (const [bankId, metrics] of Object.entries(portfolioRisks)) {
 
 // --- Aggregate risk indicators across both banks ---
 const aggregateDefault = partyIds.reduce((sum, id) => {
-  return sum + engine.compute(`default-${id}`, "sum").result;
+  return sum + engine.compute(`default-${id}`, "sum").aggregate;
 }, 0);
 
 const aggregateExposure = partyIds.reduce((sum, id) => {
-  return sum + engine.compute(`exposure-${id}`, "sum").result;
+  return sum + engine.compute(`exposure-${id}`, "sum").aggregate;
 }, 0);
 
 const aggregateCredit = partyIds.reduce((sum, id) => {
-  return sum + engine.compute(`credit-${id}`, "sum").result;
+  return sum + engine.compute(`credit-${id}`, "sum").aggregate;
 }, 0);
 
 // --- Threshold check: single-bank exposure exceeds regulatory limit? ---
@@ -88,7 +88,7 @@ console.log(
   JSON.stringify(
     {
       threshold: exposureThreshold.meta.threshold,
-      exceeded: exposureThreshold.meta.exceeded,
+      exceeded: exposureThreshold.exceeded,
       integrityProof: exposureThreshold.integrityProof,
     },
     null,
