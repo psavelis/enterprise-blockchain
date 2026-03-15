@@ -1,0 +1,17 @@
+graph TD
+    DOC[Sensitive Document<br/>plaintext] --> DEK
+
+    subgraph "HsmClient — hardware boundary"
+        KEK[KEK stored in slot<br/>never returned to caller]
+        DEK[ephemeral DEK<br/>randomBytes 256-bit]
+        DEK -->|AES-256-GCM encrypt| CT[ciphertext]
+        KEK -->|AES-256-GCM wrap| WD[wrappedDek]
+        ZERO([dek.fill zero after wrap])
+        DEK --> ZERO
+    end
+
+    CT --> ON[on-ledger record<br/>encryptedRecord + wrappedDek]
+    WD --> ON
+
+    ON -.->|authorised party<br/>same HSM slot| DEC[decryptWithEnvelope]
+    DEC --> PT[plaintext recovered]
