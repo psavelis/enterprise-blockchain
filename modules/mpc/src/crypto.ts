@@ -1,8 +1,6 @@
-import { createHash } from "node:crypto";
+import { sha256hex } from "../../shared/src/crypto";
 
-export function sha256hex(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
-}
+export { sha256hex };
 
 export function commitShare(
   partyId: string,

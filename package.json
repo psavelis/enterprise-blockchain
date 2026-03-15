@@ -33,7 +33,10 @@
     "example:corda-rest": "tsx examples/corda-rest-integration-sketch/index.ts",
     "example:mpc-auction": "tsx examples/mpc-sealed-bid-auction/index.ts",
     "example:mpc-risk-analysis": "tsx examples/mpc-joint-risk-analysis/index.ts",
-    "example:quantum-key-sharing": "tsx examples/quantum-resistant-key-sharing/index.ts"
+    "example:quantum-key-sharing": "tsx examples/quantum-resistant-key-sharing/index.ts",
+    "example:hsm-tx-signing": "tsx examples/hsm-transaction-signing/index.ts",
+    "example:hsm-key-ceremony": "tsx examples/hsm-key-ceremony/index.ts",
+    "example:hsm-envelope-encryption": "tsx examples/hsm-envelope-encryption/index.ts"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.3",
