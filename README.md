@@ -34,6 +34,14 @@ Three examples cover off-chain cryptographic techniques that complement the ledg
 2. `mpc-joint-risk-analysis`: Cross-institution aggregate credit-risk reporting with secret-shared inputs and threshold checks.
 3. `quantum-resistant-key-sharing`: Threshold key distribution with Shamir secret sharing (3-of-5) and hash-ladder anchoring.
 
+## HSM Key Management Examples
+
+Three examples show hardware security module patterns for production blockchain deployments.
+
+1. `hsm-transaction-signing`: EC P-256 key generation and ECDSA-SHA256 signing of equity trade orders (Apex Capital scenario).
+2. `hsm-key-ceremony`: Root key ceremony combining HSM signing with 3-of-5 Shamir threshold custodianship (GlobalNet consortium).
+3. `hsm-envelope-encryption`: DEK/KEK envelope encryption for sensitive trade documents stored on a shared ledger (TradeFin platform).
+
 ## Quick Start
 
 ```bash
@@ -61,6 +69,9 @@ npm run example:corda-rest
 npm run example:mpc-auction
 npm run example:mpc-risk-analysis
 npm run example:quantum-key-sharing
+npm run example:hsm-tx-signing
+npm run example:hsm-key-ceremony
+npm run example:hsm-envelope-encryption
 ```
 
 ## Design Goals

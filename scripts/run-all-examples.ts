@@ -11,6 +11,9 @@ const examples = [
     "quantum-resistant key sharing",
     "examples/quantum-resistant-key-sharing/index.ts",
   ],
+  ["hsm transaction signing", "examples/hsm-transaction-signing/index.ts"],
+  ["hsm key ceremony", "examples/hsm-key-ceremony/index.ts"],
+  ["hsm envelope encryption", "examples/hsm-envelope-encryption/index.ts"],
 ] as const;
 
 for (const [label, path] of examples) {
