@@ -82,6 +82,11 @@ TypeScript repository for enterprise blockchain design, protocol mapping, and in
 
 These scenarios were selected because they require provenance, privacy, cross-organization coordination, or settlement controls.
 
+Off-chain cryptographic patterns complement each scenario:
+
+- **MPC** — joint computation without disclosing individual inputs
+- **HSM** — hardware-protected key custody and on-chain signature provenance
+
 ---
 
 <!-- _class: compact -->
@@ -144,6 +149,42 @@ Need-to-know distribution is often a better fit than broad ledger replication fo
 **Key point**
 
 Shared ledgers matter when multiple organizations need one settlement view without delegating control to a single operator.
+
+---
+
+<!-- _class: compact -->
+
+![bg right:48% contain](./diagrams/17-mpc-secret-sharing.png)
+
+# MPC and Off-Chain Computation
+
+**Key point**
+
+Parties compute a joint result — aggregate bids, pooled risk scores, shared thresholds — without any participant revealing their individual input.
+
+Repository examples:
+
+- `mpc-sealed-bid-auction`: additive secret sharing across three suppliers
+- `mpc-joint-risk-analysis`: cross-institution credit threshold with secret-shared inputs
+- `quantum-resistant-key-sharing`: 3-of-5 Shamir threshold with hash-ladder anchoring
+
+---
+
+<!-- _class: compact -->
+
+![bg right:48% contain](./diagrams/18-hsm-envelope.png)
+
+# HSM Key Management
+
+**Key point**
+
+Private keys and raw symmetric material never leave the HSM boundary. Only signatures, public keys, and wrapped DEKs appear on-chain.
+
+Repository examples:
+
+- `hsm-transaction-signing`: EC P-256 trade order signing with HSM attestation digest
+- `hsm-key-ceremony`: 3-of-5 Shamir custodianship combined with HSM-signed onboarding certificate
+- `hsm-envelope-encryption`: DEK/KEK pattern for on-ledger document confidentiality
 
 ---
 
@@ -222,6 +263,16 @@ npm install
 npm run verify
 npm run demo:adapters
 npm run demo:integrations
+```
+
+Key examples by topic:
+
+```bash
+npm run example:mpc-auction         # MPC sealed-bid procurement
+npm run example:quantum-key-sharing  # Shamir 3-of-5 threshold
+npm run example:hsm-tx-signing       # HSM-backed trade signing
+npm run example:hsm-key-ceremony     # Root key ceremony
+npm run example:hsm-envelope-encryption  # DEK/KEK on-ledger pattern
 ```
 
 Then move from `examples/` to `modules/` to `docs/architecture/`.
