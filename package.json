@@ -36,11 +36,15 @@
     "example:quantum-key-sharing": "tsx examples/quantum-resistant-key-sharing/index.ts",
     "example:hsm-tx-signing": "tsx examples/hsm-transaction-signing/index.ts",
     "example:hsm-key-ceremony": "tsx examples/hsm-key-ceremony/index.ts",
-    "example:hsm-envelope-encryption": "tsx examples/hsm-envelope-encryption/index.ts"
+    "example:hsm-envelope-encryption": "tsx examples/hsm-envelope-encryption/index.ts",
+    "example:kyber-kem": "tsx examples/kyber-kem-key-exchange/index.ts",
+    "example:hybrid-kem": "tsx examples/hybrid-kem-settlement/index.ts",
+    "example:quantum-safe-payment": "tsx examples/quantum-safe-payment/index.ts"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.3",
     "@hyperledger/fabric-gateway": "^1.10.1",
+    "@noble/post-quantum": "^0.5.4",
     "ethers": "^6.16.0"
   },
   "devDependencies": {
