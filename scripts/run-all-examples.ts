@@ -14,6 +14,9 @@ const examples = [
   ["hsm transaction signing", "examples/hsm-transaction-signing/index.ts"],
   ["hsm key ceremony", "examples/hsm-key-ceremony/index.ts"],
   ["hsm envelope encryption", "examples/hsm-envelope-encryption/index.ts"],
+  ["kyber kem key exchange", "examples/kyber-kem-key-exchange/index.ts"],
+  ["hybrid kem settlement", "examples/hybrid-kem-settlement/index.ts"],
+  ["quantum safe payment", "examples/quantum-safe-payment/index.ts"],
 ] as const;
 
 for (const [label, path] of examples) {

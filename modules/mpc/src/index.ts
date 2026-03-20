@@ -226,3 +226,26 @@ export class MPCEngine {
     return true;
   }
 }
+
+// Re-export ML-KEM and Hybrid KEM so consumers can reach them via the module
+// root without needing to know the internal file layout.
+export { KyberKem, ML_KEM_SIZES } from "./kyber";
+export type {
+  KyberKeyPair,
+  KemEncapsulation,
+  KemAuditRecord,
+  MlKemParams,
+} from "./kyber";
+export { HybridKem } from "./hybrid-kem";
+export type {
+  HybridKeyPairs,
+  HybridEncapsulation,
+  HybridDecapsulation,
+} from "./hybrid-kem";
+export { MlDsaSigner, ML_DSA_SIZES } from "./dsa";
+export type {
+  DsaKeyPair,
+  DsaSignatureResult,
+  DsaAuditRecord,
+  MlDsaParams,
+} from "./dsa";
