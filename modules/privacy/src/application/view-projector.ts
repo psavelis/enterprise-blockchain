@@ -5,6 +5,8 @@ import type {
   SharedOrderView,
 } from "../domain/entities";
 import type { OrderRepository } from "../domain/ports";
+import type { Logger } from "../../../shared/src/logger";
+import { noopLogger } from "../../../shared/src/logger";
 
 // Audience-specific field projection rules.
 // Ref: W3C Verifiable Credentials Data Model — selective disclosure
@@ -48,19 +50,36 @@ const fieldProjections: Record<
 };
 
 export class ViewProjector {
-  constructor(private readonly repo: OrderRepository) {}
+  private readonly logger: Logger;
+
+  constructor(
+    private readonly repo: OrderRepository,
+    logger?: Logger,
+  ) {
+    this.logger = logger ?? noopLogger;
+  }
 
   createView(orderId: string, audience: Audience): SharedOrderView {
+    const start = Date.now();
     const order = this.repo.orders.get(orderId);
     if (!order) {
       throw new Error(`Unknown order ${orderId}`);
     }
 
-    return {
+    const view: SharedOrderView = {
       orderId,
       audience,
       data: fieldProjections[audience](order),
       auditProof: sha256hex(JSON.stringify(order)),
     };
+
+    this.logger.info("view projected", {
+      operation: "ViewProjector.createView",
+      entityId: orderId,
+      result: audience,
+      durationMs: Date.now() - start,
+    });
+
+    return view;
   }
 }
