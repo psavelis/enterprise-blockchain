@@ -15,3 +15,4 @@ int_types = "long"
 
 [profile.ci]
 fuzz = { runs = 1000 }
+invariant = { runs = 256, depth = 64 }
