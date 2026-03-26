@@ -23,6 +23,6 @@ export class InMemoryAuditLog implements AuditLog {
   }
 
   entries(): readonly HsmAuditEntry[] {
-    return this.log;
+    return [...this.log];
   }
 }
