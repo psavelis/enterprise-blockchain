@@ -1,12 +1,2 @@
-import { sha256hex } from "../../shared/src/crypto";
-
-export { sha256hex };
-
-export function commitShare(
-  partyId: string,
-  index: number,
-  value: number,
-  nonce: string,
-): string {
-  return sha256hex(`${nonce}:${partyId}:${index}:${value}`);
-}
+// Re-export shared crypto primitives so existing intra-module imports keep working.
+export { sha256hex, commitShare } from "../../shared/src/index";

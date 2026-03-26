@@ -12,7 +12,7 @@ import consortiumRegistryArtifact from "../../../../contracts/ConsortiumOrderReg
 import type {
   PurchaseOrder,
   SharedOrderView,
-} from "../../../privacy/src/index";
+} from "../../../privacy/src/domain/entities";
 import {
   getOptionalEnv,
   getNumberEnv,
