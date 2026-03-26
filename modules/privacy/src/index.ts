@@ -1,85 +1,38 @@
-import { createHash } from "node:crypto";
+// Domain
+export type {
+  PurchaseOrder,
+  Audience,
+  SharedOrderView,
+} from "./domain/entities";
+export type { OrderRepository } from "./domain/ports";
 
-export interface PurchaseOrder {
-  id: string;
-  buyer: string;
-  supplier: string;
-  sku: string;
-  quantity: number;
-  unitPriceUsd: number;
-  incoterm: string;
-  destinationPort: string;
-  financingBank?: string;
-  sustainabilityGrade: "A" | "B" | "C";
-}
+// Application
+export { ViewProjector } from "./application/view-projector";
 
-export type Audience = "logistics" | "bank" | "regulator" | "supplier";
+// Infrastructure
+export { InMemoryOrderRepository } from "./infrastructure/in-memory-store";
 
-export interface SharedOrderView {
-  orderId: string;
-  audience: Audience;
-  data: Record<string, string | number>;
-  auditProof: string;
-}
+// ---------------------------------------------------------------------------
+// Facade — preserves the original public API.
+// ---------------------------------------------------------------------------
+
+import type {
+  Audience,
+  PurchaseOrder,
+  SharedOrderView,
+} from "./domain/entities";
+import { InMemoryOrderRepository } from "./infrastructure/in-memory-store";
+import { ViewProjector } from "./application/view-projector";
 
 export class SelectiveDisclosureLedger {
-  private readonly orders = new Map<string, PurchaseOrder>();
+  private readonly repo = new InMemoryOrderRepository();
+  private readonly projector = new ViewProjector(this.repo);
 
   publishOrder(order: PurchaseOrder): void {
-    this.orders.set(order.id, order);
+    this.repo.addOrder(order);
   }
 
   createView(orderId: string, audience: Audience): SharedOrderView {
-    const order = this.orders.get(orderId);
-    if (!order) {
-      throw new Error(`Unknown order ${orderId}`);
-    }
-
-    const totalValueUsd = order.quantity * order.unitPriceUsd;
-    const dataByAudience: Record<Audience, Record<string, string | number>> = {
-      logistics: {
-        buyer: order.buyer,
-        supplier: order.supplier,
-        sku: order.sku,
-        quantity: order.quantity,
-        incoterm: order.incoterm,
-        destinationPort: order.destinationPort,
-      },
-      bank: {
-        buyer: order.buyer,
-        supplier: order.supplier,
-        totalValueUsd,
-        destinationPort: order.destinationPort,
-        financingBank: order.financingBank ?? "n/a",
-        sustainabilityGrade: order.sustainabilityGrade,
-      },
-      regulator: {
-        buyer: order.buyer,
-        supplier: order.supplier,
-        sku: order.sku,
-        quantity: order.quantity,
-        destinationPort: order.destinationPort,
-        sustainabilityGrade: order.sustainabilityGrade,
-      },
-      supplier: {
-        buyer: order.buyer,
-        sku: order.sku,
-        quantity: order.quantity,
-        unitPriceUsd: order.unitPriceUsd,
-        incoterm: order.incoterm,
-        destinationPort: order.destinationPort,
-      },
-    };
-
-    return {
-      orderId,
-      audience,
-      data: dataByAudience[audience],
-      auditProof: this.hash(JSON.stringify(order)),
-    };
-  }
-
-  private hash(value: string): string {
-    return createHash("sha256").update(value).digest("hex");
+    return this.projector.createView(orderId, audience);
   }
 }
