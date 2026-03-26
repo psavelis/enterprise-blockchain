@@ -21,7 +21,7 @@ contract AidSettlementTest is Test {
     // ---------------------------------------------------------------
 
     function test_registerGrant_stores_and_emits() public {
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(true, true, true, true);
         emit AidSettlement.GrantRegistered(
             "G-001", "HH-001", "Urban Food Support", 18000, 2000
         );
@@ -73,7 +73,7 @@ contract AidSettlementTest is Test {
             "G-002", "HH", "P", 1000, 2000, twoCategories, 18000
         );
 
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(true, true, true, true);
         emit AidSettlement.ClaimSettled("C-001", "G-002", 6500, 6500);
 
         settlement.submitClaim(
@@ -109,7 +109,7 @@ contract AidSettlementTest is Test {
     // ---------------------------------------------------------------
 
     function test_submitClaim_rejects_for_unknown_grant() public {
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(true, true, true, true);
         emit AidSettlement.ClaimRejected("C-X", "G-NONE", "grant not found");
 
         settlement.submitClaim(

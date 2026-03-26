@@ -12,7 +12,7 @@ contract ConsortiumOrderRegistryTest is Test {
     }
 
     function test_anchorOrder_stores_and_emits() public {
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(true, true, true, true);
         emit ConsortiumOrderRegistry.OrderAnchored(
             "PO-001", "Acme", "Supplier", "proof-abc", block.timestamp
         );
@@ -42,7 +42,7 @@ contract ConsortiumOrderRegistryTest is Test {
     function test_publishAudienceView_stores_and_emits() public {
         registry.anchorOrder("PO-002", "Buyer", "Supplier", "proof");
 
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(true, true, true, true);
         emit ConsortiumOrderRegistry.AudienceViewPublished(
             "PO-002", "regulator", "view-proof", block.timestamp
         );

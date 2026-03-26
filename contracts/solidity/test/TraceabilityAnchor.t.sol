@@ -18,7 +18,7 @@ contract TraceabilityAnchorTest is Test {
     function test_anchorLot_stores_and_emits() public {
         bytes32 root = keccak256("lot-state");
 
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(true, true, true, true);
         emit TraceabilityAnchor.LotAnchored(
             "LOT-001", root, "Green Valley Farms", block.timestamp
         );
@@ -60,7 +60,7 @@ contract TraceabilityAnchorTest is Test {
     function test_recordShipment_stores_and_emits() public {
         anchor.anchorLot("LOT-003", "P", "MX", keccak256("s"));
 
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(true, true, true, true);
         emit TraceabilityAnchor.ShipmentRecorded(
             "SHIP-001", "LOT-003", "Houston DC", 590, block.timestamp
         );
@@ -108,7 +108,7 @@ contract TraceabilityAnchorTest is Test {
         impacted[0] = "SHIP-A";
         impacted[1] = "SHIP-B";
 
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(true, true, true, true);
         emit TraceabilityAnchor.RecallIssued(
             "LOT-006", assessHash, 2, block.timestamp
         );

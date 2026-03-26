@@ -17,7 +17,7 @@ import net.corda.core.utilities.ProgressTracker
  * The initiating party (typically the facility) builds a transaction with
  * either an [ProviderClearanceContract.Commands.ApproveClearance] or
  * [ProviderClearanceContract.Commands.RejectClearance] command, then
- * collects signatures from all required participants.
+ * collects signatures from the counterparty (e.g. regulator or credentialing authority).
  */
 @InitiatingFlow
 @StartableByRPC
@@ -28,7 +28,7 @@ class IssueProviderClearanceFlow(
     private val requiredCredentials: List<String>,
     private val approved: Boolean,
     private val reasons: List<String>,
-    private val observer: Party,
+    private val counterparty: Party,
     private val notary: Party
 ) : FlowLogic<SignedTransaction>() {
 
@@ -66,7 +66,7 @@ class IssueProviderClearanceFlow(
             approved = approved,
             reasons = reasons,
             linearId = linearId,
-            participants = listOf(ourIdentity, observer)
+            participants = listOf(ourIdentity, counterparty)
         )
 
         val command = if (approved) {
@@ -77,7 +77,7 @@ class IssueProviderClearanceFlow(
 
         val txBuilder = TransactionBuilder(notary)
             .addOutputState(outputState, ProviderClearanceContract.ID)
-            .addCommand(Command(command, listOf(ourIdentity.owningKey, observer.owningKey)))
+            .addCommand(Command(command, listOf(ourIdentity.owningKey, counterparty.owningKey)))
 
         progressTracker.currentStep = VERIFYING_TRANSACTION
         txBuilder.verify(serviceHub)
@@ -86,13 +86,13 @@ class IssueProviderClearanceFlow(
         val partiallySignedTx = serviceHub.signInitialTransaction(txBuilder)
 
         progressTracker.currentStep = GATHERING_SIGNATURES
-        val observerSession = initiateFlow(observer)
+        val counterpartySession = initiateFlow(counterparty)
         val fullySignedTx = subFlow(
-            CollectSignaturesFlow(partiallySignedTx, listOf(observerSession), GATHERING_SIGNATURES.childProgressTracker())
+            CollectSignaturesFlow(partiallySignedTx, listOf(counterpartySession), GATHERING_SIGNATURES.childProgressTracker())
         )
 
         progressTracker.currentStep = FINALISING_TRANSACTION
-        return subFlow(FinalityFlow(fullySignedTx, listOf(observerSession), FINALISING_TRANSACTION.childProgressTracker()))
+        return subFlow(FinalityFlow(fullySignedTx, listOf(counterpartySession), FINALISING_TRANSACTION.childProgressTracker()))
     }
 }
 
