@@ -82,6 +82,24 @@ npm run example:hsm-key-ceremony
 npm run example:hsm-envelope-encryption
 ```
 
+## Local Stack Verification
+
+Start the full multi-platform stack and run the smoke test:
+
+```bash
+docker compose up -d
+bash scripts/smoke-test-local.sh
+```
+
+The smoke test waits for every container to become healthy, then verifies:
+
+1. **Besu** — `eth_blockNumber` returns a non-zero block on both validators.
+2. **Fabric** — orderer and peer gRPC ports are accepting connections.
+3. **Corda** — notary and party P2P ports are reachable.
+
+Each check has a configurable timeout (default 120 s, override with `SMOKE_TIMEOUT`).
+Works on macOS (Docker Desktop) and Linux.
+
 ## Design Goals
 
 - Keep the examples close to operational problems faced by consortiums, regulators, and platform teams.
