@@ -7,7 +7,10 @@ contract ConsortiumOrderRegistry is AccessControl {
     bytes32 public constant ANCHOR_ADMIN = keccak256("ANCHOR_ADMIN");
     bytes32 public constant VIEW_PUBLISHER = keccak256("VIEW_PUBLISHER");
 
+    error ZeroAdminAddress();
+
     constructor(address admin) {
+        if (admin == address(0)) revert ZeroAdminAddress();
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ANCHOR_ADMIN, admin);
         _grantRole(VIEW_PUBLISHER, admin);

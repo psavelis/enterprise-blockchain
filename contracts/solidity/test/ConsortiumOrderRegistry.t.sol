@@ -143,4 +143,13 @@ contract ConsortiumOrderRegistryTest is Test {
             "{}"
         );
     }
+
+    // ---------------------------------------------------------------
+    // Zero-address admin guard
+    // ---------------------------------------------------------------
+
+    function test_constructor_reverts_on_zero_admin() public {
+        vm.expectRevert(ConsortiumOrderRegistry.ZeroAdminAddress.selector);
+        new ConsortiumOrderRegistry(address(0));
+    }
 }

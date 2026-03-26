@@ -21,7 +21,10 @@ contract AidSettlement is AccessControl {
     bytes32 public constant GRANT_ADMIN = keccak256("GRANT_ADMIN");
     bytes32 public constant CLAIM_SUBMITTER = keccak256("CLAIM_SUBMITTER");
 
+    error ZeroAdminAddress();
+
     constructor(address admin) {
+        if (admin == address(0)) revert ZeroAdminAddress();
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(GRANT_ADMIN, admin);
         _grantRole(CLAIM_SUBMITTER, admin);

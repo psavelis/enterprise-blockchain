@@ -207,4 +207,13 @@ contract TraceabilityAnchorTest is Test {
 
         assertEq(anchor.getRecall("LOT-ROLE").impactedShipmentIds.length, 1);
     }
+
+    // ---------------------------------------------------------------
+    // Zero-address admin guard
+    // ---------------------------------------------------------------
+
+    function test_constructor_reverts_on_zero_admin() public {
+        vm.expectRevert(TraceabilityAnchor.ZeroAdminAddress.selector);
+        new TraceabilityAnchor(address(0));
+    }
 }
