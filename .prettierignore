@@ -1,5 +1,6 @@
 ci-results/
 contracts/**/*.json
 dist/
+**/.terraform/
 node_modules/
 package-lock.json

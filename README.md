@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="enterprise-blockchain-repo-logo.jpg" alt="Enterprise Blockchain" width="400" />
+</p>
+
 # Enterprise Blockchain Case Studies
 
 TypeScript repository for enterprise blockchain case studies, protocol mappings, and integration patterns.
