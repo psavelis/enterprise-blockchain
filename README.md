@@ -1,5 +1,9 @@
 # Enterprise Blockchain Case Studies
 
+[![CI](https://github.com/psavelis/enterprise-blockchain/actions/workflows/ci.yml/badge.svg)](https://github.com/psavelis/enterprise-blockchain/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+![Node.js](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen)
+
 TypeScript repository for enterprise blockchain case studies, protocol mappings, and integration patterns.
 
 The repository is organized around reusable domain modules and runnable examples. The focus is operational design: traceability, selective disclosure, credential verification, and reconciliation.
@@ -133,4 +137,16 @@ A GitHub Actions workflow is included to run the same checks on push and pull re
 
 Environment templates for the integration examples live under `examples/config/`.
 
-The Besu path also includes a concrete Solidity contract source in [contracts/ConsortiumOrderRegistry.sol](contracts/ConsortiumOrderRegistry.sol).
+The Besu integration uses a contract ABI under `contracts/`. Solidity sources and Foundry tests live in `contracts/solidity/`. Fabric chaincode is in `contracts/fabric/` and Corda contracts in `contracts/corda/`.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, branch naming, commit conventions, and pull request guidelines.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+
+## License
+
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
