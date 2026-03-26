@@ -32,6 +32,7 @@ resource "docker_container" "orderer" {
   ports {
     internal = 7050
     external = var.orderer_port
+    ip       = "127.0.0.1"
   }
 
   env = [
@@ -55,12 +56,14 @@ resource "docker_container" "peer" {
   image = docker_image.peer.image_id
 
   networks_advanced {
-    name = var.network_id
+    name    = var.network_id
+    aliases = ["peer0.${local.orgs[count.index]}.example.com"]
   }
 
   ports {
     internal = 7051
     external = var.peer_base_port + count.index
+    ip       = "127.0.0.1"
   }
 
   env = [

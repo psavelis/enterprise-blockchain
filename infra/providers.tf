@@ -8,5 +8,3 @@ terraform {
     }
   }
 }
-
-provider "docker" {}

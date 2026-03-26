@@ -24,27 +24,31 @@ resource "docker_container" "validator" {
   ports {
     internal = 8545
     external = var.rpc_base_port + count.index
+    ip       = "127.0.0.1"
   }
 
   env = [
     "BESU_NETWORK=dev",
     "BESU_MINER_ENABLED=true",
-    "BESU_MINER_COINBASE=0x0000000000000000000000000000000000000000",
+    "BESU_MINER_COINBASE=0x${format("%040x", count.index)}",
     "BESU_RPC_HTTP_ENABLED=true",
     "BESU_RPC_HTTP_HOST=0.0.0.0",
-    "BESU_RPC_HTTP_CORS_ORIGINS=*",
-    "BESU_HOST_ALLOWLIST=*",
+    "BESU_RPC_HTTP_CORS_ORIGINS=localhost",
+    "BESU_HOST_ALLOWLIST=localhost,127.0.0.1",
     "BESU_DATA_PATH=/opt/besu/data",
   ]
 
+  # NOTE: RPC binds to 0.0.0.0 inside the container, but host ports are
+  # published on 127.0.0.1 only (see ports block). CORS and host-allowlist
+  # are restricted to localhost for local-dev safety.
   command = [
     "--network=dev",
     "--rpc-http-enabled",
     "--rpc-http-host=0.0.0.0",
-    "--rpc-http-cors-origins=*",
-    "--host-allowlist=*",
+    "--rpc-http-cors-origins=http://localhost",
+    "--host-allowlist=localhost,127.0.0.1",
     "--miner-enabled",
-    "--miner-coinbase=0x0000000000000000000000000000000000000000",
+    "--miner-coinbase=0x${format("%040x", count.index)}",
   ]
 
   restart = "unless-stopped"

@@ -8,7 +8,6 @@ module "besu_devnet" {
 
   image           = var.besu_image
   validator_count = var.besu_validator_count
-  chain_id        = var.besu_chain_id
   network_id      = docker_network.blockchain.id
 }
 

@@ -9,6 +9,11 @@ terraform {
 
 locals {
   nodes = ["notary", "partya", "partyb"]
+  legal_names = {
+    notary = "Notary"
+    partya = "PartyA"
+    partyb = "PartyB"
+  }
 }
 
 resource "docker_image" "corda" {
@@ -28,10 +33,11 @@ resource "docker_container" "node" {
   ports {
     internal = 10006
     external = var.rpc_base_port + count.index
+    ip       = "127.0.0.1"
   }
 
   env = [
-    "MY_LEGAL_NAME=O=${title(local.nodes[count.index])},L=London,C=GB",
+    "MY_LEGAL_NAME=O=${local.legal_names[local.nodes[count.index]]},L=London,C=GB",
   ]
 
   restart = "unless-stopped"

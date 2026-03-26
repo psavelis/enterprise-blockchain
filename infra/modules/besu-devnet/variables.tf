@@ -4,15 +4,9 @@ variable "image" {
 }
 
 variable "validator_count" {
-  description = "Number of IBFT 2.0 validator nodes."
+  description = "Number of Besu dev-network miner nodes."
   type        = number
   default     = 4
-}
-
-variable "chain_id" {
-  description = "EVM chain ID."
-  type        = number
-  default     = 1337
 }
 
 variable "network_id" {

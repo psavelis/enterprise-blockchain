@@ -5,13 +5,13 @@ variable "besu_image" {
 }
 
 variable "besu_validator_count" {
-  description = "Number of Besu IBFT 2.0 validator nodes."
+  description = "Number of Besu dev-network miner nodes."
   type        = number
   default     = 4
 }
 
 variable "besu_chain_id" {
-  description = "EVM chain ID for the Besu PoA network."
+  description = "EVM chain ID for the Besu dev network."
   type        = number
   default     = 1337
 }
@@ -31,7 +31,7 @@ variable "fabric_orderer_image" {
 variable "corda_image" {
   description = "Docker image for Corda nodes."
   type        = string
-  default     = "corda/corda-zulu-java11-5.1:latest"
+  default     = "corda/corda-zulu-java11-5.1:5.1"
 }
 
 variable "network_name" {
