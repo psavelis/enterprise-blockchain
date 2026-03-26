@@ -44,9 +44,8 @@ describe("SelectiveDisclosureLedger", () => {
 
     it("shows n/a when financingBank is omitted", () => {
       const ledger = new SelectiveDisclosureLedger();
-      const order = sampleOrder();
-      delete (order as Record<string, unknown>).financingBank;
-      ledger.publishOrder(order);
+      const { financingBank: _, ...orderWithoutBank } = sampleOrder();
+      ledger.publishOrder(orderWithoutBank);
 
       const view = ledger.createView("PO-1", "bank");
       assert.equal(view.data.financingBank, "n/a");
