@@ -258,4 +258,13 @@ contract AidSettlementTest is Test {
             uint8(AidSettlement.ClaimStatus.Settled)
         );
     }
+
+    // ---------------------------------------------------------------
+    // Zero-address admin guard
+    // ---------------------------------------------------------------
+
+    function test_constructor_reverts_on_zero_admin() public {
+        vm.expectRevert(AidSettlement.ZeroAdminAddress.selector);
+        new AidSettlement(address(0));
+    }
 }

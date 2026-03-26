@@ -22,7 +22,10 @@ contract TraceabilityAnchor is AccessControl {
     bytes32 public constant SHIPMENT_RECORDER = keccak256("SHIPMENT_RECORDER");
     bytes32 public constant RECALL_AUTHORITY = keccak256("RECALL_AUTHORITY");
 
+    error ZeroAdminAddress();
+
     constructor(address admin) {
+        if (admin == address(0)) revert ZeroAdminAddress();
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ANCHOR_ORACLE, admin);
         _grantRole(SHIPMENT_RECORDER, admin);
