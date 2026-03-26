@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title TraceabilityAnchor
@@ -17,16 +18,26 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  *         to authorized oracle operators, shipment recording to verified
  *         carriers, and recall authority to designated safety bodies.
  */
-contract TraceabilityAnchor is AccessControl {
+contract TraceabilityAnchor is AccessControl, Pausable {
     bytes32 public constant ANCHOR_ORACLE = keccak256("ANCHOR_ORACLE");
     bytes32 public constant SHIPMENT_RECORDER = keccak256("SHIPMENT_RECORDER");
     bytes32 public constant RECALL_AUTHORITY = keccak256("RECALL_AUTHORITY");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     constructor(address admin) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ANCHOR_ORACLE, admin);
         _grantRole(SHIPMENT_RECORDER, admin);
         _grantRole(RECALL_AUTHORITY, admin);
+        _grantRole(PAUSER_ROLE, admin);
+    }
+
+    function pause() external onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(PAUSER_ROLE) {
+        _unpause();
     }
     struct LotAnchor {
         bytes32 stateRootHash;
@@ -89,7 +100,7 @@ contract TraceabilityAnchor is AccessControl {
         string calldata producer,
         string calldata origin,
         bytes32 stateRoot
-    ) external onlyRole(ANCHOR_ORACLE) {
+    ) external onlyRole(ANCHOR_ORACLE) whenNotPaused {
         require(bytes(lotId).length > 0, "lotId required");
         require(stateRoot != bytes32(0), "stateRoot required");
 
@@ -116,7 +127,7 @@ contract TraceabilityAnchor is AccessControl {
         string calldata lotId,
         string calldata destination,
         int256 tempC100
-    ) external onlyRole(SHIPMENT_RECORDER) {
+    ) external onlyRole(SHIPMENT_RECORDER) whenNotPaused {
         require(lots[lotId].anchoredAt > 0, "lot not anchored");
         require(bytes(shipmentId).length > 0, "shipmentId required");
         require(shipments[shipmentId].recordedAt == 0, "shipment already recorded");
@@ -142,7 +153,7 @@ contract TraceabilityAnchor is AccessControl {
         string calldata lotId,
         bytes32 assessmentHash,
         string[] calldata impactedShipmentIds
-    ) external onlyRole(RECALL_AUTHORITY) {
+    ) external onlyRole(RECALL_AUTHORITY) whenNotPaused {
         require(lots[lotId].anchoredAt > 0, "lot not anchored");
         require(assessmentHash != bytes32(0), "assessmentHash required");
 

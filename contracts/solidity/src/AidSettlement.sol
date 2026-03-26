@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title AidSettlement
@@ -17,14 +18,24 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  *         mirrors the off-chain AidSettlementLedger reconciliation rules so
  *         that settlement outcomes can be independently verified.
  */
-contract AidSettlement is AccessControl {
+contract AidSettlement is AccessControl, Pausable {
     bytes32 public constant GRANT_ADMIN = keccak256("GRANT_ADMIN");
     bytes32 public constant CLAIM_SUBMITTER = keccak256("CLAIM_SUBMITTER");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     constructor(address admin) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(GRANT_ADMIN, admin);
         _grantRole(CLAIM_SUBMITTER, admin);
+        _grantRole(PAUSER_ROLE, admin);
+    }
+
+    function pause() external onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(PAUSER_ROLE) {
+        _unpause();
     }
     struct Grant {
         string grantId;
@@ -98,7 +109,7 @@ contract AidSettlement is AccessControl {
         uint256 expiresAt,
         string[] calldata approvedCategories,
         uint256 amountUsd100
-    ) external onlyRole(GRANT_ADMIN) {
+    ) external onlyRole(GRANT_ADMIN) whenNotPaused {
         require(bytes(grantId).length > 0, "grantId required");
         require(!grants[grantId].exists, "grant already registered");
         require(expiresAt > issuedAt, "expiresAt must be after issuedAt");
@@ -140,7 +151,7 @@ contract AidSettlement is AccessControl {
         string calldata invoiceRef,
         uint256 amountUsd100,
         uint256 submittedAt
-    ) external onlyRole(CLAIM_SUBMITTER) {
+    ) external onlyRole(CLAIM_SUBMITTER) whenNotPaused {
         require(bytes(claimId).length > 0, "claimId required");
         require(bytes(invoiceRef).length > 0, "invoiceRef required");
         require(bytes(claims[claimId].claimId).length == 0, "claim already exists");
