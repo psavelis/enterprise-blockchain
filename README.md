@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="enterprise-blockchain-repo-logo.jpg" alt="Enterprise Blockchain" width="400" />
+  <img src="enterprise-blockchain-repo-logo.jpg" alt="Enterprise Blockchain" width="100%" />
 </p>
 
 # Enterprise Blockchain Case Studies
