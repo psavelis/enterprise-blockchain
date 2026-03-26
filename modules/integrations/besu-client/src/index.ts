@@ -125,7 +125,9 @@ export class BesuEthersClientSketch {
           view.orderId,
           view.audience,
           JSON.stringify(view.data),
-          view.auditProof,
+          typeof view.auditProof === "string"
+            ? view.auditProof
+            : JSON.stringify(view.auditProof),
         ]),
       },
     };
