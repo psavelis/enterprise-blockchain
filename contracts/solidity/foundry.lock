@@ -1,0 +1,14 @@
+{
+  "lib/openzeppelin-contracts": {
+    "tag": {
+      "name": "v5.2.0",
+      "rev": "acd4ff74de833399287ed6b31b4debf6b2b35527"
+    }
+  },
+  "lib/openzeppelin-contracts-upgradeable": {
+    "tag": {
+      "name": "v5.2.0",
+      "rev": "3d5fa5c24c411112bab47bec25cfa9ad0af0e6e8"
+    }
+  }
+}
