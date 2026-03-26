@@ -140,7 +140,46 @@ contract ConsortiumOrderRegistryTest is Test {
 
         assertEq(
             registry.getAudienceView("PO-ROLE", "bank").payload,
-            "{}"
+            "{}" 
         );
+    }
+
+    // ---------------------------------------------------------------
+    // pausable
+    // ---------------------------------------------------------------
+
+    function test_pause_blocks_anchorOrder() public {
+        registry.pause();
+        vm.expectRevert();
+        registry.anchorOrder("PO-PAUSED", "B", "S", "p");
+    }
+
+    function test_pause_blocks_publishAudienceView() public {
+        registry.anchorOrder("PO-PP", "B", "S", "p");
+        registry.pause();
+        vm.expectRevert();
+        registry.publishAudienceView("PO-PP", "bank", "{}", "p");
+    }
+
+    function test_unpause_restores_operations() public {
+        registry.pause();
+        registry.unpause();
+        registry.anchorOrder("PO-UNPAUSE", "B", "S", "proof");
+        assertGt(registry.getCanonicalOrder("PO-UNPAUSE").anchoredAt, 0);
+    }
+
+    function test_view_functions_work_when_paused() public {
+        registry.anchorOrder("PO-VIEW", "B", "S", "proof");
+        registry.pause();
+        ConsortiumOrderRegistry.CanonicalOrder memory order =
+            registry.getCanonicalOrder("PO-VIEW");
+        assertGt(order.anchoredAt, 0);
+    }
+
+    function test_pause_reverts_for_unauthorized_caller() public {
+        address outsider = address(0xDEAD);
+        vm.prank(outsider);
+        vm.expectRevert();
+        registry.pause();
     }
 }

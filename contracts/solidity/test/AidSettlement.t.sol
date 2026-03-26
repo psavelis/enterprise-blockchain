@@ -258,4 +258,60 @@ contract AidSettlementTest is Test {
             uint8(AidSettlement.ClaimStatus.Settled)
         );
     }
+
+    // ---------------------------------------------------------------
+    // pausable
+    // ---------------------------------------------------------------
+
+    function test_pause_blocks_registerGrant() public {
+        settlement.pause();
+        vm.expectRevert();
+        settlement.registerGrant(
+            "G-PAUSED", "HH", "P", 1000, 2000, twoCategories, 100
+        );
+    }
+
+    function test_pause_blocks_submitClaim() public {
+        settlement.registerGrant(
+            "G-PC", "HH", "P", 1000, 2000, twoCategories, 18000
+        );
+        settlement.pause();
+        vm.expectRevert();
+        settlement.submitClaim(
+            "C-PAUSED", "G-PC", "M", "groceries", "I", 100, 1500
+        );
+    }
+
+    function test_unpause_restores_operations() public {
+        settlement.pause();
+        settlement.unpause();
+        settlement.registerGrant(
+            "G-UNPAUSE", "HH", "P", 1000, 2000, twoCategories, 18000
+        );
+        assertTrue(settlement.getGrant("G-UNPAUSE").exists);
+    }
+
+    function test_view_functions_work_when_paused() public {
+        settlement.registerGrant(
+            "G-VIEW", "HH", "P", 1000, 2000, twoCategories, 18000
+        );
+        settlement.pause();
+        AidSettlement.Grant memory g = settlement.getGrant("G-VIEW");
+        assertTrue(g.exists);
+    }
+
+    function test_pause_reverts_for_unauthorized_caller() public {
+        address outsider = address(0xDEAD);
+        vm.prank(outsider);
+        vm.expectRevert();
+        settlement.pause();
+    }
+
+    function test_unpause_reverts_for_unauthorized_caller() public {
+        settlement.pause();
+        address outsider = address(0xDEAD);
+        vm.prank(outsider);
+        vm.expectRevert();
+        settlement.unpause();
+    }
 }
