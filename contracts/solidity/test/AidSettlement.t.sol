@@ -10,7 +10,7 @@ contract AidSettlementTest is Test {
     string[] twoCategories;
 
     function setUp() public {
-        settlement = new AidSettlement();
+        settlement = new AidSettlement(address(this));
         twoCategories = new string[](2);
         twoCategories[0] = "groceries";
         twoCategories[1] = "pharmacy";
@@ -211,5 +211,51 @@ contract AidSettlementTest is Test {
         AidSettlement.Claim memory c = settlement.getClaim("UNKNOWN");
         assertEq(bytes(c.claimId).length, 0);
         assertEq(uint8(c.status), uint8(AidSettlement.ClaimStatus.Pending));
+    }
+
+    // ---------------------------------------------------------------
+    // access control
+    // ---------------------------------------------------------------
+
+    function test_registerGrant_reverts_for_unauthorized_caller() public {
+        address outsider = address(0xBEEF);
+        vm.prank(outsider);
+        vm.expectRevert();
+        settlement.registerGrant(
+            "G-UNAUTH", "HH", "P", 1000, 2000, twoCategories, 100
+        );
+    }
+
+    function test_submitClaim_reverts_for_unauthorized_caller() public {
+        settlement.registerGrant(
+            "G-AUTH", "HH", "P", 1000, 2000, twoCategories, 18000
+        );
+
+        address outsider = address(0xBEEF);
+        vm.prank(outsider);
+        vm.expectRevert();
+        settlement.submitClaim(
+            "C-UNAUTH", "G-AUTH", "M", "groceries", "I", 100, 1500
+        );
+    }
+
+    function test_granted_role_can_register_and_claim() public {
+        address operator = address(0xCAFE);
+        settlement.grantRole(settlement.GRANT_ADMIN(), operator);
+        settlement.grantRole(settlement.CLAIM_SUBMITTER(), operator);
+
+        vm.startPrank(operator);
+        settlement.registerGrant(
+            "G-ROLE", "HH", "P", 1000, 2000, twoCategories, 18000
+        );
+        settlement.submitClaim(
+            "C-ROLE", "G-ROLE", "M", "groceries", "I", 6500, 1500
+        );
+        vm.stopPrank();
+
+        assertEq(
+            uint8(settlement.getClaim("C-ROLE").status),
+            uint8(AidSettlement.ClaimStatus.Settled)
+        );
     }
 }
