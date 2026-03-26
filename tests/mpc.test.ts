@@ -35,16 +35,17 @@ test("integrity verification succeeds for untampered shares", () => {
   assert.equal(engine.verifyIntegrity("verify-round"), true);
 });
 
-test("integrity verification fails for tampered shares", () => {
+test("integrity verification fails for tampered shares (caught at submit)", () => {
   const engine = new MPCEngine();
   engine.registerParty({ id: "x", name: "X", endpoint: "x.local" });
   engine.registerParty({ id: "y", name: "Y", endpoint: "y.local" });
 
   const shares = engine.splitSecret(100, ["x", "y"]);
   shares[0]!.value += 1; // tamper
-  for (const s of shares) engine.submitShare("tamper-round", s);
-
-  assert.equal(engine.verifyIntegrity("tamper-round"), false);
+  assert.throws(
+    () => engine.submitShare("tamper-round", shares[0]!),
+    /commitment verification failed/i,
+  );
 });
 
 test("threshold computation detects exceeded limit", () => {
@@ -94,6 +95,65 @@ test("compute rejects incomplete additive share sets", () => {
 test("splitSecret rejects fewer than 2 parties", () => {
   const engine = new MPCEngine();
   assert.throws(() => engine.splitSecret(1, ["solo"]), /at least two parties/i);
+});
+
+// ---------------------------------------------------------------------------
+// Commitment verification (issue #24)
+// ---------------------------------------------------------------------------
+
+test("submitShare rejects share with tampered value", () => {
+  const engine = new MPCEngine();
+  engine.registerParty({ id: "a", name: "A", endpoint: "a.local" });
+  engine.registerParty({ id: "b", name: "B", endpoint: "b.local" });
+
+  const shares = engine.splitSecret(100, ["a", "b"]);
+  shares[0]!.value += 1; // tamper with the value
+  assert.throws(
+    () => engine.submitShare("tamper-val", shares[0]!),
+    /commitment verification failed/i,
+  );
+});
+
+test("submitShare rejects share with tampered nonce", () => {
+  const engine = new MPCEngine();
+  engine.registerParty({ id: "a", name: "A", endpoint: "a.local" });
+  engine.registerParty({ id: "b", name: "B", endpoint: "b.local" });
+
+  const shares = engine.splitSecret(100, ["a", "b"]);
+  shares[0]!.nonce = "0000000000000000deadbeef00000000"; // tamper with nonce
+  assert.throws(
+    () => engine.submitShare("tamper-nonce", shares[0]!),
+    /commitment verification failed/i,
+  );
+});
+
+test("submitShare accepts share with valid commitment", () => {
+  const engine = new MPCEngine();
+  engine.registerParty({ id: "a", name: "A", endpoint: "a.local" });
+  engine.registerParty({ id: "b", name: "B", endpoint: "b.local" });
+
+  const shares = engine.splitSecret(200, ["a", "b"]);
+  // Should not throw
+  engine.submitShare("valid-commit", shares[0]!);
+  engine.submitShare("valid-commit", shares[1]!);
+
+  const result = engine.compute("valid-commit", "sum");
+  assert.equal(result.aggregate, 200);
+  assert.equal(result.meta.commitmentsVerified, true);
+});
+
+test("compute records commitment verification status in integrity proof", () => {
+  const engine = new MPCEngine();
+  engine.registerParty({ id: "a", name: "A", endpoint: "a.local" });
+  engine.registerParty({ id: "b", name: "B", endpoint: "b.local" });
+
+  const shares = engine.splitSecret(50, ["a", "b"]);
+  for (const s of shares) engine.submitShare("proof-round", s);
+
+  const result = engine.compute("proof-round", "threshold", { threshold: 40 });
+  assert.equal(result.meta.commitmentsVerified, true);
+  assert.equal(typeof result.integrityProof, "string");
+  assert.equal(result.integrityProof.length, 64);
 });
 
 // ---------------------------------------------------------------------------

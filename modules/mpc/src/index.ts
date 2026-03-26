@@ -109,6 +109,22 @@ export class MPCEngine {
       throw new Error(`Unknown party ${share.partyId}`);
     }
 
+    // Verify commitment before accepting the share.
+    // This prevents a malicious party from submitting a bogus value
+    // with a valid-looking commitment, which would corrupt the result.
+    const expected = commitShare(
+      share.partyId,
+      share.shareIndex,
+      share.value,
+      share.nonce,
+    );
+    if (expected !== share.commitment) {
+      throw new Error(
+        `Commitment verification failed for party ${share.partyId} in computation ${computationId}: ` +
+          `expected ${expected}, got ${share.commitment}`,
+      );
+    }
+
     let round = this.rounds.get(computationId);
     if (!round) {
       round = { expectedShareCount: share.shareCount, shares: new Map() };
@@ -168,18 +184,23 @@ export class MPCEngine {
         for (const share of round.shares.values()) {
           aggregate += share.value;
         }
+        const commitmentsVerified = this.verifyIntegrity(computationId);
         return {
           computationId,
           op: "sum",
           participantCount,
           aggregate,
-          meta: { operation: "additive-reconstruction" },
+          meta: {
+            operation: "additive-reconstruction",
+            commitmentsVerified,
+          },
           integrityProof: sha256hex(
             JSON.stringify({
               computationId,
               op: "sum",
               participantCount,
               aggregate,
+              commitmentsVerified,
             }),
           ),
         };
@@ -191,18 +212,24 @@ export class MPCEngine {
           total += share.value;
         }
         const exceeded = total >= t;
+        const commitmentsVerified = this.verifyIntegrity(computationId);
         return {
           computationId,
           op: "threshold",
           participantCount,
           exceeded,
-          meta: { operation: "threshold-check", threshold: t },
+          meta: {
+            operation: "threshold-check",
+            threshold: t,
+            commitmentsVerified,
+          },
           integrityProof: sha256hex(
             JSON.stringify({
               computationId,
               op: "threshold",
               participantCount,
               exceeded,
+              commitmentsVerified,
             }),
           ),
         };
