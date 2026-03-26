@@ -5,6 +5,5 @@ contracts/solidity/out/
 contracts/solidity/cache/
 **/.terraform/
 dist/
-**/.terraform/
 node_modules/
 package-lock.json
