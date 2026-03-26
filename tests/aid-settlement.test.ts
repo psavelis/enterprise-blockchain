@@ -176,3 +176,60 @@ test("aid settlement reconciliation rejects expired, duplicate, and disallowed c
   assert.deepEqual(report.rejectedClaimIds, ["CLAIM-2", "CLAIM-3"]);
   assert.equal(report.exceptions.length, 2);
 });
+
+test("reconcile rejects claims that exceed the grant budget", () => {
+  const ledger = new AidSettlementLedger();
+
+  ledger.issueGrant({
+    id: "G-BUDGET",
+    beneficiaryId: "BEN-1",
+    program: "Food Support",
+    issuedAt: "2026-01-01T00:00:00Z",
+    expiresAt: "2026-12-31T00:00:00Z",
+    approvedMerchantCategories: ["groceries"],
+    amountUsd: 50,
+  });
+
+  ledger.submitClaim({
+    id: "C-FIT",
+    grantId: "G-BUDGET",
+    merchantId: "M-1",
+    merchantCategory: "groceries",
+    submittedAt: "2026-01-10T00:00:00Z",
+    invoiceReference: "INV-A",
+    amountUsd: 30,
+  });
+
+  ledger.submitClaim({
+    id: "C-OVER",
+    grantId: "G-BUDGET",
+    merchantId: "M-1",
+    merchantCategory: "groceries",
+    submittedAt: "2026-01-11T00:00:00Z",
+    invoiceReference: "INV-B",
+    amountUsd: 25,
+  });
+
+  const report = ledger.reconcile();
+  assert.deepEqual(report.settledClaimIds, ["C-FIT"]);
+  assert.deepEqual(report.rejectedClaimIds, ["C-OVER"]);
+  assert.ok(report.exceptions.some((e) => e.includes("overspend")));
+});
+
+test("reconcile rejects orphaned claims with unknown grant reference", () => {
+  const ledger = new AidSettlementLedger();
+
+  ledger.submitClaim({
+    id: "C-ORPHAN",
+    grantId: "G-PHANTOM",
+    merchantId: "M-1",
+    merchantCategory: "groceries",
+    submittedAt: "2026-01-10T00:00:00Z",
+    invoiceReference: "INV-X",
+    amountUsd: 10,
+  });
+
+  const report = ledger.reconcile();
+  assert.deepEqual(report.rejectedClaimIds, ["C-ORPHAN"]);
+  assert.ok(report.exceptions.some((e) => e.includes("unknown grant")));
+});

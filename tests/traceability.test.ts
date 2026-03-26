@@ -124,3 +124,86 @@ test("assessRecall includes earlier shipments when a later shipment breaches tem
     "Hamburg DC",
   ]);
 });
+
+test("recordTelemetry rejects an unknown shipment reference", () => {
+  const ledger = new TraceabilityLedger();
+  assert.throws(
+    () =>
+      ledger.recordTelemetry({
+        shipmentId: "SHIP-GHOST",
+        timestamp: "2026-01-01T00:00:00Z",
+        temperatureCelsius: 4,
+        location: "Nowhere",
+      }),
+    /unknown shipment/i,
+  );
+});
+
+test("assessRecall with explicitly flagged lot IDs", () => {
+  const ledger = new TraceabilityLedger();
+
+  ledger.registerLot({
+    id: "LOT-FLAG",
+    productName: "Cheese",
+    supplier: "Clean Dairy",
+    originCountry: "NL",
+    harvestDate: "2026-03-01",
+    expirationDate: "2026-04-01",
+  });
+
+  ledger.dispatchShipment({
+    id: "SHIP-FLAG",
+    lotId: "LOT-FLAG",
+    from: "Amsterdam",
+    to: "Berlin DC",
+    departedAt: "2026-03-02T00:00:00Z",
+  });
+
+  const assessment = ledger.assessRecall({
+    suspectSuppliers: [],
+    flaggedLotIds: ["LOT-FLAG"],
+    maxTemperatureCelsius: 10,
+  });
+
+  assert.deepEqual(assessment.impactedLotIds, ["LOT-FLAG"]);
+  assert.deepEqual(assessment.impactedShipmentIds, ["SHIP-FLAG"]);
+  assert.ok(assessment.reasons.some((r) => r.includes("flagged")));
+});
+
+test("assessRecall with no matching criteria returns empty assessment", () => {
+  const ledger = new TraceabilityLedger();
+
+  ledger.registerLot({
+    id: "LOT-SAFE",
+    productName: "Apples",
+    supplier: "Orchard Co",
+    originCountry: "DE",
+    harvestDate: "2026-03-01",
+    expirationDate: "2026-06-01",
+  });
+
+  ledger.dispatchShipment({
+    id: "SHIP-SAFE",
+    lotId: "LOT-SAFE",
+    from: "Munich",
+    to: "Paris DC",
+    departedAt: "2026-03-02T00:00:00Z",
+  });
+
+  ledger.recordTelemetry({
+    shipmentId: "SHIP-SAFE",
+    timestamp: "2026-03-02T06:00:00Z",
+    temperatureCelsius: 3,
+    location: "Stuttgart",
+  });
+
+  const assessment = ledger.assessRecall({
+    suspectSuppliers: [],
+    flaggedLotIds: [],
+    maxTemperatureCelsius: 10,
+  });
+
+  assert.equal(assessment.impactedLotIds.length, 0);
+  assert.equal(assessment.impactedShipmentIds.length, 0);
+  assert.equal(assessment.reasons.length, 0);
+});
