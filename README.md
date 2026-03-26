@@ -137,7 +137,7 @@ A GitHub Actions workflow is included to run the same checks on push and pull re
 
 Environment templates for the integration examples live under `examples/config/`.
 
-The Besu integration uses a contract ABI under `contracts/`. Solidity sources and Foundry tests live in `contracts/solidity/`. Fabric chaincode is in `contracts/fabric/` and Corda contracts in `contracts/corda/`.
+The Besu integration uses a contract ABI under `contracts/` (e.g., `ConsortiumOrderRegistry.sol` and its JSON ABI). Additional contract artifacts for Fabric and Corda may be added in dedicated PRs.
 
 ## Contributing
 

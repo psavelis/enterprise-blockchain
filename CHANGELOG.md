@@ -12,11 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hexagonal architecture across all domain modules (traceability, privacy, credentialing, aid-settlement, HSM).
 - Shared primitives module (`Store<K,V>`, `daysUntil()`, `commitShare()`).
 - Port interfaces for protocol adapters (traceability, privacy, credentialing).
-- Smart contracts for three platforms:
-  - Solidity: `TraceabilityAnchor`, `AidSettlement`, `ConsortiumOrderRegistry` with Foundry test suites.
-  - Fabric: `FoodTraceContract` TypeScript chaincode.
-  - Corda: `ProviderClearanceContract`, `ProviderClearanceState`, `ProviderClearanceFlow` (Kotlin).
-- Expanded test coverage from 81 to 99+ tests.
+- Design for multi-platform smart contracts (Solidity, Fabric TypeScript chaincode, Corda Kotlin).
+- Expanded test coverage beyond the initial 81 tests.
 - Cross-module e2e test.
 - Governance documents: LICENSE (Apache 2.0), CONTRIBUTING.md, SECURITY.md, CHANGELOG.md.
 
