@@ -59,7 +59,7 @@ Optional body with context.
 - Run `npm run test` before pushing. All tests must pass.
 - New domain logic requires unit tests.
 - Cross-module behavior requires integration or e2e tests.
-- Smart contracts require Foundry tests (run `forge test` in the contracts project directory).
+- When smart contract sources are present, run the corresponding test suite (e.g., `forge test` for Solidity).
 
 ## Architecture
 

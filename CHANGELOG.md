@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Hexagonal architecture across all domain modules (traceability, privacy, credentialing, aid-settlement, HSM).
-- Shared primitives module (`Store<K,V>`, `daysUntil()`, `commitShare()`).
 - Port interfaces for protocol adapters (traceability, privacy, credentialing).
 - Design for multi-platform smart contracts (Solidity, Fabric TypeScript chaincode, Corda Kotlin).
 - Expanded test coverage beyond the initial 81 tests.
