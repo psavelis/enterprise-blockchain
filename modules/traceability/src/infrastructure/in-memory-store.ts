@@ -32,6 +32,6 @@ export class InMemoryTraceabilityStore implements TraceabilityStore {
   }
 
   getTelemetry(shipmentId: string): readonly TelemetryReading[] {
-    return this.telemetry.get(shipmentId) ?? [];
+    return [...(this.telemetry.get(shipmentId) ?? [])];
   }
 }

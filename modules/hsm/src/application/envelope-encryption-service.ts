@@ -70,6 +70,8 @@ export class EnvelopeEncryptionService {
         "GCM authentication failed",
       );
       throw new Error("HSM decryptWithEnvelope: GCM authentication failed");
+    } finally {
+      dek.fill(0);
     }
   }
 }

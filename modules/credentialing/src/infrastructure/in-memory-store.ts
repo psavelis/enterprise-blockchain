@@ -20,6 +20,6 @@ export class InMemoryCredentialRepository implements CredentialRepository {
   }
 
   getCredentials(providerId: string): readonly ClinicalCredential[] {
-    return this.credentials.get(providerId) ?? [];
+    return [...(this.credentials.get(providerId) ?? [])];
   }
 }

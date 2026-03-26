@@ -17,7 +17,7 @@ export class InMemoryAidSettlementRepository implements AidSettlementRepository 
   }
 
   claimsForGrant(grantId: string): readonly RedemptionClaim[] {
-    return this.claims.get(grantId) ?? [];
+    return [...(this.claims.get(grantId) ?? [])];
   }
 
   grantIds(): Iterable<string> {

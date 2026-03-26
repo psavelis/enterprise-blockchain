@@ -72,7 +72,6 @@ export class HsmClient {
       );
     }
     this.slotId = config.slotId;
-    this.initialized = true;
     this.asymmetric = new AsymmetricKeyService(
       this.store,
       this.audit,
@@ -80,6 +79,7 @@ export class HsmClient {
     );
     this.symmetric = new SymmetricKeyService(this.store, this.audit);
     this.envelope = new EnvelopeEncryptionService(this.symmetric, this.audit);
+    this.initialized = true;
     this.audit.record("initialize", config.slotId, "success", config.label);
   }
 
