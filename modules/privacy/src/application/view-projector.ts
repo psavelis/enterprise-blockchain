@@ -3,8 +3,10 @@ import type {
   Audience,
   PurchaseOrder,
   SharedOrderView,
+  SignedAuditProof,
 } from "../domain/entities";
 import type { OrderRepository } from "../domain/ports";
+import type { HsmClient } from "../../../hsm/src/index";
 
 // Audience-specific field projection rules.
 // Ref: W3C Verifiable Credentials Data Model — selective disclosure
@@ -48,7 +50,11 @@ const fieldProjections: Record<
 };
 
 export class ViewProjector {
-  constructor(private readonly repo: OrderRepository) {}
+  constructor(
+    private readonly repo: OrderRepository,
+    private readonly hsm?: HsmClient,
+    private readonly signerKeyLabel?: string,
+  ) {}
 
   createView(orderId: string, audience: Audience): SharedOrderView {
     const order = this.repo.orders.get(orderId);
@@ -56,11 +62,28 @@ export class ViewProjector {
       throw new Error(`Unknown order ${orderId}`);
     }
 
+    const timestamp = new Date().toISOString();
+    const hash = sha256hex(JSON.stringify(order) + audience + timestamp);
+
+    let auditProof: string | SignedAuditProof;
+
+    if (this.hsm && this.signerKeyLabel) {
+      const { signature } = this.hsm.sign(this.signerKeyLabel, hash);
+      auditProof = {
+        hash,
+        signature,
+        signerKeyLabel: this.signerKeyLabel,
+        timestamp,
+      };
+    } else {
+      auditProof = sha256hex(JSON.stringify(order));
+    }
+
     return {
       orderId,
       audience,
       data: fieldProjections[audience](order),
-      auditProof: sha256hex(JSON.stringify(order)),
+      auditProof,
     };
   }
 }

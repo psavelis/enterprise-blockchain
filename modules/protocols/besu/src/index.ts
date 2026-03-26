@@ -24,15 +24,14 @@ export class BesuSelectiveDisclosureAdapter implements PrivacyProtocolAdapter<Be
   }
 
   publishAudienceView(view: SharedOrderView): BesuContractCall {
+    const proofArg =
+      typeof view.auditProof === "string"
+        ? view.auditProof
+        : JSON.stringify(view.auditProof);
     return {
       contractName: "ConsortiumOrderRegistry",
       method: "publishAudienceView",
-      args: [
-        view.orderId,
-        view.audience,
-        JSON.stringify(view.data),
-        view.auditProof,
-      ],
+      args: [view.orderId, view.audience, JSON.stringify(view.data), proofArg],
       privacyGroup: `view-${view.audience}`,
       note: "Distribute a role-specific payload to the appropriate privacy group.",
     };
