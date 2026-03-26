@@ -44,8 +44,18 @@ describe("SelectiveDisclosureLedger", () => {
 
     it("shows n/a when financingBank is omitted", () => {
       const ledger = new SelectiveDisclosureLedger();
-      const { financingBank: _, ...orderWithoutBank } = sampleOrder();
-      ledger.publishOrder(orderWithoutBank);
+      const order = sampleOrder();
+      ledger.publishOrder({
+        id: order.id,
+        buyer: order.buyer,
+        supplier: order.supplier,
+        sku: order.sku,
+        quantity: order.quantity,
+        unitPriceUsd: order.unitPriceUsd,
+        incoterm: order.incoterm,
+        destinationPort: order.destinationPort,
+        sustainabilityGrade: order.sustainabilityGrade,
+      });
 
       const view = ledger.createView("PO-1", "bank");
       assert.equal(view.data.financingBank, "n/a");
