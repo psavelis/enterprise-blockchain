@@ -1,0 +1,310 @@
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "getClaim",
+      "inputs": [
+        {
+          "name": "claimId",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct AidSettlement.Claim",
+          "components": [
+            {
+              "name": "claimId",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "grantId",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "merchantId",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "merchantCategory",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "invoiceReference",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "amountUsd",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "submittedAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "status",
+              "type": "uint8",
+              "internalType": "enum AidSettlement.ClaimStatus"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getGrant",
+      "inputs": [
+        {
+          "name": "grantId",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct AidSettlement.Grant",
+          "components": [
+            {
+              "name": "grantId",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "beneficiaryId",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "program",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "issuedAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "expiresAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "approvedCategories",
+              "type": "string[]",
+              "internalType": "string[]"
+            },
+            {
+              "name": "amountUsd",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "consumedUsd",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "exists",
+              "type": "bool",
+              "internalType": "bool"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "registerGrant",
+      "inputs": [
+        {
+          "name": "grantId",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "beneficiaryId",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "program",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "issuedAt",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "expiresAt",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "approvedCategories",
+          "type": "string[]",
+          "internalType": "string[]"
+        },
+        {
+          "name": "amountUsd100",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "submitClaim",
+      "inputs": [
+        {
+          "name": "claimId",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "grantId",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "merchantId",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "category",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "invoiceRef",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "amountUsd100",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "submittedAt",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "event",
+      "name": "ClaimRejected",
+      "inputs": [
+        {
+          "name": "claimId",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "grantId",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ClaimSettled",
+      "inputs": [
+        {
+          "name": "claimId",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "grantId",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "amountUsd",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "newConsumedTotal",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "GrantRegistered",
+      "inputs": [
+        {
+          "name": "grantId",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "beneficiaryId",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "program",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "amountUsd",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "expiresAt",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    }
+  ]
+}

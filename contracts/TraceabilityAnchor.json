@@ -1,0 +1,315 @@
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "anchorLot",
+      "inputs": [
+        {
+          "name": "lotId",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "producer",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "origin",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "stateRoot",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "getLot",
+      "inputs": [
+        {
+          "name": "lotId",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct TraceabilityAnchor.LotAnchor",
+          "components": [
+            {
+              "name": "stateRootHash",
+              "type": "bytes32",
+              "internalType": "bytes32"
+            },
+            {
+              "name": "lotId",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "producer",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "origin",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "anchoredAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getRecall",
+      "inputs": [
+        {
+          "name": "lotId",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct TraceabilityAnchor.RecallEvent",
+          "components": [
+            {
+              "name": "lotId",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "assessmentHash",
+              "type": "bytes32",
+              "internalType": "bytes32"
+            },
+            {
+              "name": "impactedShipmentIds",
+              "type": "string[]",
+              "internalType": "string[]"
+            },
+            {
+              "name": "issuedAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getShipment",
+      "inputs": [
+        {
+          "name": "shipmentId",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct TraceabilityAnchor.ShipmentRecord",
+          "components": [
+            {
+              "name": "shipmentId",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "lotId",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "destination",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "temperatureCelsius",
+              "type": "int256",
+              "internalType": "int256"
+            },
+            {
+              "name": "recordedAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "issueRecall",
+      "inputs": [
+        {
+          "name": "lotId",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "assessmentHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "impactedShipmentIds",
+          "type": "string[]",
+          "internalType": "string[]"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "recordShipment",
+      "inputs": [
+        {
+          "name": "shipmentId",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "lotId",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "tempC100",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "event",
+      "name": "LotAnchored",
+      "inputs": [
+        {
+          "name": "lotId",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "stateRootHash",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "producer",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "anchoredAt",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "RecallIssued",
+      "inputs": [
+        {
+          "name": "lotId",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "assessmentHash",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "impactedCount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "issuedAt",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ShipmentRecorded",
+      "inputs": [
+        {
+          "name": "shipmentId",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "lotId",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "temperatureCelsius",
+          "type": "int256",
+          "indexed": false,
+          "internalType": "int256"
+        },
+        {
+          "name": "recordedAt",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    }
+  ]
+}
