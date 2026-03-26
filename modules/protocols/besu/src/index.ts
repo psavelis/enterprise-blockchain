@@ -1,7 +1,8 @@
 import type {
   PurchaseOrder,
   SharedOrderView,
-} from "../../../privacy/src/index";
+} from "../../../privacy/src/domain/entities";
+import type { PrivacyProtocolAdapter } from "../../src/privacy-port";
 
 export interface BesuContractCall {
   contractName: string;
@@ -11,7 +12,7 @@ export interface BesuContractCall {
   note: string;
 }
 
-export class BesuSelectiveDisclosureAdapter {
+export class BesuSelectiveDisclosureAdapter implements PrivacyProtocolAdapter<BesuContractCall> {
   anchorOrder(order: PurchaseOrder, auditProof: string): BesuContractCall {
     return {
       contractName: "ConsortiumOrderRegistry",

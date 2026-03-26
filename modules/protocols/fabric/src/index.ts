@@ -2,7 +2,8 @@ import type {
   ProductLot,
   Shipment,
   TelemetryReading,
-} from "../../../traceability/src/index";
+} from "../../../traceability/src/domain/entities";
+import type { TraceabilityProtocolAdapter } from "../../src/traceability-port";
 
 export interface FabricInvocation {
   contract: string;
@@ -12,7 +13,7 @@ export interface FabricInvocation {
   endorsementPolicyHint: string;
 }
 
-export class FabricTraceabilityAdapter {
+export class FabricTraceabilityAdapter implements TraceabilityProtocolAdapter<FabricInvocation> {
   createLotCommand(lot: ProductLot): FabricInvocation {
     return {
       contract: "FoodTraceContract",

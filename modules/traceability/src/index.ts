@@ -1,115 +1,44 @@
-export interface ProductLot {
-  id: string;
-  productName: string;
-  supplier: string;
-  originCountry: string;
-  harvestDate: string;
-  expirationDate: string;
-}
+// Domain
+export type { ProductLot, Shipment, TelemetryReading } from "./domain/entities";
+export type { RecallRule, RecallAssessment } from "./domain/recall";
+export type {
+  TraceabilityRepository,
+  TraceabilityWriter,
+  TraceabilityStore,
+} from "./domain/ports";
 
-export interface Shipment {
-  id: string;
-  lotId: string;
-  from: string;
-  to: string;
-  departedAt: string;
-  receivedAt?: string;
-}
+// Application
+export { RecallAssessor } from "./application/recall-assessor";
 
-export interface TelemetryReading {
-  shipmentId: string;
-  timestamp: string;
-  temperatureCelsius: number;
-  location: string;
-}
+// Infrastructure
+export { InMemoryTraceabilityStore } from "./infrastructure/in-memory-store";
 
-export interface RecallRule {
-  suspectSuppliers: string[];
-  flaggedLotIds: string[];
-  maxTemperatureCelsius: number;
-}
+// ---------------------------------------------------------------------------
+// Facade — preserves the original public API so existing consumers,
+// examples, and tests continue to work without import changes.
+// ---------------------------------------------------------------------------
 
-export interface RecallAssessment {
-  impactedLotIds: string[];
-  impactedShipmentIds: string[];
-  impactedDestinations: string[];
-  reasons: string[];
-}
+import type { ProductLot, Shipment, TelemetryReading } from "./domain/entities";
+import type { RecallRule, RecallAssessment } from "./domain/recall";
+import { InMemoryTraceabilityStore } from "./infrastructure/in-memory-store";
+import { RecallAssessor } from "./application/recall-assessor";
 
 export class TraceabilityLedger {
-  private readonly lots = new Map<string, ProductLot>();
-  private readonly shipments = new Map<string, Shipment>();
-  private readonly telemetry = new Map<string, TelemetryReading[]>();
+  private readonly store = new InMemoryTraceabilityStore();
 
   registerLot(lot: ProductLot): void {
-    this.lots.set(lot.id, lot);
+    this.store.addLot(lot);
   }
 
   dispatchShipment(shipment: Shipment): void {
-    if (!this.lots.has(shipment.lotId)) {
-      throw new Error(`Unknown lot ${shipment.lotId}`);
-    }
-
-    this.shipments.set(shipment.id, shipment);
+    this.store.addShipment(shipment);
   }
 
   recordTelemetry(reading: TelemetryReading): void {
-    if (!this.shipments.has(reading.shipmentId)) {
-      throw new Error(`Unknown shipment ${reading.shipmentId}`);
-    }
-    const readings = this.telemetry.get(reading.shipmentId) ?? [];
-    readings.push(reading);
-    this.telemetry.set(reading.shipmentId, readings);
+    this.store.addTelemetry(reading);
   }
 
   assessRecall(rule: RecallRule): RecallAssessment {
-    const impactedLotIds = new Set<string>();
-    const impactedShipmentIds = new Set<string>();
-    const impactedDestinations = new Set<string>();
-    const reasons = new Set<string>();
-
-    for (const lot of this.lots.values()) {
-      if (rule.flaggedLotIds.includes(lot.id)) {
-        impactedLotIds.add(lot.id);
-        reasons.add(
-          `Lot ${lot.id} was explicitly flagged by quality assurance.`,
-        );
-      }
-
-      if (rule.suspectSuppliers.includes(lot.supplier)) {
-        impactedLotIds.add(lot.id);
-        reasons.add(`Supplier ${lot.supplier} was placed under investigation.`);
-      }
-    }
-
-    for (const shipment of this.shipments.values()) {
-      const readings = this.telemetry.get(shipment.id) ?? [];
-      const breached = readings.some(
-        (reading) => reading.temperatureCelsius > rule.maxTemperatureCelsius,
-      );
-
-      if (breached) {
-        impactedLotIds.add(shipment.lotId);
-        impactedShipmentIds.add(shipment.id);
-        impactedDestinations.add(shipment.to);
-        reasons.add(
-          `Shipment ${shipment.id} exceeded ${rule.maxTemperatureCelsius}C cold-chain limits.`,
-        );
-      }
-    }
-
-    for (const shipment of this.shipments.values()) {
-      if (impactedLotIds.has(shipment.lotId)) {
-        impactedShipmentIds.add(shipment.id);
-        impactedDestinations.add(shipment.to);
-      }
-    }
-
-    return {
-      impactedLotIds: [...impactedLotIds].sort(),
-      impactedShipmentIds: [...impactedShipmentIds].sort(),
-      impactedDestinations: [...impactedDestinations].sort(),
-      reasons: [...reasons],
-    };
+    return new RecallAssessor(this.store).assess(rule);
   }
 }

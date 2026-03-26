@@ -1,4 +1,5 @@
-import type { StaffingAssignment } from "../../../credentialing/src/index";
+import type { StaffingAssignment } from "../../../credentialing/src/domain/entities";
+import type { CredentialingProtocolAdapter } from "../../src/credentialing-port";
 
 export interface CordaFlowCommand {
   flow: string;
@@ -21,7 +22,7 @@ export interface ProviderClearanceState {
   reasons: string[];
 }
 
-export class CordaCredentialingAdapter {
+export class CordaCredentialingAdapter implements CredentialingProtocolAdapter<CordaFlowCommand> {
   buildAssignmentClearanceFlow(
     assignment: StaffingAssignment,
     decision: { approved: boolean; reasons: string[] },
