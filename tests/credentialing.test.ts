@@ -64,3 +64,73 @@ test("credential registry blocks assignments with missing or expired requirement
   assert.equal(decision.approved, false);
   assert.deepEqual(decision.missingCredentials, ["bls", "sedation-privilege"]);
 });
+
+test("evaluateAssignment approves when all credentials are valid", () => {
+  const registry = new CredentialRegistry();
+
+  registry.registerProvider({
+    id: "PROV-FULL",
+    name: "Dr. Complete",
+    specialties: ["Surgery"],
+    sanctionStatus: "clear",
+  });
+
+  registry.issueCredential({
+    id: "LIC-FULL-1",
+    providerId: "PROV-FULL",
+    type: "medical-license",
+    jurisdictions: ["NL"],
+    validUntil: "2027-01-01",
+  });
+
+  registry.issueCredential({
+    id: "BLS-FULL-1",
+    providerId: "PROV-FULL",
+    type: "bls",
+    jurisdictions: ["NL"],
+    validUntil: "2027-01-01",
+  });
+
+  const decision = registry.evaluateAssignment({
+    providerId: "PROV-FULL",
+    facility: "Hospital",
+    jurisdiction: "NL",
+    requiredCredentials: ["medical-license", "bls"],
+    procedure: "Day Surgery",
+    scheduledAt: "2026-06-01T08:00:00Z",
+  });
+
+  assert.equal(decision.approved, true);
+  assert.equal(decision.missingCredentials.length, 0);
+});
+
+test("evaluateAssignment blocks credential outside target jurisdiction", () => {
+  const registry = new CredentialRegistry();
+
+  registry.registerProvider({
+    id: "PROV-JURIS",
+    name: "Dr. Local",
+    specialties: ["General"],
+    sanctionStatus: "clear",
+  });
+
+  registry.issueCredential({
+    id: "LIC-DE",
+    providerId: "PROV-JURIS",
+    type: "medical-license",
+    jurisdictions: ["DE"],
+    validUntil: "2027-01-01",
+  });
+
+  const decision = registry.evaluateAssignment({
+    providerId: "PROV-JURIS",
+    facility: "Amsterdam Hospital",
+    jurisdiction: "NL",
+    requiredCredentials: ["medical-license"],
+    procedure: "Consultation",
+    scheduledAt: "2026-06-01T08:00:00Z",
+  });
+
+  assert.equal(decision.approved, false);
+  assert.ok(decision.missingCredentials.includes("medical-license"));
+});
