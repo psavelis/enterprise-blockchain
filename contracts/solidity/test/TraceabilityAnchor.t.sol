@@ -8,7 +8,7 @@ contract TraceabilityAnchorTest is Test {
     TraceabilityAnchor anchor;
 
     function setUp() public {
-        anchor = new TraceabilityAnchor();
+        anchor = new TraceabilityAnchor(address(this));
     }
 
     // ---------------------------------------------------------------
@@ -153,5 +153,58 @@ contract TraceabilityAnchorTest is Test {
         TraceabilityAnchor.LotAnchor memory lot = anchor.getLot("UNKNOWN");
         assertEq(lot.anchoredAt, 0);
         assertEq(lot.stateRootHash, bytes32(0));
+    }
+
+    // ---------------------------------------------------------------
+    // access control
+    // ---------------------------------------------------------------
+
+    function test_anchorLot_reverts_for_unauthorized_caller() public {
+        address outsider = address(0xBEEF);
+        vm.prank(outsider);
+        vm.expectRevert();
+        anchor.anchorLot("LOT-UNAUTH", "P", "US", keccak256("s"));
+    }
+
+    function test_recordShipment_reverts_for_unauthorized_caller() public {
+        anchor.anchorLot("LOT-SHIP-AUTH", "P", "US", keccak256("s"));
+
+        address outsider = address(0xBEEF);
+        vm.prank(outsider);
+        vm.expectRevert();
+        anchor.recordShipment("SHIP-UNAUTH", "LOT-SHIP-AUTH", "DC", 400);
+    }
+
+    function test_issueRecall_reverts_for_unauthorized_caller() public {
+        anchor.anchorLot("LOT-RECALL-AUTH", "P", "US", keccak256("s"));
+
+        address outsider = address(0xBEEF);
+        string[] memory ids = new string[](0);
+        vm.prank(outsider);
+        vm.expectRevert();
+        anchor.issueRecall("LOT-RECALL-AUTH", keccak256("h"), ids);
+    }
+
+    function test_granted_roles_can_operate() public {
+        address oracle = address(0xAA);
+        address carrier = address(0xBB);
+        address authority = address(0xCC);
+
+        anchor.grantRole(anchor.ANCHOR_ORACLE(), oracle);
+        anchor.grantRole(anchor.SHIPMENT_RECORDER(), carrier);
+        anchor.grantRole(anchor.RECALL_AUTHORITY(), authority);
+
+        vm.prank(oracle);
+        anchor.anchorLot("LOT-ROLE", "P", "US", keccak256("s"));
+
+        vm.prank(carrier);
+        anchor.recordShipment("SHIP-ROLE", "LOT-ROLE", "DC", 400);
+
+        string[] memory ids = new string[](1);
+        ids[0] = "SHIP-ROLE";
+        vm.prank(authority);
+        anchor.issueRecall("LOT-ROLE", keccak256("h"), ids);
+
+        assertEq(anchor.getRecall("LOT-ROLE").impactedShipmentIds.length, 1);
     }
 }
