@@ -3,6 +3,7 @@ contracts/**/*.json
 contracts/solidity/lib/
 contracts/solidity/out/
 contracts/solidity/cache/
+**/.terraform/
 dist/
 node_modules/
 package-lock.json

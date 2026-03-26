@@ -9,7 +9,7 @@ import net.corda.core.identity.AbstractParty
  * Represents a provider clearance decision on the Corda ledger.
  *
  * Each state is uniquely identified by a [linearId] derived from
- * the provider ID and the scheduled assignment timestamp.
+ * the provider ID (used as the external ID component).
  */
 @BelongsToContract(ProviderClearanceContract::class)
 data class ProviderClearanceState(

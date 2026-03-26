@@ -107,6 +107,7 @@ contract TraceabilityAnchor {
     ) external {
         require(lots[lotId].anchoredAt > 0, "lot not anchored");
         require(bytes(shipmentId).length > 0, "shipmentId required");
+        require(shipments[shipmentId].recordedAt == 0, "shipment already recorded");
 
         shipments[shipmentId] = ShipmentRecord({
             shipmentId: shipmentId,

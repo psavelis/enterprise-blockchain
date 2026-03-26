@@ -43,6 +43,7 @@ contract ConsortiumOrderRegistry {
     ) external {
         require(bytes(orderId).length > 0, "orderId required");
         require(bytes(auditProof).length > 0, "auditProof required");
+        require(canonicalOrders[orderId].anchoredAt == 0, "order already anchored");
 
         canonicalOrders[orderId] = CanonicalOrder({
             orderId: orderId,

@@ -132,6 +132,8 @@ contract AidSettlement {
         uint256 submittedAt
     ) external {
         require(bytes(claimId).length > 0, "claimId required");
+        require(bytes(invoiceRef).length > 0, "invoiceRef required");
+        require(bytes(claims[claimId].claimId).length == 0, "claim already exists");
 
         // Write claim once, then determine outcome
         claims[claimId] = Claim({

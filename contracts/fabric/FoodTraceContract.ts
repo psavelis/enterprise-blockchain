@@ -136,6 +136,12 @@ export class FoodTraceContract {
     destination: string,
     departedAt: string,
   ): ShipmentRecord {
+    if (!shipmentId) {
+      throw new Error("shipmentId is required");
+    }
+    if (this.state.get<ShipmentRecord>(`shipment:${shipmentId}`)) {
+      throw new Error(`Shipment ${shipmentId} already exists`);
+    }
     if (!this.state.get<ProductLot>(`lot:${lotId}`)) {
       throw new Error(`Lot ${lotId} does not exist`);
     }
@@ -165,6 +171,12 @@ export class FoodTraceContract {
     unit: string,
     recordedAt: string,
   ): TelemetryEntry {
+    if (!sensorId) {
+      throw new Error("sensorId is required");
+    }
+    if (!recordedAt) {
+      throw new Error("recordedAt is required");
+    }
     if (!this.state.get<ShipmentRecord>(`shipment:${shipmentId}`)) {
       throw new Error(`Shipment ${shipmentId} does not exist`);
     }
