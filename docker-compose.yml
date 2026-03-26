@@ -1,0 +1,112 @@
+version: "3.8"
+
+# Minimal local development stack for the enterprise-blockchain repository.
+# Start with: docker compose up -d
+# Stop with:  docker compose down -v
+
+networks:
+  enterprise-blockchain:
+    name: enterprise-blockchain-net
+
+services:
+  # ── Besu IBFT 2.0 dev node ────────────────────────────────────────
+  besu-validator-0:
+    image: hyperledger/besu:24.12.2
+    container_name: besu-validator-0
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "8545:8545"
+    command:
+      - --network=dev
+      - --rpc-http-enabled
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-cors-origins=*
+      - --host-allowlist=*
+      - --miner-enabled
+      - --miner-coinbase=0x0000000000000000000000000000000000000000
+
+  besu-validator-1:
+    image: hyperledger/besu:24.12.2
+    container_name: besu-validator-1
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "8546:8545"
+    command:
+      - --network=dev
+      - --rpc-http-enabled
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-cors-origins=*
+      - --host-allowlist=*
+      - --miner-enabled
+      - --miner-coinbase=0x0000000000000000000000000000000000000001
+
+  # ── Fabric test network (minimal) ──────────────────────────────────
+  fabric-orderer:
+    image: hyperledger/fabric-orderer:2.5
+    container_name: fabric-orderer
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "7050:7050"
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+
+  fabric-peer-org1:
+    image: hyperledger/fabric-peer:2.5
+    container_name: fabric-peer-org1
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "7051:7051"
+    environment:
+      - CORE_PEER_ID=peer0.org1.example.com
+      - CORE_PEER_LOCALMSPID=Org1MSP
+      - FABRIC_LOGGING_SPEC=INFO
+
+  fabric-peer-org2:
+    image: hyperledger/fabric-peer:2.5
+    container_name: fabric-peer-org2
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "7052:7051"
+    environment:
+      - CORE_PEER_ID=peer0.org2.example.com
+      - CORE_PEER_LOCALMSPID=Org2MSP
+      - FABRIC_LOGGING_SPEC=INFO
+
+  # ── Corda nodes ────────────────────────────────────────────────────
+  corda-notary:
+    image: corda/corda-zulu-java11-5.1:latest
+    container_name: corda-notary
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "10006:10006"
+    environment:
+      - MY_LEGAL_NAME=O=Notary,L=London,C=GB
+
+  corda-partya:
+    image: corda/corda-zulu-java11-5.1:latest
+    container_name: corda-partya
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "10007:10006"
+    environment:
+      - MY_LEGAL_NAME=O=PartyA,L=London,C=GB
+
+  corda-partyb:
+    image: corda/corda-zulu-java11-5.1:latest
+    container_name: corda-partyb
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "10008:10006"
+    environment:
+      - MY_LEGAL_NAME=O=PartyB,L=London,C=GB

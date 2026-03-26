@@ -5,4 +5,5 @@ ci-results/
 medium.md
 **/.terraform/
 contracts/solidity/out/
-contracts/solidity/cache/*.terraform.lock.hcl
+contracts/solidity/cache/
+*.terraform.lock.hcl
