@@ -91,9 +91,9 @@ docker compose up -d
 bash scripts/smoke-test-local.sh
 ```
 
-The smoke test waits for every container to become healthy, then verifies:
+The smoke test waits for TCP port readiness on every container, then verifies:
 
-1. **Besu** — `eth_blockNumber` returns a non-zero block on both validators.
+1. **Besu** — `eth_blockNumber` sampled twice to confirm blocks are advancing on both validators.
 2. **Fabric** — orderer and peer gRPC ports are accepting connections.
 3. **Corda** — notary and party P2P ports are reachable.
 

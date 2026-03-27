@@ -56,12 +56,41 @@ json_rpc() {
 }
 
 # ── Step 1: Wait for all services to be ready ────────────────────────
+# Prefer Docker health status when available; fall back to TCP for
+# services whose images lack a HEALTHCHECK instruction.
 
 log_info "=== Step 1: Service readiness checks ==="
 
+# Check Docker health status first for services with healthchecks.
+# $1 = container name, $2 = label
+wait_for_healthy() {
+  local container="$1" label="$2"
+  local deadline=$((SECONDS + TIMEOUT_SECONDS))
+  log_info "Waiting for ${label} Docker health (timeout ${TIMEOUT_SECONDS}s) ..."
+  while (( SECONDS < deadline )); do
+    local status
+    status="$(docker inspect --format='{{.State.Health.Status}}' "$container" 2>/dev/null)" || status=""
+    if [[ "$status" == "healthy" ]]; then
+      return 0
+    fi
+    sleep "$POLL_INTERVAL"
+  done
+  return 1
+}
+
+# Besu nodes have Docker healthchecks defined in docker-compose.yml
+for pair in "besu-validator-0:Besu validator-0" "besu-validator-1:Besu validator-1"; do
+  container="${pair%%:*}"
+  label="${pair#*:}"
+  if wait_for_healthy "$container" "$label"; then
+    log_ok "${label} is healthy (Docker healthcheck)"
+  else
+    log_fail "${label} did not become healthy within ${TIMEOUT_SECONDS}s"
+  fi
+done
+
+# Fabric and Corda images lack healthchecks — fall back to TCP.
 for svc_label_port in \
-  "Besu validator-0:127.0.0.1:8545" \
-  "Besu validator-1:127.0.0.1:8546" \
   "Fabric orderer:127.0.0.1:${FABRIC_ORDERER_PORT}" \
   "Fabric peer-org1:127.0.0.1:${FABRIC_PEER_ORG1_PORT}" \
   "Fabric peer-org2:127.0.0.1:${FABRIC_PEER_ORG2_PORT}" \
@@ -123,7 +152,10 @@ check_besu_blocks() {
 check_besu_blocks "$BESU_RPC_0" "besu-validator-0"
 check_besu_blocks "$BESU_RPC_1" "besu-validator-1"
 
-# ── Step 3: Fabric — verify peer ports are reachable ─────────────────
+# ── Step 3: Fabric — verify peer connectivity ───────────────────────
+# NOTE: To verify channel membership, run:
+#   docker exec fabric-peer-org1 peer channel list
+# This requires a fully configured Fabric network with channels created.
 
 log_info "=== Step 3: Fabric peer connectivity ==="
 
@@ -144,7 +176,10 @@ for pair in \
   fi
 done
 
-# ── Step 4: Corda — verify node ports are reachable ──────────────────
+# ── Step 4: Corda — verify node connectivity ────────────────────────
+# NOTE: For application-layer health, hit the node-info endpoint:
+#   curl -sf http://127.0.0.1:10007/api/status
+# This requires a Corda node with the webserver module enabled.
 
 log_info "=== Step 4: Corda node connectivity ==="
 
