@@ -7,12 +7,36 @@ import "../src/AidSettlementUpgradeable.sol";
 
 /**
  * @title AidSettlementV2Mock
- * @notice Simulates a V2 upgrade that adds a new `note` field to grants.
- *         Used to test that V1 data survives the upgrade intact.
+ * @notice Simulates a V2 upgrade that adds a new `grantNotes` mapping.
+ *         Used to test that V1 data survives the upgrade intact and that
+ *         new storage is accessible without collisions.
  */
 contract AidSettlementV2Mock is AidSettlementUpgradeable {
+    /// @custom:storage-location erc7201:enterprise-blockchain.storage.AidSettlementV2
+    struct AidSettlementV2Storage {
+        mapping(string => string) grantNotes;
+    }
+
+    bytes32 private constant V2_STORAGE_LOCATION =
+        keccak256(abi.encode(uint256(keccak256("enterprise-blockchain.storage.AidSettlementV2")) - 1));
+
+    function _getV2Storage() private pure returns (AidSettlementV2Storage storage $) {
+        bytes32 slot = V2_STORAGE_LOCATION;
+        assembly {
+            $.slot := slot
+        }
+    }
+
     function initializeV2() external reinitializer(2) {
         // In a real upgrade this could migrate data or set new defaults.
+    }
+
+    function setGrantNote(string calldata grantId, string calldata note) external onlyOwner {
+        _getV2Storage().grantNotes[grantId] = note;
+    }
+
+    function getGrantNote(string calldata grantId) external view returns (string memory) {
+        return _getV2Storage().grantNotes[grantId];
     }
 
     function v2Ping() external pure returns (string memory) {
@@ -120,6 +144,15 @@ contract AidSettlementUpgradeTest is Test {
 
         // Verify V2 functionality
         assertEq(AidSettlementV2Mock(address(proxy)).v2Ping(), "v2");
+
+        // Verify V2 new storage (grantNotes) works without collisions
+        AidSettlementV2Mock(address(proxy)).setGrantNote("G-UP", "post-upgrade note");
+        assertEq(AidSettlementV2Mock(address(proxy)).getGrantNote("G-UP"), "post-upgrade note");
+
+        // Confirm V1 data is still intact after writing V2 storage
+        AidSettlementUpgradeable.Grant memory gFinal = proxy.getGrant("G-UP");
+        assertEq(gFinal.amountUsd, 80000);
+        assertEq(gFinal.consumedUsd, 5000);
     }
 
     function test_upgrade_reverts_for_non_owner() public {

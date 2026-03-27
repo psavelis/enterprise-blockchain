@@ -17,8 +17,10 @@ governance process for coordinating upgrades across consortium participants.
 
 ## Recommended: UUPS for Consortium Contracts
 
-AidSettlement uses the **UUPS (Universal Upgradeable Proxy Standard)** pattern
-via OpenZeppelin's `UUPSUpgradeable`. This is the recommended pattern because:
+`AidSettlementUpgradeable` implements the **UUPS (Universal Upgradeable Proxy
+Standard)** pattern via OpenZeppelin's `UUPSUpgradeable`. The non-upgradeable
+`AidSettlement` is retained as a reference implementation. UUPS is the
+recommended pattern because:
 
 1. **Gas efficiency** — The upgrade logic lives in the implementation, not the
    proxy, saving ~2,100 gas per delegatecall.
