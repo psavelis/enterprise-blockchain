@@ -31,6 +31,11 @@ export class SelectiveDisclosureLedger {
   private readonly projector: ViewProjector;
 
   constructor(hsm?: HsmClient, signerKeyLabel?: string) {
+    if ((hsm && !signerKeyLabel) || (!hsm && signerKeyLabel)) {
+      throw new Error(
+        "Both hsm and signerKeyLabel must be provided together for signed audit proofs",
+      );
+    }
     this.projector = new ViewProjector(this.repo, hsm, signerKeyLabel);
   }
 

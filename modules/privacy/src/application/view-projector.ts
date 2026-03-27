@@ -63,7 +63,10 @@ export class ViewProjector {
     }
 
     const timestamp = new Date().toISOString();
-    const hash = sha256hex(JSON.stringify(order) + audience + timestamp);
+    // Use null byte delimiter to prevent ambiguous preimages
+    const hash = sha256hex(
+      [JSON.stringify(order), audience, timestamp].join("\0"),
+    );
 
     let auditProof: string | SignedAuditProof;
 
