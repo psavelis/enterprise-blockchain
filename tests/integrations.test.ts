@@ -175,8 +175,16 @@ test("fabric recall request includes reason as transient data", () => {
 test("withRetry succeeds on first attempt", async () => {
   let calls = 0;
   const result = await withRetry(
-    async () => { calls++; return "ok"; },
-    { maxAttempts: 3, baseDelayMs: 1, maxDelayMs: 10, retryableErrors: ["FAIL"] },
+    async () => {
+      calls++;
+      return "ok";
+    },
+    {
+      maxAttempts: 3,
+      baseDelayMs: 1,
+      maxDelayMs: 10,
+      retryableErrors: ["FAIL"],
+    },
   );
   assert.equal(result, "ok");
   assert.equal(calls, 1);
@@ -200,9 +208,12 @@ test("withRetry retries on retryable error then succeeds", async () => {
 
 test("withRetry fails immediately on non-retryable error", async () => {
   let calls = 0;
-  await assert.rejects(
-    () => withRetry(
-      async () => { calls++; throw { code: "NONCE_TOO_LOW" }; },
+  await assert.rejects(() =>
+    withRetry(
+      async () => {
+        calls++;
+        throw { code: "NONCE_TOO_LOW" };
+      },
       { ...BESU_RETRY_POLICY, baseDelayMs: 1, maxDelayMs: 5 },
       BESU_NON_RETRYABLE,
       (err: unknown) => (err as { code: string }).code,
@@ -216,11 +227,23 @@ test("isRetryable recognizes platform-specific errors", () => {
   assert.equal(isRetryable("DEADLINE_EXCEEDED", FABRIC_RETRY_POLICY), true);
   assert.equal(isRetryable("UNKNOWN", FABRIC_RETRY_POLICY), false);
 
-  assert.equal(isRetryable("SERVER_ERROR", BESU_RETRY_POLICY, BESU_NON_RETRYABLE), true);
-  assert.equal(isRetryable("NONCE_TOO_LOW", BESU_RETRY_POLICY, BESU_NON_RETRYABLE), false);
+  assert.equal(
+    isRetryable("SERVER_ERROR", BESU_RETRY_POLICY, BESU_NON_RETRYABLE),
+    true,
+  );
+  assert.equal(
+    isRetryable("NONCE_TOO_LOW", BESU_RETRY_POLICY, BESU_NON_RETRYABLE),
+    false,
+  );
 
-  assert.equal(isRetryable("502", CORDA_RETRY_POLICY, CORDA_NON_RETRYABLE), true);
-  assert.equal(isRetryable("401", CORDA_RETRY_POLICY, CORDA_NON_RETRYABLE), false);
+  assert.equal(
+    isRetryable("502", CORDA_RETRY_POLICY, CORDA_NON_RETRYABLE),
+    true,
+  );
+  assert.equal(
+    isRetryable("401", CORDA_RETRY_POLICY, CORDA_NON_RETRYABLE),
+    false,
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -232,7 +255,11 @@ test("circuit breaker transitions: closed -> open after N failures", async () =>
   assert.equal(cb.getState(), "closed");
 
   for (let i = 0; i < 3; i++) {
-    await assert.rejects(() => cb.execute(async () => { throw new Error("fail"); }));
+    await assert.rejects(() =>
+      cb.execute(async () => {
+        throw new Error("fail");
+      }),
+    );
   }
   assert.equal(cb.getState(), "open");
 });
@@ -240,7 +267,11 @@ test("circuit breaker transitions: closed -> open after N failures", async () =>
 test("circuit breaker rejects calls when open", async () => {
   const cb = new CircuitBreaker({ failureThreshold: 1, cooldownMs: 60_000 });
 
-  await assert.rejects(() => cb.execute(async () => { throw new Error("fail"); }));
+  await assert.rejects(() =>
+    cb.execute(async () => {
+      throw new Error("fail");
+    }),
+  );
   assert.equal(cb.getState(), "open");
 
   await assert.rejects(
@@ -252,7 +283,11 @@ test("circuit breaker rejects calls when open", async () => {
 test("circuit breaker transitions: open -> half-open after cooldown", async () => {
   const cb = new CircuitBreaker({ failureThreshold: 1, cooldownMs: 50 });
 
-  await assert.rejects(() => cb.execute(async () => { throw new Error("fail"); }));
+  await assert.rejects(() =>
+    cb.execute(async () => {
+      throw new Error("fail");
+    }),
+  );
   assert.equal(cb.getState(), "open");
 
   await new Promise((r) => setTimeout(r, 60));
@@ -262,7 +297,11 @@ test("circuit breaker transitions: open -> half-open after cooldown", async () =
 test("circuit breaker transitions: half-open -> closed on success", async () => {
   const cb = new CircuitBreaker({ failureThreshold: 1, cooldownMs: 50 });
 
-  await assert.rejects(() => cb.execute(async () => { throw new Error("fail"); }));
+  await assert.rejects(() =>
+    cb.execute(async () => {
+      throw new Error("fail");
+    }),
+  );
 
   await new Promise((r) => setTimeout(r, 60));
   assert.equal(cb.getState(), "half-open");
