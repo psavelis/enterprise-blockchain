@@ -76,6 +76,9 @@ export async function withRetry<T>(
   nonRetryable: string[] = [],
   extractErrorCode: (err: unknown) => string = defaultExtractErrorCode,
 ): Promise<T> {
+  if (policy.maxAttempts < 1) {
+    throw new Error("RetryPolicy.maxAttempts must be >= 1");
+  }
   let lastError: unknown;
 
   for (let attempt = 0; attempt < policy.maxAttempts; attempt++) {
@@ -142,6 +145,13 @@ export class CircuitBreaker {
       );
     }
 
+    // In half-open state, only allow one probe request through.
+    // Immediately transition to open so concurrent callers are blocked
+    // (prevents thundering herd after cooldown).
+    if (currentState === "half-open") {
+      this.state = "open";
+    }
+
     try {
       const result = await fn();
       this.onSuccess();
@@ -180,6 +190,8 @@ function defaultExtractErrorCode(err: unknown): string {
   if (err && typeof err === "object") {
     const e = err as Record<string, unknown>;
     if (typeof e.code === "string") return e.code;
+    // gRPC-js ServiceError.code is a number (e.g., 14 for UNAVAILABLE)
+    if (typeof e.code === "number") return String(e.code);
     if (typeof e.status === "number") return String(e.status);
     if (typeof e.statusCode === "number") return String(e.statusCode);
   }
