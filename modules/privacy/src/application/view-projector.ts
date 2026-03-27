@@ -63,6 +63,11 @@ export class ViewProjector {
     const start = Date.now();
     const order = this.repo.orders.get(orderId);
     if (!order) {
+      this.logger.error("view projection failed: unknown order", {
+        operation: "ViewProjector.createView",
+        entityId: orderId,
+        durationMs: Date.now() - start,
+      });
       throw new Error(`Unknown order ${orderId}`);
     }
 
@@ -76,7 +81,8 @@ export class ViewProjector {
     this.logger.info("view projected", {
       operation: "ViewProjector.createView",
       entityId: orderId,
-      result: audience,
+      audience,
+      result: "projected",
       durationMs: Date.now() - start,
     });
 

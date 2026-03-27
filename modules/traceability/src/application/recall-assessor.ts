@@ -17,7 +17,8 @@ export class RecallAssessor {
     const start = Date.now();
     this.logger.info("assessment started", {
       operation: "RecallAssessor.assess",
-      entityId: rule.flaggedLotIds.join(","),
+      flaggedLotCount: rule.flaggedLotIds.length,
+      flaggedLotIdsCsv: rule.flaggedLotIds.join(","),
     });
     const impactedLotIds = new Set<string>();
     const impactedShipmentIds = new Set<string>();
@@ -47,6 +48,8 @@ export class RecallAssessor {
 
     this.logger.info("assessment completed", {
       operation: "RecallAssessor.assess",
+      flaggedLotCount: rule.flaggedLotIds.length,
+      flaggedLotIdsCsv: rule.flaggedLotIds.join(","),
       result: result.impactedLotIds.length > 0 ? "impacted" : "safe",
       durationMs: Date.now() - start,
       impactedLots: result.impactedLotIds.length,
