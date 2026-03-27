@@ -120,8 +120,7 @@ export class MPCEngine {
     );
     if (expected !== share.commitment) {
       throw new Error(
-        `Commitment verification failed for party ${share.partyId} in computation ${computationId}: ` +
-          `expected ${expected}, got ${share.commitment}`,
+        `Commitment verification failed for party ${share.partyId} in computation ${computationId}`,
       );
     }
 
@@ -143,7 +142,9 @@ export class MPCEngine {
       );
     }
 
-    round.shares.set(share.partyId, share);
+    // Store a defensive copy to prevent callers from mutating the share
+    // after submission, which could corrupt the computation result.
+    round.shares.set(share.partyId, { ...share });
   }
 
   /**
