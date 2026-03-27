@@ -127,7 +127,9 @@ contract AidSettlementUpgradeTest is Test {
         address rando = address(0xbeef);
 
         vm.prank(rando);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", rando)
+        );
         proxy.upgradeToAndCall(address(v2Impl), "");
     }
 }
