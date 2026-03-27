@@ -186,22 +186,36 @@ describe("SelectiveDisclosureLedger", () => {
       const view = ledger.createView("PO-1", "bank");
       const proof = view.auditProof as SignedAuditProof;
 
-      const valid = hsm.verify("audit-signer", proof.hash, proof.signature);
+      // Reconstruct the preimage the projector signed
+      const preimage = [
+        JSON.stringify(sampleOrder()),
+        "bank",
+        proof.timestamp,
+      ].join("\0");
+      const valid = hsm.verify("audit-signer", preimage, proof.signature);
       assert.equal(valid, true);
     });
 
-    it("signature fails verification when hash is tampered", () => {
+    it("signature fails verification when view content changes", () => {
       const hsm = createHsm();
       const ledger = new SelectiveDisclosureLedger(hsm, "audit-signer");
       ledger.publishOrder(sampleOrder());
 
-      const view = ledger.createView("PO-1", "bank");
-      const proof = view.auditProof as SignedAuditProof;
+      const bankView = ledger.createView("PO-1", "bank");
+      const bankProof = bankView.auditProof as SignedAuditProof;
 
+      // A different audience produces a different preimage
+      const tamperedPreimage = [
+        JSON.stringify(sampleOrder()),
+        "logistics",
+        bankProof.timestamp,
+      ].join("\0");
+
+      // The bank signature must not verify against the logistics preimage
       const valid = hsm.verify(
         "audit-signer",
-        proof.hash + "tampered",
-        proof.signature,
+        tamperedPreimage,
+        bankProof.signature,
       );
       assert.equal(valid, false);
     });

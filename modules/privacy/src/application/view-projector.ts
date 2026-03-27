@@ -64,14 +64,15 @@ export class ViewProjector {
 
     const timestamp = new Date().toISOString();
     // Use null byte delimiter to prevent ambiguous preimages
-    const hash = sha256hex(
-      [JSON.stringify(order), audience, timestamp].join("\0"),
-    );
+    const preimage = [JSON.stringify(order), audience, timestamp].join("\0");
+    const hash = sha256hex(preimage);
 
     let auditProof: string | SignedAuditProof;
 
     if (this.hsm && this.signerKeyLabel) {
-      const { signature } = this.hsm.sign(this.signerKeyLabel, hash);
+      // Sign the preimage directly — the HSM's createSign("SHA256") handles
+      // hashing internally.  Signing `hash` would result in double-SHA-256.
+      const { signature } = this.hsm.sign(this.signerKeyLabel, preimage);
       auditProof = {
         hash,
         signature,
