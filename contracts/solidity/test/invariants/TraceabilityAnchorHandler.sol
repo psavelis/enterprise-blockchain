@@ -14,6 +14,7 @@ contract TraceabilityAnchorHandler {
 
     string[] internal _lotIds;
     string[] internal _shipmentIds;
+    uint256[] internal _shipmentLotIndex;
     uint256 internal _lotCounter;
     uint256 internal _shipmentCounter;
 
@@ -43,6 +44,24 @@ contract TraceabilityAnchorHandler {
 
         anchor.recordShipment(sid, lid, "destination", tempSeed);
         _shipmentIds.push(sid);
+        _shipmentLotIndex.push(idx);
+    }
+
+    /// @notice Attempt to record a shipment for a non-anchored lot.
+    ///         Should always revert — exercises the linkage check so
+    ///         the invariant is not vacuous.
+    function recordShipmentForNonAnchoredLot(int256 tempSeed) external {
+        string memory fakeLot = string(abi.encodePacked("FAKE-LOT-", _uint2str(_lotCounter + 999)));
+        string memory sid = string(abi.encodePacked("SHIP-", _uint2str(++_shipmentCounter)));
+        try anchor.recordShipment(sid, fakeLot, "destination", tempSeed) {
+            // If this succeeds, the contract has a bug — the invariant suite
+            // will detect the unlinked shipment.
+            _shipmentIds.push(sid);
+            _shipmentLotIndex.push(type(uint256).max);
+        } catch {
+            // Expected revert — lot not anchored.
+            _shipmentCounter--;
+        }
     }
 
     function issueRecall(uint256 lotSeed) external {
@@ -51,8 +70,19 @@ contract TraceabilityAnchorHandler {
         uint256 idx = lotSeed % _lotIds.length;
         string memory lid = _lotIds[idx];
 
-        // Recall with any shipments from that lot
-        string[] memory impacted = new string[](0);
+        // Collect shipments that reference this lot
+        uint256 count;
+        for (uint256 i; i < _shipmentLotIndex.length; i++) {
+            if (_shipmentLotIndex[i] == idx) count++;
+        }
+        string[] memory impacted = new string[](count);
+        uint256 j;
+        for (uint256 i; i < _shipmentLotIndex.length; i++) {
+            if (_shipmentLotIndex[i] == idx) {
+                impacted[j++] = _shipmentIds[i];
+            }
+        }
+
         anchor.issueRecall(lid, keccak256(abi.encodePacked("recall", lid)), impacted);
     }
 

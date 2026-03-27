@@ -123,6 +123,86 @@ contract AidSettlementHandler {
         }
     }
 
+    /// @notice Submit a claim with a duplicate invoice — should be rejected.
+    function submitDuplicateInvoiceClaim(uint256 grantSeed) external {
+        if (_grantIds.length == 0) return;
+
+        uint256 idx = bound(grantSeed, 0, _grantIds.length - 1);
+        string memory gid = _grantIds[idx];
+
+        AidSettlement.Grant memory g = settlement.getGrant(gid);
+        if (!g.exists) return;
+
+        // Re-use a known invoice ref to trigger "duplicate invoice" rejection
+        string memory cid = string(abi.encodePacked("C-", _uint2str(++_claimCounter)));
+        string memory inv = "INV-1"; // deterministic duplicate
+
+        settlement.submitClaim(cid, gid, "merchant", "groceries", inv, 1, block.timestamp);
+
+        totalSubmitted++;
+
+        AidSettlement.Claim memory c = settlement.getClaim(cid);
+        if (c.status == AidSettlement.ClaimStatus.Settled) {
+            totalSettled++;
+        } else if (c.status == AidSettlement.ClaimStatus.Rejected) {
+            totalRejected++;
+        }
+    }
+
+    /// @notice Submit a claim with an unapproved category — should be rejected.
+    function submitUnapprovedCategoryClaim(uint256 grantSeed, uint256 amountSeed) external {
+        if (_grantIds.length == 0) return;
+
+        uint256 idx = bound(grantSeed, 0, _grantIds.length - 1);
+        string memory gid = _grantIds[idx];
+
+        AidSettlement.Grant memory g = settlement.getGrant(gid);
+        if (!g.exists) return;
+
+        uint256 amount = bound(amountSeed, 1, 100);
+        string memory cid = string(abi.encodePacked("C-", _uint2str(++_claimCounter)));
+        string memory inv = string(abi.encodePacked("INV-", _uint2str(_claimCounter)));
+
+        // "electronics" is not in the approved categories list
+        settlement.submitClaim(cid, gid, "merchant", "electronics", inv, amount, block.timestamp);
+
+        totalSubmitted++;
+
+        AidSettlement.Claim memory c = settlement.getClaim(cid);
+        if (c.status == AidSettlement.ClaimStatus.Settled) {
+            totalSettled++;
+        } else if (c.status == AidSettlement.ClaimStatus.Rejected) {
+            totalRejected++;
+        }
+    }
+
+    /// @notice Submit a claim after grant expiry — should be rejected.
+    function submitExpiredClaim(uint256 grantSeed, uint256 amountSeed) external {
+        if (_grantIds.length == 0) return;
+
+        uint256 idx = bound(grantSeed, 0, _grantIds.length - 1);
+        string memory gid = _grantIds[idx];
+
+        AidSettlement.Grant memory g = settlement.getGrant(gid);
+        if (!g.exists) return;
+
+        uint256 amount = bound(amountSeed, 1, 100);
+        string memory cid = string(abi.encodePacked("C-", _uint2str(++_claimCounter)));
+        string memory inv = string(abi.encodePacked("INV-", _uint2str(_claimCounter)));
+
+        // Submit with a timestamp after grant expiry
+        settlement.submitClaim(cid, gid, "merchant", "groceries", inv, amount, g.expiresAt + 1);
+
+        totalSubmitted++;
+
+        AidSettlement.Claim memory c = settlement.getClaim(cid);
+        if (c.status == AidSettlement.ClaimStatus.Settled) {
+            totalSettled++;
+        } else if (c.status == AidSettlement.ClaimStatus.Rejected) {
+            totalRejected++;
+        }
+    }
+
     // --------------- helpers ---------------
 
     function grantCount() external view returns (uint256) {
