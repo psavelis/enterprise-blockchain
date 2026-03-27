@@ -59,10 +59,10 @@ contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
     }
 
     // keccak256(abi.encode(uint256(keccak256("enterprise-blockchain.storage.AidSettlement")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant AID_SETTLEMENT_STORAGE_LOCATION =
+    bytes32 internal constant AID_SETTLEMENT_STORAGE_LOCATION =
         0x5e4f6c1f8d3a2b0e9c7d8f6a5b4e3c2d1f0a9e8b7c6d5f4a3e2b1c0d9f8e7a00;
 
-    function _getAidSettlementStorage() private pure returns (AidSettlementStorage storage $) {
+    function _getAidSettlementStorage() internal pure returns (AidSettlementStorage storage $) {
         assembly {
             $.slot := AID_SETTLEMENT_STORAGE_LOCATION
         }
