@@ -209,13 +209,16 @@ export class FoodTraceContractDeployable extends Contract {
     if (!sensorId) throw new Error("sensorId is required");
     if (!recordedAt) throw new Error("recordedAt is required");
 
-    // Verify shipment exists via any lot
-    const shipments = await getByCompositeKey<ShipmentRecord>(
+    // Verify shipment exists by scanning shipments for the lot that owns it.
+    // Since the composite key is shipment~lotId~shipmentId, we look up using
+    // just the shipmentId by checking across all lots.
+    // In production, consider a secondary index shipment~shipmentId for O(1) lookup.
+    const allShipments = await getByCompositeKey<ShipmentRecord>(
       ctx,
       "shipment",
       [],
     );
-    const shipment = shipments.find((s) => s.shipmentId === shipmentId);
+    const shipment = allShipments.find((s) => s.shipmentId === shipmentId);
     if (!shipment) throw new Error(`Shipment ${shipmentId} does not exist`);
 
     const parsedValue = parseFloat(value);
@@ -256,14 +259,18 @@ export class FoodTraceContractDeployable extends Contract {
     const shipments = await getByCompositeKey<ShipmentRecord>(ctx, "shipment", [
       lotId,
     ]);
-    const shipmentIds = new Set(shipments.map((s) => s.shipmentId));
 
-    const allTelemetry = await getByCompositeKey<TelemetryEntry>(
-      ctx,
-      "telemetry",
-      [],
-    );
-    const telemetry = allTelemetry.filter((t) => shipmentIds.has(t.shipmentId));
+    // Query telemetry scoped to each shipment's composite key prefix
+    // instead of scanning all telemetry entries.
+    const telemetry: TelemetryEntry[] = [];
+    for (const s of shipments) {
+      const entries = await getByCompositeKey<TelemetryEntry>(
+        ctx,
+        "telemetry",
+        [s.shipmentId],
+      );
+      telemetry.push(...entries);
+    }
 
     return { lot, shipments, telemetry };
   }
