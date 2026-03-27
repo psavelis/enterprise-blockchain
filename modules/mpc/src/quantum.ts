@@ -80,9 +80,8 @@ export class QuantumResistantVault {
       throw new Error("Threshold cannot exceed party count");
     }
 
-    const s = secret instanceof Uint8Array
-      ? bytesToBigInt(secret)
-      : BigInt(secret);
+    const s =
+      secret instanceof Uint8Array ? bytesToBigInt(secret) : BigInt(secret);
 
     if (s < 0n || s >= PRIME) {
       throw new Error(`Secret must be in range [0, ${PRIME})`);
