@@ -22,6 +22,8 @@ npm run build
 
 ### 1. Package the chaincode
 
+All commands below assume you run from the **repository root** (`enterprise-blockchain/`).
+
 ```bash
 peer lifecycle chaincode package food-trace.tar.gz \
   --path ./contracts/fabric \
