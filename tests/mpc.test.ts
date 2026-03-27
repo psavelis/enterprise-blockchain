@@ -41,7 +41,7 @@ test("integrity verification fails for tampered shares (caught at submit)", () =
   engine.registerParty({ id: "y", name: "Y", endpoint: "y.local" });
 
   const shares = engine.splitSecret(100, ["x", "y"]);
-  shares[0]!.value += 1; // tamper
+  shares[0]!.commitment = "0".repeat(64); // tamper with commitment directly
   assert.throws(
     () => engine.submitShare("tamper-round", shares[0]!),
     /commitment verification failed/i,

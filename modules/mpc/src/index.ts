@@ -181,11 +181,18 @@ export class MPCEngine {
 
     switch (op) {
       case "sum": {
+        // Verify commitments BEFORE aggregating values to ensure
+        // no share was mutated between submitShare and compute.
+        const commitmentsVerified = this.verifyIntegrity(computationId);
+        if (!commitmentsVerified) {
+          throw new Error(
+            `Commitment verification failed during computation ${computationId} — aborting to prevent corrupted result`,
+          );
+        }
         let aggregate = 0;
         for (const share of round.shares.values()) {
           aggregate += share.value;
         }
-        const commitmentsVerified = this.verifyIntegrity(computationId);
         return {
           computationId,
           op: "sum",
@@ -207,13 +214,20 @@ export class MPCEngine {
         };
       }
       case "threshold": {
+        // Verify commitments BEFORE aggregating values to ensure
+        // no share was mutated between submitShare and compute.
+        const commitmentsVerified = this.verifyIntegrity(computationId);
+        if (!commitmentsVerified) {
+          throw new Error(
+            `Commitment verification failed during computation ${computationId} — aborting to prevent corrupted result`,
+          );
+        }
         const t = opts?.threshold ?? 0;
         let total = 0;
         for (const share of round.shares.values()) {
           total += share.value;
         }
         const exceeded = total >= t;
-        const commitmentsVerified = this.verifyIntegrity(computationId);
         return {
           computationId,
           op: "threshold",
