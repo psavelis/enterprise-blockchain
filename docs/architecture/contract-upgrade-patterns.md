@@ -8,12 +8,12 @@ governance process for coordinating upgrades across consortium participants.
 
 ## Pattern Comparison
 
-| Pattern              | Pros                                        | Cons                                          | Use When                             |
-| -------------------- | ------------------------------------------- | --------------------------------------------- | ------------------------------------ |
-| **UUPS Proxy**       | Gas-efficient, logic in implementation      | Must remember `_authorizeUpgrade`             | Stateful contracts (AidSettlement)   |
-| **Transparent Proxy** | Admin/user separation automatic             | Extra SLOAD per call for admin check          | High-value treasury contracts        |
-| **Diamond (EIP-2535)** | Modular facets, no size limit             | Complex, hard to audit                        | Very large contracts                 |
-| **Redeploy + Migrate** | Simplest, no proxy overhead              | Stranded data, new address for all parties    | Stateless or low-state contracts     |
+| Pattern                | Pros                                   | Cons                                       | Use When                           |
+| ---------------------- | -------------------------------------- | ------------------------------------------ | ---------------------------------- |
+| **UUPS Proxy**         | Gas-efficient, logic in implementation | Must remember `_authorizeUpgrade`          | Stateful contracts (AidSettlement) |
+| **Transparent Proxy**  | Admin/user separation automatic        | Extra SLOAD per call for admin check       | High-value treasury contracts      |
+| **Diamond (EIP-2535)** | Modular facets, no size limit          | Complex, hard to audit                     | Very large contracts               |
+| **Redeploy + Migrate** | Simplest, no proxy overhead            | Stranded data, new address for all parties | Stateless or low-state contracts   |
 
 ## Recommended: UUPS for Consortium Contracts
 
