@@ -175,9 +175,9 @@ test("fabric recall request includes reason as transient data", () => {
 test("withRetry succeeds on first attempt", async () => {
   let calls = 0;
   const result = await withRetry(
-    async () => {
+    () => {
       calls++;
-      return "ok";
+      return Promise.resolve("ok");
     },
     {
       maxAttempts: 3,
@@ -193,10 +193,14 @@ test("withRetry succeeds on first attempt", async () => {
 test("withRetry retries on retryable error then succeeds", async () => {
   let calls = 0;
   const result = await withRetry(
-    async () => {
+    () => {
       calls++;
-      if (calls < 3) throw { code: "SERVER_ERROR" };
-      return "recovered";
+      if (calls < 3) {
+        const err = new Error("SERVER_ERROR");
+        (err as Error & { code: string }).code = "SERVER_ERROR";
+        return Promise.reject(err);
+      }
+      return Promise.resolve("recovered");
     },
     { ...BESU_RETRY_POLICY, baseDelayMs: 1, maxDelayMs: 5 },
     BESU_NON_RETRYABLE,
@@ -210,9 +214,11 @@ test("withRetry fails immediately on non-retryable error", async () => {
   let calls = 0;
   await assert.rejects(() =>
     withRetry(
-      async () => {
+      () => {
         calls++;
-        throw { code: "NONCE_TOO_LOW" };
+        const err = new Error("NONCE_TOO_LOW");
+        (err as Error & { code: string }).code = "NONCE_TOO_LOW";
+        return Promise.reject(err);
       },
       { ...BESU_RETRY_POLICY, baseDelayMs: 1, maxDelayMs: 5 },
       BESU_NON_RETRYABLE,
@@ -256,9 +262,7 @@ test("circuit breaker transitions: closed -> open after N failures", async () =>
 
   for (let i = 0; i < 3; i++) {
     await assert.rejects(() =>
-      cb.execute(async () => {
-        throw new Error("fail");
-      }),
+      cb.execute(() => Promise.reject(new Error("fail"))),
     );
   }
   assert.equal(cb.getState(), "open");
@@ -268,14 +272,12 @@ test("circuit breaker rejects calls when open", async () => {
   const cb = new CircuitBreaker({ failureThreshold: 1, cooldownMs: 60_000 });
 
   await assert.rejects(() =>
-    cb.execute(async () => {
-      throw new Error("fail");
-    }),
+    cb.execute(() => Promise.reject(new Error("fail"))),
   );
   assert.equal(cb.getState(), "open");
 
   await assert.rejects(
-    () => cb.execute(async () => "should not run"),
+    () => cb.execute(() => Promise.resolve("should not run")),
     /circuit breaker is open/i,
   );
 });
@@ -284,13 +286,11 @@ test("circuit breaker transitions: open -> half-open after cooldown", async () =
   const cb = new CircuitBreaker({ failureThreshold: 1, cooldownMs: 50 });
 
   await assert.rejects(() =>
-    cb.execute(async () => {
-      throw new Error("fail");
-    }),
+    cb.execute(() => Promise.reject(new Error("fail"))),
   );
   assert.equal(cb.getState(), "open");
 
-  await new Promise((r) => setTimeout(r, 60));
+  await new Promise((r) => setTimeout(r, 80));
   assert.equal(cb.getState(), "half-open");
 });
 
@@ -298,15 +298,13 @@ test("circuit breaker transitions: half-open -> closed on success", async () => 
   const cb = new CircuitBreaker({ failureThreshold: 1, cooldownMs: 50 });
 
   await assert.rejects(() =>
-    cb.execute(async () => {
-      throw new Error("fail");
-    }),
+    cb.execute(() => Promise.reject(new Error("fail"))),
   );
 
-  await new Promise((r) => setTimeout(r, 60));
+  await new Promise((r) => setTimeout(r, 80));
   assert.equal(cb.getState(), "half-open");
 
-  const result = await cb.execute(async () => "recovered");
+  const result = await cb.execute(() => Promise.resolve("recovered"));
   assert.equal(result, "recovered");
   assert.equal(cb.getState(), "closed");
 });
