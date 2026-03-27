@@ -276,3 +276,87 @@ test("createManagedSigner returns a NonceManager instance", () => {
   assert.equal(typeof signer.sendTransaction, "function");
   assert.equal(typeof signer.reset, "function");
 });
+
+test("estimateGas propagates insufficient-funds errors from provider", async () => {
+  const client = new BesuEthersClientSketch();
+  const profile = {
+    rpcUrl: "https://rpc.example.org",
+    chainId: 1337,
+    contractAddress: "0x0000000000000000000000000000000000001001",
+  };
+
+  const insufficientErr: Error & { code?: string } = new Error(
+    "insufficient funds for gas * price + value",
+  );
+  insufficientErr.code = "INSUFFICIENT_FUNDS";
+
+  // Stub createProvider to return a fake provider that throws
+  (client as unknown as { createProvider: () => unknown }).createProvider =
+    () => ({
+      estimateGas(): Promise<never> {
+        return Promise.reject(insufficientErr);
+      },
+    });
+
+  await assert.rejects(
+    () => client.estimateGas(profile, { to: profile.contractAddress }),
+    (err: unknown) => {
+      assert.ok(err instanceof Error);
+      assert.ok(err.message.toLowerCase().includes("insufficient"));
+      return true;
+    },
+  );
+});
+
+test("sendTransaction surfaces NONCE_TOO_LOW with actionable guidance", async () => {
+  const client = new BesuEthersClientSketch();
+  const profile = {
+    rpcUrl: "https://rpc.example.org",
+    chainId: 1337,
+    contractAddress: "0x0000000000000000000000000000000000001001",
+    walletPrivateKey:
+      "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  };
+
+  const besuErr: Error & { code?: string } = new Error("nonce too low");
+  besuErr.code = "NONCE_TOO_LOW";
+
+  const fakeSigner = client.createManagedSigner(profile);
+  // Override sendTransaction on the signer instance
+  fakeSigner.sendTransaction = () => Promise.reject(besuErr);
+
+  await assert.rejects(
+    () => client.sendTransaction(fakeSigner, { to: profile.contractAddress }),
+    (err: unknown) => {
+      assert.ok(err instanceof Error);
+      assert.ok(err.message.includes("NONCE_TOO_LOW"));
+      return true;
+    },
+  );
+});
+
+test("sendTransaction surfaces INSUFFICIENT_FUNDS with actionable guidance", async () => {
+  const client = new BesuEthersClientSketch();
+  const profile = {
+    rpcUrl: "https://rpc.example.org",
+    chainId: 1337,
+    contractAddress: "0x0000000000000000000000000000000000001001",
+    walletPrivateKey:
+      "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  };
+
+  const besuErr: Error & { code?: string } = new Error("insufficient funds");
+  besuErr.code = "INSUFFICIENT_FUNDS";
+
+  const fakeSigner = client.createManagedSigner(profile);
+  fakeSigner.sendTransaction = () => Promise.reject(besuErr);
+
+  await assert.rejects(
+    () => client.sendTransaction(fakeSigner, { to: profile.contractAddress }),
+    (err: unknown) => {
+      assert.ok(err instanceof Error);
+      assert.ok(err.message.includes("INSUFFICIENT_FUNDS"));
+      return true;
+    },
+  );
+});

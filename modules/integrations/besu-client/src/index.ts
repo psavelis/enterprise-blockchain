@@ -82,9 +82,10 @@ export class BesuEthersClientSketch {
   }
 
   // Wrap a Wallet with ethers NonceManager so concurrent transactions from
-  // the same account are sequenced correctly. In consortium deployments
-  // multiple services may share a signing account; without nonce management
-  // every concurrent submission risks a NONCE_TOO_LOW rejection.
+  // the same account within this service instance are sequenced correctly.
+  // Note: NonceManager only coordinates nonces in-process; if multiple
+  // independent services share the same signing account, they still need an
+  // external strategy to avoid cross-service NONCE_TOO_LOW races.
   createManagedSigner(profile: BesuRpcProfile): NonceManager {
     return new NonceManager(this.createSigner(profile));
   }
@@ -112,8 +113,24 @@ export class BesuEthersClientSketch {
     try {
       return await this.createProvider(profile).estimateGas(tx);
     } catch (err: unknown) {
+      const anyErr = err as
+        | {
+            code?: unknown;
+            error?: { code?: unknown };
+            info?: { error?: { code?: unknown } };
+          }
+        | undefined;
+      const rawCode =
+        anyErr?.code ?? anyErr?.error?.code ?? anyErr?.info?.error?.code;
+      const normalizedCode =
+        typeof rawCode === "string" ? rawCode.toUpperCase() : "";
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes("INSUFFICIENT_FUNDS")) {
+      const msgLower = msg.toLowerCase();
+
+      if (
+        normalizedCode === "INSUFFICIENT_FUNDS" ||
+        msgLower.includes("insufficient funds")
+      ) {
         throw new Error(
           `Besu gas estimation failed — sender account has insufficient funds: ${msg}`,
           { cause: err },
@@ -191,15 +208,34 @@ export class BesuEthersClientSketch {
       const response = await signer.sendTransaction(tx);
       return response.hash;
     } catch (err: unknown) {
+      const anyErr = err as
+        | {
+            code?: unknown;
+            error?: { code?: unknown };
+            info?: { error?: { code?: unknown } };
+          }
+        | undefined;
+      const rawCode =
+        anyErr?.code ?? anyErr?.error?.code ?? anyErr?.info?.error?.code;
+      const normalizedCode =
+        typeof rawCode === "string" ? rawCode.toUpperCase() : "";
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes("NONCE_TOO_LOW")) {
+      const msgLower = msg.toLowerCase();
+
+      if (
+        normalizedCode === "NONCE_TOO_LOW" ||
+        msgLower.includes("nonce too low")
+      ) {
         throw new Error(
           `Besu NONCE_TOO_LOW — another transaction from this account was mined first. ` +
             `Retry with a fresh nonce or use createManagedSigner() for automatic sequencing.`,
           { cause: err },
         );
       }
-      if (msg.includes("INSUFFICIENT_FUNDS")) {
+      if (
+        normalizedCode === "INSUFFICIENT_FUNDS" ||
+        msgLower.includes("insufficient funds")
+      ) {
         throw new Error(
           `Besu INSUFFICIENT_FUNDS — the sender account cannot cover gas × gasPrice. ` +
             `Fund the account or lower gasLimit.`,
