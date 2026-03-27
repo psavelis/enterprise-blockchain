@@ -207,7 +207,11 @@ export class FoodTraceContractDeployable extends Contract {
     if (!recordedAt) throw new Error("recordedAt is required");
 
     // Verify shipment exists via any lot
-    const shipments = await getByCompositeKey<ShipmentRecord>(ctx, "shipment", []);
+    const shipments = await getByCompositeKey<ShipmentRecord>(
+      ctx,
+      "shipment",
+      [],
+    );
     const shipment = shipments.find((s) => s.shipmentId === shipmentId);
     if (!shipment) throw new Error(`Shipment ${shipmentId} does not exist`);
 
@@ -251,9 +255,7 @@ export class FoodTraceContractDeployable extends Contract {
       "telemetry",
       [],
     );
-    const telemetry = allTelemetry.filter((t) =>
-      shipmentIds.has(t.shipmentId),
-    );
+    const telemetry = allTelemetry.filter((t) => shipmentIds.has(t.shipmentId));
 
     return { lot, shipments, telemetry };
   }

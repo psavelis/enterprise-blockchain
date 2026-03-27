@@ -4,11 +4,11 @@ Hyperledger Fabric 2.5+ chaincode for food supply-chain traceability.
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `FoodTraceContract.ts` | In-memory version for unit testing (no Fabric dependency) |
-| `FoodTraceContractDeployable.ts` | Deployable version extending `fabric-contract-api` Contract |
-| `index.ts` | Entry point exporting contract list for `fabric-chaincode-node` |
+| File                             | Purpose                                                         |
+| -------------------------------- | --------------------------------------------------------------- |
+| `FoodTraceContract.ts`           | In-memory version for unit testing (no Fabric dependency)       |
+| `FoodTraceContractDeployable.ts` | Deployable version extending `fabric-contract-api` Contract     |
+| `index.ts`                       | Entry point exporting contract list for `fabric-chaincode-node` |
 
 ## Building
 
@@ -77,11 +77,11 @@ peer chaincode invoke \
 
 ## Composite Key Scheme
 
-| Object Type | Key Attributes | Example |
-|-------------|---------------|---------|
-| `productLot` | `[lotId]` | `productLot~LOT-001` |
-| `shipment` | `[lotId, shipmentId]` | `shipment~LOT-001~SHIP-001` |
-| `telemetry` | `[shipmentId, sensorId, recordedAt]` | `telemetry~SHIP-001~TEMP-01~2026-01-16T10:00:00Z` |
+| Object Type  | Key Attributes                       | Example                                           |
+| ------------ | ------------------------------------ | ------------------------------------------------- |
+| `productLot` | `[lotId]`                            | `productLot~LOT-001`                              |
+| `shipment`   | `[lotId, shipmentId]`                | `shipment~LOT-001~SHIP-001`                       |
+| `telemetry`  | `[shipmentId, sensorId, recordedAt]` | `telemetry~SHIP-001~TEMP-01~2026-01-16T10:00:00Z` |
 
 ## Events
 
