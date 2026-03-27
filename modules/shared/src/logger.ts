@@ -53,12 +53,14 @@ export class ConsoleLogger implements Logger {
   }
 
   private log(level: string, msg: string, fields?: LogFields): void {
+    // Spread caller fields first, then apply reserved keys so they cannot
+    // be accidentally overridden by user-supplied LogFields.
     const entry = {
+      ...fields,
       level,
       ts: new Date().toISOString(),
       ...(this.prefix ? { module: this.prefix } : {}),
       msg,
-      ...fields,
     };
     const writer =
       level === "error"
