@@ -8,7 +8,7 @@ contract ConsortiumOrderRegistryTest is Test {
     ConsortiumOrderRegistry registry;
 
     function setUp() public {
-        registry = new ConsortiumOrderRegistry();
+        registry = new ConsortiumOrderRegistry(address(this));
     }
 
     function test_anchorOrder_stores_and_emits() public {
@@ -106,5 +106,50 @@ contract ConsortiumOrderRegistryTest is Test {
 
         assertEq(order.anchoredAt, 0);
         assertEq(bytes(order.orderId).length, 0);
+    }
+
+    // ---------------------------------------------------------------
+    // access control
+    // ---------------------------------------------------------------
+
+    function test_anchorOrder_reverts_for_unauthorized_caller() public {
+        address outsider = address(0xBEEF);
+        vm.prank(outsider);
+        vm.expectRevert();
+        registry.anchorOrder("PO-UNAUTH", "Acme", "Supplier", "proof");
+    }
+
+    function test_publishAudienceView_reverts_for_unauthorized_caller() public {
+        registry.anchorOrder("PO-AUTH", "Acme", "Supplier", "proof");
+
+        address outsider = address(0xBEEF);
+        vm.prank(outsider);
+        vm.expectRevert();
+        registry.publishAudienceView("PO-AUTH", "bank", "{}", "proof");
+    }
+
+    function test_granted_role_can_anchor_and_publish() public {
+        address operator = address(0xCAFE);
+        registry.grantRole(registry.ANCHOR_ADMIN(), operator);
+        registry.grantRole(registry.VIEW_PUBLISHER(), operator);
+
+        vm.startPrank(operator);
+        registry.anchorOrder("PO-ROLE", "Buyer", "Supplier", "proof");
+        registry.publishAudienceView("PO-ROLE", "bank", "{}", "view-proof");
+        vm.stopPrank();
+
+        assertEq(
+            registry.getAudienceView("PO-ROLE", "bank").payload,
+            "{}"
+        );
+    }
+
+    // ---------------------------------------------------------------
+    // Zero-address admin guard
+    // ---------------------------------------------------------------
+
+    function test_constructor_reverts_on_zero_admin() public {
+        vm.expectRevert(ConsortiumOrderRegistry.ZeroAdminAddress.selector);
+        new ConsortiumOrderRegistry(address(0));
     }
 }
