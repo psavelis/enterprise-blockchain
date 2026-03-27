@@ -61,10 +61,7 @@ export function isRetryable(
   return policy.retryableErrors.includes(errorCode);
 }
 
-export function computeDelay(
-  attempt: number,
-  policy: RetryPolicy,
-): number {
+export function computeDelay(attempt: number, policy: RetryPolicy): number {
   const jitter = Math.random() * 0.3 + 0.85; // ±15%
   const delay = Math.min(
     policy.baseDelayMs * Math.pow(2, attempt) * jitter,
