@@ -2,7 +2,7 @@ import { QuantumResistantVault } from "../../modules/mpc/src/quantum";
 
 const vault = new QuantumResistantVault();
 
-const signingKeyValue = 9_876_543;
+const signingKeyValue = 9_876_543n;
 const parties = [
   "node-eu-west",
   "node-us-east",
