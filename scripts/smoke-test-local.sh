@@ -30,8 +30,8 @@ fail=0
 # ── Helpers ──────────────────────────────────────────────────────────
 
 log_info()  { printf "${YELLOW}[INFO]${NC}  %s\n" "$*"; }
-log_ok()    { printf "${GREEN}[PASS]${NC}  %s\n" "$*"; ((pass++)); }
-log_fail()  { printf "${RED}[FAIL]${NC}  %s\n" "$*"; ((fail++)); }
+log_ok()    { printf "${GREEN}[PASS]${NC}  %s\n" "$*"; pass=$((pass + 1)); }
+log_fail()  { printf "${RED}[FAIL]${NC}  %s\n" "$*"; fail=$((fail + 1)); }
 
 # wait_for_tcp HOST PORT LABEL — poll until a TCP port is accepting connections.
 wait_for_tcp() {
@@ -47,7 +47,7 @@ wait_for_tcp() {
   return 1
 }
 
-# json_rpc URL METHOD — send a JSON-RPC 2.0 request and return the result field.
+# json_rpc URL METHOD — send a JSON-RPC 2.0 request and return the full response body.
 json_rpc() {
   local url="$1" method="$2"
   curl -sf -X POST "$url" \
@@ -87,7 +87,7 @@ log_info "=== Step 2: Besu block production ==="
 
 check_besu_blocks() {
   local url="$1" label="$2"
-  local resp block_hex block_dec
+  local resp block_hex block_dec resp2 block_hex2 block_dec2
 
   resp="$(json_rpc "$url" "eth_blockNumber" 2>/dev/null)" || {
     log_fail "${label}: eth_blockNumber RPC failed"
@@ -100,11 +100,21 @@ check_besu_blocks() {
     return
   fi
 
-  # Convert hex to decimal (strip 0x prefix)
   block_dec="$(printf "%d" "$block_hex" 2>/dev/null)" || block_dec=0
 
-  if (( block_dec > 0 )); then
-    log_ok "${label}: current block ${block_dec} (${block_hex}) — chain is producing blocks"
+  # Wait briefly and check again to confirm blocks are advancing
+  sleep 2
+  resp2="$(json_rpc "$url" "eth_blockNumber" 2>/dev/null)" || {
+    log_fail "${label}: second eth_blockNumber RPC failed"
+    return
+  }
+  block_hex2="$(echo "$resp2" | grep -o '"result":"[^"]*"' | head -1 | cut -d'"' -f4)"
+  block_dec2="$(printf "%d" "$block_hex2" 2>/dev/null)" || block_dec2=0
+
+  if (( block_dec2 > block_dec )); then
+    log_ok "${label}: blocks advancing (${block_dec} → ${block_dec2}) — miner is active"
+  elif (( block_dec > 0 )); then
+    log_ok "${label}: current block ${block_dec} (${block_hex}) — chain has blocks"
   else
     log_fail "${label}: block number is 0 — miner may not be producing blocks yet"
   fi
