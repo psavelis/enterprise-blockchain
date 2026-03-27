@@ -102,7 +102,7 @@ test("splitSecret rejects fewer than 2 parties", () => {
 
 test("distribute and reconstruct with full share set", () => {
   const vault = new QuantumResistantVault();
-  const secret = 7_777;
+  const secret = 7_777n;
 
   const shares = vault.distributeSecret(secret, ["n1", "n2", "n3"], 2);
   const all = [...shares.values()];
@@ -113,7 +113,7 @@ test("distribute and reconstruct with full share set", () => {
 test("below-threshold reconstruction returns null", () => {
   const vault = new QuantumResistantVault();
   const shares = vault.distributeSecret(
-    1234,
+    1234n,
     ["n1", "n2", "n3", "n4", "n5"],
     3,
   );
@@ -124,7 +124,7 @@ test("below-threshold reconstruction returns null", () => {
 
 test("any k-of-n shares reconstruct the secret (Shamir)", () => {
   const vault = new QuantumResistantVault();
-  const secret = 55_555;
+  const secret = 55_555n;
   const shares = vault.distributeSecret(
     secret,
     ["n1", "n2", "n3", "n4", "n5"],
@@ -163,13 +163,43 @@ test("anchor produces hash-ladder proof", () => {
 
 test("distributeSecret rejects threshold below 2", () => {
   const vault = new QuantumResistantVault();
-  assert.throws(() => vault.distributeSecret(1, ["a", "b"], 1), /at least 2/i);
+  assert.throws(() => vault.distributeSecret(1n, ["a", "b"], 1), /at least 2/i);
 });
 
 test("distributeSecret rejects threshold exceeding party count", () => {
   const vault = new QuantumResistantVault();
   assert.throws(
-    () => vault.distributeSecret(1, ["a", "b"], 5),
+    () => vault.distributeSecret(1n, ["a", "b"], 5),
     /exceed party count/i,
   );
+});
+
+test("256-bit secret: split across 5 parties, reconstruct from 3", () => {
+  const vault = new QuantumResistantVault();
+  // A realistic 256-bit key (AES-256 equivalent)
+  const keyBytes = new Uint8Array([
+    0x1a, 0x2b, 0x3c, 0x4d, 0x5e, 0x6f, 0x70, 0x81, 0x92, 0xa3, 0xb4, 0xc5,
+    0xd6, 0xe7, 0xf8, 0x09, 0x10, 0x21, 0x32, 0x43, 0x54, 0x65, 0x76, 0x87,
+    0x98, 0xa9, 0xba, 0xcb, 0xdc, 0xed, 0xfe, 0x0f,
+  ]);
+
+  const shares = vault.distributeSecret(
+    keyBytes,
+    ["p1", "p2", "p3", "p4", "p5"],
+    3,
+  );
+  assert.equal(shares.size, 5);
+
+  const threeShares = [...shares.values()].slice(0, 3);
+  const recovered = vault.reconstructSecretBytes(threeShares, 3, 32);
+
+  assert.ok(recovered !== null);
+  assert.deepEqual(recovered, keyBytes);
+});
+
+test("distributeSecret accepts number for backward compatibility", () => {
+  const vault = new QuantumResistantVault();
+  const shares = vault.distributeSecret(42, ["a", "b", "c"], 2);
+  const all = [...shares.values()];
+  assert.equal(vault.reconstructSecret(all, 2), 42n);
 });

@@ -59,7 +59,7 @@ console.log(
 // (e.g. a KDF output or a TRNG value exported in encrypted form).
 // Here we use a numeric value that fits the demo prime field.
 
-const ceremonySeed = 7_419_253;
+const ceremonySeed = 7_419_253n;
 
 const custodians = [
   { id: "cfo", name: "James Whitfield", role: "Chief Financial Officer" },
