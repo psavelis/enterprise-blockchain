@@ -92,16 +92,19 @@ async function getByCompositeKey<T>(
     attributes,
   );
 
-  let res = await iterator.next();
-  while (!res.done) {
-    if (res.value && res.value.value) {
-      results.push(
-        JSON.parse(Buffer.from(res.value.value).toString("utf8")) as T,
-      );
+  try {
+    let res = await iterator.next();
+    while (!res.done) {
+      if (res.value && res.value.value) {
+        results.push(
+          JSON.parse(Buffer.from(res.value.value).toString("utf8")) as T,
+        );
+      }
+      res = await iterator.next();
     }
-    res = await iterator.next();
+  } finally {
+    await iterator.close();
   }
-  await iterator.close();
   return results;
 }
 
@@ -141,7 +144,7 @@ export class FoodTraceContractDeployable extends Contract {
       producer,
       origin,
       harvestedAt,
-      createdAt: new Date().toISOString(),
+      createdAt: ctx.stub.getTxTimestamp().seconds.toString(),
     };
 
     await ctx.stub.putState(compositeKey, toBuffer(lot));
@@ -215,12 +218,17 @@ export class FoodTraceContractDeployable extends Contract {
     const shipment = shipments.find((s) => s.shipmentId === shipmentId);
     if (!shipment) throw new Error(`Shipment ${shipmentId} does not exist`);
 
+    const parsedValue = parseFloat(value);
+    if (!Number.isFinite(parsedValue)) {
+      throw new Error(`Invalid telemetry value: ${value}`);
+    }
+
     const entry: TelemetryEntry = {
       docType: "telemetry",
       shipmentId,
       sensorId,
       metric,
-      value: parseFloat(value),
+      value: parsedValue,
       unit,
       recordedAt,
     };
@@ -274,6 +282,9 @@ export class FoodTraceContractDeployable extends Contract {
   ): Promise<RecallAssessmentResult> {
     const chain = await this.traceOrigin(ctx, lotId);
     const t = parseFloat(threshold);
+    if (!Number.isFinite(t)) {
+      throw new Error(`Invalid threshold: ${threshold}`);
+    }
 
     const breachedReadings = chain.telemetry.filter(
       (e) => e.metric === metric && e.value > t,
