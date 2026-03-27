@@ -7,6 +7,7 @@ import net.corda.core.contracts.Command
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
+import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
@@ -168,8 +169,7 @@ class IssueProviderClearanceResponder(private val counterpartySession: FlowSessi
 class RevokeClearanceFlow(
     private val linearId: UniqueIdentifier,
     private val reasons: List<String>,
-    private val counterparty: Party,
-    private val notary: Party
+    private val counterparty: Party
 ) : FlowLogic<SignedTransaction>() {
 
     override val progressTracker = ProgressTracker(
@@ -196,16 +196,23 @@ class RevokeClearanceFlow(
     override fun call(): SignedTransaction {
         progressTracker.currentStep = GENERATING_TRANSACTION
 
+        // Use indexed LinearStateQueryCriteria instead of full vault scan
+        val criteria = QueryCriteria.LinearStateQueryCriteria(linearId = listOf(linearId))
         val stateAndRef = serviceHub.vaultService
-            .queryBy(ProviderClearanceState::class.java)
+            .queryBy(ProviderClearanceState::class.java, criteria)
             .states
-            .find { it.state.data.linearId == linearId }
+            .firstOrNull()
             ?: throw FlowException("Clearance state with linearId $linearId not found in vault")
 
         val inputState = stateAndRef.state.data
 
         require(inputState.approved) {
             "Cannot revoke a clearance that is not currently approved"
+        }
+
+        // Validate counterparty is actually a participant on the input state
+        require(inputState.participants.any { it.owningKey == counterparty.owningKey }) {
+            "Counterparty must be a participant on the clearance state being revoked"
         }
 
         val revokedState = inputState.copy(
@@ -215,7 +222,8 @@ class RevokeClearanceFlow(
 
         val command = ProviderClearanceContract.Commands.RevokeClearance()
 
-        val txBuilder = TransactionBuilder(notary)
+        // Derive notary from the input state to guarantee consistency
+        val txBuilder = TransactionBuilder(stateAndRef.state.notary)
             .addInputState(stateAndRef)
             .addOutputState(revokedState, ProviderClearanceContract.ID)
             .addCommand(Command(command, listOf(ourIdentity.owningKey, counterparty.owningKey)))
@@ -254,6 +262,28 @@ class RevokeClearanceResponder(private val counterpartySession: FlowSession) : F
                 // Linear ID must be preserved across the revocation
                 require(input.linearId == output.linearId) {
                     "Responder check failed: linear ID mismatch"
+                }
+
+                // Immutable business fields must not be changed during revocation
+                require(input.providerId == output.providerId) {
+                    "Responder check failed: providerId must not change during revocation"
+                }
+                require(input.facility == output.facility) {
+                    "Responder check failed: facility must not change during revocation"
+                }
+                require(input.jurisdiction == output.jurisdiction) {
+                    "Responder check failed: jurisdiction must not change during revocation"
+                }
+                require(input.requiredCredentials == output.requiredCredentials) {
+                    "Responder check failed: requiredCredentials must not change during revocation"
+                }
+                require(input.participants.toSet() == output.participants.toSet()) {
+                    "Responder check failed: participants must not change during revocation"
+                }
+
+                // Verify the counterparty (us) is a participant on both states
+                require(output.participants.any { it.owningKey == counterpartySession.counterparty.owningKey }) {
+                    "Responder check failed: responder is not a participant on the output state"
                 }
 
                 // The input must have been an approved clearance
