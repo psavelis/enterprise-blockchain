@@ -1,6 +1,12 @@
 import { SelectiveDisclosureLedger } from "../../modules/privacy/src/index";
+import { HsmClient } from "../../modules/hsm/src/index";
 
-const ledger = new SelectiveDisclosureLedger();
+// ── Set up HSM for signed audit proofs ──────────────────────────────
+const hsm = new HsmClient();
+hsm.initialize({ slotId: "slot-consortium-1", label: "order-sharing-hsm" });
+hsm.generateKeyPair("audit-signer");
+
+const ledger = new SelectiveDisclosureLedger(hsm, "audit-signer");
 
 ledger.publishOrder({
   id: "PO-44018",

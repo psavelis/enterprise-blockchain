@@ -31,7 +31,9 @@ export class BesuSelectiveDisclosureAdapter implements PrivacyProtocolAdapter<Be
         view.orderId,
         view.audience,
         JSON.stringify(view.data),
-        view.auditProof,
+        typeof view.auditProof === "string"
+          ? view.auditProof
+          : view.auditProof.hash,
       ],
       privacyGroup: `view-${view.audience}`,
       note: "Distribute a role-specific payload to the appropriate privacy group.",

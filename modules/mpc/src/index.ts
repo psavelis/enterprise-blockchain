@@ -109,6 +109,21 @@ export class MPCEngine {
       throw new Error(`Unknown party ${share.partyId}`);
     }
 
+    // Verify commitment before accepting the share.
+    // This prevents a malicious party from submitting a bogus value
+    // with a valid-looking commitment, which would corrupt the result.
+    const expected = commitShare(
+      share.partyId,
+      share.shareIndex,
+      share.value,
+      share.nonce,
+    );
+    if (expected !== share.commitment) {
+      throw new Error(
+        `Commitment verification failed for party ${share.partyId} in computation ${computationId}`,
+      );
+    }
+
     let round = this.rounds.get(computationId);
     if (!round) {
       round = { expectedShareCount: share.shareCount, shares: new Map() };
@@ -127,7 +142,9 @@ export class MPCEngine {
       );
     }
 
-    round.shares.set(share.partyId, share);
+    // Store a defensive copy to prevent callers from mutating the share
+    // after submission, which could corrupt the computation result.
+    round.shares.set(share.partyId, { ...share });
   }
 
   /**
@@ -164,6 +181,14 @@ export class MPCEngine {
 
     switch (op) {
       case "sum": {
+        // Verify commitments BEFORE aggregating values to ensure
+        // no share was mutated between submitShare and compute.
+        const commitmentsVerified = this.verifyIntegrity(computationId);
+        if (!commitmentsVerified) {
+          throw new Error(
+            `Commitment verification failed during computation ${computationId} — aborting to prevent corrupted result`,
+          );
+        }
         let aggregate = 0;
         for (const share of round.shares.values()) {
           aggregate += share.value;
@@ -173,18 +198,30 @@ export class MPCEngine {
           op: "sum",
           participantCount,
           aggregate,
-          meta: { operation: "additive-reconstruction" },
+          meta: {
+            operation: "additive-reconstruction",
+            commitmentsVerified,
+          },
           integrityProof: sha256hex(
             JSON.stringify({
               computationId,
               op: "sum",
               participantCount,
               aggregate,
+              commitmentsVerified,
             }),
           ),
         };
       }
       case "threshold": {
+        // Verify commitments BEFORE aggregating values to ensure
+        // no share was mutated between submitShare and compute.
+        const commitmentsVerified = this.verifyIntegrity(computationId);
+        if (!commitmentsVerified) {
+          throw new Error(
+            `Commitment verification failed during computation ${computationId} — aborting to prevent corrupted result`,
+          );
+        }
         const t = opts?.threshold ?? 0;
         let total = 0;
         for (const share of round.shares.values()) {
@@ -196,13 +233,18 @@ export class MPCEngine {
           op: "threshold",
           participantCount,
           exceeded,
-          meta: { operation: "threshold-check", threshold: t },
+          meta: {
+            operation: "threshold-check",
+            threshold: t,
+            commitmentsVerified,
+          },
           integrityProof: sha256hex(
             JSON.stringify({
               computationId,
               op: "threshold",
               participantCount,
               exceeded,
+              commitmentsVerified,
             }),
           ),
         };
