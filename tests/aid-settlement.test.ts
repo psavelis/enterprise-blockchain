@@ -233,3 +233,31 @@ test("reconcile rejects orphaned claims with unknown grant reference", () => {
   assert.deepEqual(report.rejectedClaimIds, ["C-ORPHAN"]);
   assert.ok(report.exceptions.some((e) => e.includes("unknown grant")));
 });
+
+test("reconcile rejects any claim against a zero-budget grant", () => {
+  const ledger = new AidSettlementLedger();
+
+  ledger.issueGrant({
+    id: "G-ZERO",
+    beneficiaryId: "BEN-1",
+    program: "Emergency Aid",
+    issuedAt: "2026-01-01T00:00:00Z",
+    expiresAt: "2026-12-31T00:00:00Z",
+    approvedMerchantCategories: ["groceries"],
+    amountUsd: 0,
+  });
+
+  ledger.submitClaim({
+    id: "C-ANY",
+    grantId: "G-ZERO",
+    merchantId: "M-1",
+    merchantCategory: "groceries",
+    submittedAt: "2026-01-10T00:00:00Z",
+    invoiceReference: "INV-Z",
+    amountUsd: 1,
+  });
+
+  const report = ledger.reconcile();
+  assert.deepEqual(report.rejectedClaimIds, ["C-ANY"]);
+  assert.ok(report.exceptions.some((e) => e.includes("overspend")));
+});
