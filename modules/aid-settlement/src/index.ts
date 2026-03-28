@@ -21,11 +21,19 @@ import type {
   RedemptionClaim,
   ReconciliationReport,
 } from "./domain/entities";
+import type { AidSettlementRepository } from "./domain/ports";
+import type { Logger } from "../../shared/src/logger";
 import { InMemoryAidSettlementRepository } from "./infrastructure/in-memory-store";
 import { Reconciler } from "./application/reconciler";
 
 export class AidSettlementLedger {
-  private readonly repo = new InMemoryAidSettlementRepository();
+  private readonly repo: AidSettlementRepository;
+  private readonly logger: Logger | undefined;
+
+  constructor(options?: { repo?: AidSettlementRepository; logger?: Logger }) {
+    this.repo = options?.repo ?? new InMemoryAidSettlementRepository();
+    this.logger = options?.logger;
+  }
 
   issueGrant(grant: AidGrant): void {
     this.repo.addGrant(grant);
@@ -36,6 +44,6 @@ export class AidSettlementLedger {
   }
 
   reconcile(): ReconciliationReport {
-    return new Reconciler(this.repo).reconcile();
+    return new Reconciler(this.repo, this.logger).reconcile();
   }
 }

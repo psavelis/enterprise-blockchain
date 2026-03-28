@@ -22,21 +22,36 @@ import type {
   PurchaseOrder,
   SharedOrderView,
 } from "./domain/entities";
+import type { OrderRepository } from "./domain/ports";
 import { InMemoryOrderRepository } from "./infrastructure/in-memory-store";
 import { ViewProjector } from "./application/view-projector";
 import type { HsmClient } from "../../hsm/src/index";
+import type { Logger } from "../../shared/src/logger";
 
 export class SelectiveDisclosureLedger {
-  private readonly repo = new InMemoryOrderRepository();
+  private readonly repo: OrderRepository;
   private readonly projector: ViewProjector;
 
-  constructor(hsm?: HsmClient, signerKeyLabel?: string) {
+  constructor(options?: {
+    repo?: OrderRepository;
+    hsm?: HsmClient;
+    signerKeyLabel?: string;
+    logger?: Logger;
+  }) {
+    const hsm = options?.hsm;
+    const signerKeyLabel = options?.signerKeyLabel;
     if ((hsm && !signerKeyLabel) || (!hsm && signerKeyLabel)) {
       throw new Error(
         "Both hsm and signerKeyLabel must be provided together for signed audit proofs",
       );
     }
-    this.projector = new ViewProjector(this.repo, hsm, signerKeyLabel);
+    this.repo = options?.repo ?? new InMemoryOrderRepository();
+    this.projector = new ViewProjector(
+      this.repo,
+      options?.logger,
+      hsm,
+      signerKeyLabel,
+    );
   }
 
   publishOrder(order: PurchaseOrder): void {

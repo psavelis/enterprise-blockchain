@@ -7,6 +7,8 @@ import type {
 } from "../domain/entities";
 import type { OrderRepository } from "../domain/ports";
 import type { HsmClient } from "../../../hsm/src/index";
+import type { Logger } from "../../../shared/src/logger";
+import { noopLogger } from "../../../shared/src/logger";
 
 // Audience-specific field projection rules.
 // Ref: W3C Verifiable Credentials Data Model — selective disclosure
@@ -50,11 +52,16 @@ const fieldProjections: Record<
 };
 
 export class ViewProjector {
+  private readonly logger: Logger;
+
   constructor(
     private readonly repo: OrderRepository,
+    logger?: Logger,
     private readonly hsm?: HsmClient,
     private readonly signerKeyLabel?: string,
-  ) {}
+  ) {
+    this.logger = logger ?? noopLogger;
+  }
 
   createView(orderId: string, audience: Audience): SharedOrderView {
     const order = this.repo.orders.get(orderId);
