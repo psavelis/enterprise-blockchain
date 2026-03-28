@@ -157,3 +157,206 @@ test("fabric recall request includes reason as transient data", () => {
   assert.equal(plan.transientData?.recallReason instanceof Uint8Array, true);
   assert.equal(plan.payloadDigestHex.length, 64);
 });
+
+// ── Besu gas estimation and nonce management ────────────────────────
+
+test("buildAnchorOrderTransaction includes gasLimit when provided", () => {
+  const client = new BesuEthersClientSketch();
+  const profile = {
+    rpcUrl: "https://rpc.example.org",
+    chainId: 1337,
+    contractAddress: "0x0000000000000000000000000000000000001001",
+  };
+
+  const tx = client.buildAnchorOrderTransaction(
+    profile,
+    {
+      id: "PO-GAS-1",
+      buyer: "Buyer",
+      supplier: "Supplier",
+      sku: "SKU-1",
+      quantity: 10,
+      unitPriceUsd: 5,
+      incoterm: "FOB",
+      destinationPort: "Rotterdam",
+      sustainabilityGrade: "A",
+    },
+    "abcd1234",
+    200_000n,
+  );
+
+  assert.equal(tx.gasLimit, 200_000n);
+  assert.equal(tx.to, profile.contractAddress);
+});
+
+test("buildAnchorOrderTransaction omits gasLimit when not provided", () => {
+  const client = new BesuEthersClientSketch();
+  const profile = {
+    rpcUrl: "https://rpc.example.org",
+    chainId: 1337,
+    contractAddress: "0x0000000000000000000000000000000000001001",
+  };
+
+  const tx = client.buildAnchorOrderTransaction(
+    profile,
+    {
+      id: "PO-GAS-2",
+      buyer: "Buyer",
+      supplier: "Supplier",
+      sku: "SKU-2",
+      quantity: 10,
+      unitPriceUsd: 5,
+      incoterm: "FOB",
+      destinationPort: "Rotterdam",
+      sustainabilityGrade: "A",
+    },
+    "abcd1234",
+  );
+
+  assert.equal(tx.gasLimit, undefined);
+});
+
+test("buildAudienceViewTransaction includes gasLimit when provided", () => {
+  const client = new BesuEthersClientSketch();
+  const ledger = new SelectiveDisclosureLedger();
+  ledger.publishOrder({
+    id: "PO-GAS-3",
+    buyer: "Buyer",
+    supplier: "Supplier",
+    sku: "SKU-3",
+    quantity: 10,
+    unitPriceUsd: 5,
+    incoterm: "FOB",
+    destinationPort: "Rotterdam",
+    sustainabilityGrade: "A",
+  });
+
+  const view = ledger.createView("PO-GAS-3", "bank");
+  const result = client.buildAudienceViewTransaction(
+    {
+      rpcUrl: "https://rpc.example.org",
+      chainId: 1337,
+      contractAddress: "0x0000000000000000000000000000000000001001",
+      privacyGroupId: "bank-group",
+    },
+    view,
+    150_000n,
+  );
+
+  assert.equal(result.transaction.gasLimit, 150_000n);
+});
+
+test("estimateGas returns override when provided", async () => {
+  const client = new BesuEthersClientSketch();
+  const profile = {
+    rpcUrl: "https://rpc.example.org",
+    chainId: 1337,
+    contractAddress: "0x0000000000000000000000000000000000001001",
+  };
+
+  const estimate = await client.estimateGas(
+    profile,
+    { to: profile.contractAddress },
+    300_000n,
+  );
+  assert.equal(estimate, 300_000n);
+});
+
+test("createManagedSigner returns a NonceManager instance", () => {
+  const client = new BesuEthersClientSketch();
+  const profile = {
+    rpcUrl: "https://rpc.example.org",
+    chainId: 1337,
+    contractAddress: "0x0000000000000000000000000000000000001001",
+    walletPrivateKey:
+      "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  };
+
+  const signer = client.createManagedSigner(profile);
+  assert.equal(typeof signer.sendTransaction, "function");
+  assert.equal(typeof signer.reset, "function");
+});
+
+test("estimateGas propagates insufficient-funds errors from provider", async () => {
+  const client = new BesuEthersClientSketch();
+  const profile = {
+    rpcUrl: "https://rpc.example.org",
+    chainId: 1337,
+    contractAddress: "0x0000000000000000000000000000000000001001",
+  };
+
+  const insufficientErr: Error & { code?: string } = new Error(
+    "insufficient funds for gas * price + value",
+  );
+  insufficientErr.code = "INSUFFICIENT_FUNDS";
+
+  // Stub createProvider to return a fake provider that throws
+  (client as unknown as { createProvider: () => unknown }).createProvider =
+    () => ({
+      estimateGas(): Promise<never> {
+        return Promise.reject(insufficientErr);
+      },
+    });
+
+  await assert.rejects(
+    () => client.estimateGas(profile, { to: profile.contractAddress }),
+    (err: unknown) => {
+      assert.ok(err instanceof Error);
+      assert.ok(err.message.toLowerCase().includes("insufficient"));
+      return true;
+    },
+  );
+});
+
+test("sendTransaction surfaces NONCE_TOO_LOW with actionable guidance", async () => {
+  const client = new BesuEthersClientSketch();
+  const profile = {
+    rpcUrl: "https://rpc.example.org",
+    chainId: 1337,
+    contractAddress: "0x0000000000000000000000000000000000001001",
+    walletPrivateKey:
+      "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  };
+
+  const besuErr: Error & { code?: string } = new Error("nonce too low");
+  besuErr.code = "NONCE_TOO_LOW";
+
+  const fakeSigner = client.createManagedSigner(profile);
+  // Override sendTransaction on the signer instance
+  fakeSigner.sendTransaction = () => Promise.reject(besuErr);
+
+  await assert.rejects(
+    () => client.sendTransaction(fakeSigner, { to: profile.contractAddress }),
+    (err: unknown) => {
+      assert.ok(err instanceof Error);
+      assert.ok(err.message.includes("NONCE_TOO_LOW"));
+      return true;
+    },
+  );
+});
+
+test("sendTransaction surfaces INSUFFICIENT_FUNDS with actionable guidance", async () => {
+  const client = new BesuEthersClientSketch();
+  const profile = {
+    rpcUrl: "https://rpc.example.org",
+    chainId: 1337,
+    contractAddress: "0x0000000000000000000000000000000000001001",
+    walletPrivateKey:
+      "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  };
+
+  const besuErr: Error & { code?: string } = new Error("insufficient funds");
+  besuErr.code = "INSUFFICIENT_FUNDS";
+
+  const fakeSigner = client.createManagedSigner(profile);
+  fakeSigner.sendTransaction = () => Promise.reject(besuErr);
+
+  await assert.rejects(
+    () => client.sendTransaction(fakeSigner, { to: profile.contractAddress }),
+    (err: unknown) => {
+      assert.ok(err instanceof Error);
+      assert.ok(err.message.includes("INSUFFICIENT_FUNDS"));
+      return true;
+    },
+  );
+});

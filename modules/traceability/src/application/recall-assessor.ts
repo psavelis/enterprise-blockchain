@@ -1,10 +1,25 @@
 import type { RecallAssessment, RecallRule } from "../domain/recall";
 import type { TraceabilityRepository } from "../domain/ports";
+import type { Logger } from "../../../shared/src/logger";
+import { noopLogger } from "../../../shared/src/logger";
 
 export class RecallAssessor {
-  constructor(private readonly repo: TraceabilityRepository) {}
+  private readonly logger: Logger;
+
+  constructor(
+    private readonly repo: TraceabilityRepository,
+    logger?: Logger,
+  ) {
+    this.logger = logger ?? noopLogger;
+  }
 
   assess(rule: RecallRule): RecallAssessment {
+    const start = Date.now();
+    this.logger.info("assessment started", {
+      operation: "RecallAssessor.assess",
+      flaggedLotCount: rule.flaggedLotIds.length,
+      flaggedLotIdsCsv: rule.flaggedLotIds.join(","),
+    });
     const impactedLotIds = new Set<string>();
     const impactedShipmentIds = new Set<string>();
     const impactedDestinations = new Set<string>();
@@ -24,12 +39,23 @@ export class RecallAssessor {
       impactedDestinations,
     );
 
-    return {
+    const result = {
       impactedLotIds: [...impactedLotIds].sort(),
       impactedShipmentIds: [...impactedShipmentIds].sort(),
       impactedDestinations: [...impactedDestinations].sort(),
       reasons: [...reasons],
     };
+
+    this.logger.info("assessment completed", {
+      operation: "RecallAssessor.assess",
+      flaggedLotCount: rule.flaggedLotIds.length,
+      flaggedLotIdsCsv: rule.flaggedLotIds.join(","),
+      result: result.impactedLotIds.length > 0 ? "impacted" : "safe",
+      durationMs: Date.now() - start,
+      impactedLots: result.impactedLotIds.length,
+    });
+
+    return result;
   }
 
   private flagLots(

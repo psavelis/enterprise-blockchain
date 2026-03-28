@@ -36,7 +36,9 @@ console.log(
           financingBank: "Euro Trade Bank",
           sustainabilityGrade: "B",
         },
-        regulatorView.auditProof,
+        typeof regulatorView.auditProof === "string"
+          ? regulatorView.auditProof
+          : JSON.stringify(regulatorView.auditProof),
       ),
       publishRegulatorView: adapter.publishAudienceView(regulatorView),
     },

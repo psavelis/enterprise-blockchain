@@ -1,8 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { SelectiveDisclosureLedger } from "../modules/privacy/src/index";
+import {
+  SelectiveDisclosureLedger,
+  type SignedAuditProof,
+} from "../modules/privacy/src/index";
 import { BesuSelectiveDisclosureAdapter } from "../modules/protocols/besu/src/index";
+import { HsmClient } from "../modules/hsm/src/index";
 
 const sampleOrder = () => ({
   id: "PO-1",
@@ -110,7 +114,8 @@ describe("SelectiveDisclosureLedger", () => {
       const view1 = ledger.createView("PO-1", "bank");
       const view2 = ledger.createView("PO-1", "logistics");
 
-      assert.equal(view1.auditProof.length, 64);
+      assert.equal(typeof view1.auditProof, "string");
+      assert.equal((view1.auditProof as string).length, 64);
       assert.equal(view1.auditProof, view2.auditProof);
     });
 
@@ -148,6 +153,80 @@ describe("SelectiveDisclosureLedger", () => {
         assert.equal(view.audience, audience);
         assert.ok(Object.keys(view.data).length > 0);
       }
+    });
+  });
+
+  describe("HSM-signed audit proofs", () => {
+    const createHsm = () => {
+      const hsm = new HsmClient();
+      hsm.initialize({ slotId: "slot-1", label: "smoke-test" });
+      hsm.generateKeyPair("audit-signer");
+      return hsm;
+    };
+
+    it("produces a SignedAuditProof when HSM is provided", () => {
+      const hsm = createHsm();
+      const ledger = new SelectiveDisclosureLedger(hsm, "audit-signer");
+      ledger.publishOrder(sampleOrder());
+
+      const view = ledger.createView("PO-1", "bank");
+      assert.equal(typeof view.auditProof, "object");
+      const proof = view.auditProof as SignedAuditProof;
+      assert.ok(proof.hash.length > 0);
+      assert.ok(proof.signature.length > 0);
+      assert.equal(proof.signerKeyLabel, "audit-signer");
+      assert.ok(proof.timestamp.length > 0);
+    });
+
+    it("signature verifies with the public key", () => {
+      const hsm = createHsm();
+      const ledger = new SelectiveDisclosureLedger(hsm, "audit-signer");
+      ledger.publishOrder(sampleOrder());
+
+      const view = ledger.createView("PO-1", "bank");
+      const proof = view.auditProof as SignedAuditProof;
+
+      // Reconstruct the preimage the projector signed
+      const preimage = [
+        JSON.stringify(sampleOrder()),
+        "bank",
+        proof.timestamp,
+      ].join("\0");
+      const valid = hsm.verify("audit-signer", preimage, proof.signature);
+      assert.equal(valid, true);
+    });
+
+    it("signature fails verification when view content changes", () => {
+      const hsm = createHsm();
+      const ledger = new SelectiveDisclosureLedger(hsm, "audit-signer");
+      ledger.publishOrder(sampleOrder());
+
+      const bankView = ledger.createView("PO-1", "bank");
+      const bankProof = bankView.auditProof as SignedAuditProof;
+
+      // A different audience produces a different preimage
+      const tamperedPreimage = [
+        JSON.stringify(sampleOrder()),
+        "logistics",
+        bankProof.timestamp,
+      ].join("\0");
+
+      // The bank signature must not verify against the logistics preimage
+      const valid = hsm.verify(
+        "audit-signer",
+        tamperedPreimage,
+        bankProof.signature,
+      );
+      assert.equal(valid, false);
+    });
+
+    it("remains backward compatible without HSM", () => {
+      const ledger = new SelectiveDisclosureLedger();
+      ledger.publishOrder(sampleOrder());
+
+      const view = ledger.createView("PO-1", "bank");
+      assert.equal(typeof view.auditProof, "string");
+      assert.equal((view.auditProof as string).length, 64);
     });
   });
 });
