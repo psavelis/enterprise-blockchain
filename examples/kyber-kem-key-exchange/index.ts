@@ -92,7 +92,9 @@ function encryptPayload(
   key: Buffer,
   plaintext: string,
 ): { iv: string; tag: string; ciphertext: string } {
-  const iv = randomBytes(12); // 96-bit IV recommended for GCM
+  // NIST SP 800-38D §8.2.1: 96-bit IV is the recommended length for GCM
+  // https://csrc.nist.gov/pubs/sp/800/38/d/final
+  const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
   const enc = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   return {
