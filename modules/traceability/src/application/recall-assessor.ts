@@ -1,51 +1,74 @@
 import type { RecallAssessment, RecallRule } from "../domain/recall";
 import type { TraceabilityRepository } from "../domain/ports";
+import type { Logger } from "../../../shared/src/logger";
+import { noopLogger } from "../../../shared/src/logger";
 
 export class RecallAssessor {
-  constructor(private readonly repo: TraceabilityRepository) {}
+  private readonly logger: Logger;
+
+  constructor(
+    private readonly repo: TraceabilityRepository,
+    logger?: Logger,
+  ) {
+    this.logger = logger ?? noopLogger;
+  }
 
   assess(rule: RecallRule): RecallAssessment {
-    const impactedLotIds = new Set<string>();
-    const impactedShipmentIds = new Set<string>();
-    const impactedDestinations = new Set<string>();
+    const start = Date.now();
+    this.logger.info("assessment started", {
+      operation: "RecallAssessor.assess",
+      flaggedLotCount: rule.flaggedLotIds.length,
+      flaggedLotIdsCsv: rule.flaggedLotIds.join(","),
+    });
+
+    const lotIds = new Set<string>();
+    const shipmentIds = new Set<string>();
+    const destinations = new Set<string>();
     const reasons = new Set<string>();
 
-    this.flagLots(rule, impactedLotIds, reasons);
+    this.flagLots(rule, lotIds, reasons);
     this.flagBreachedShipments(
       rule,
-      impactedLotIds,
-      impactedShipmentIds,
-      impactedDestinations,
+      lotIds,
+      shipmentIds,
+      destinations,
       reasons,
     );
-    this.propagateImpact(
-      impactedLotIds,
-      impactedShipmentIds,
-      impactedDestinations,
-    );
+    this.propagateImpact(lotIds, shipmentIds, destinations);
 
-    return {
-      impactedLotIds: [...impactedLotIds].sort(),
-      impactedShipmentIds: [...impactedShipmentIds].sort(),
-      impactedDestinations: [...impactedDestinations].sort(),
+    const result: RecallAssessment = {
+      impactedLotIds: [...lotIds].sort(),
+      impactedShipmentIds: [...shipmentIds].sort(),
+      impactedDestinations: [...destinations].sort(),
       reasons: [...reasons],
     };
+
+    this.logger.info("assessment completed", {
+      operation: "RecallAssessor.assess",
+      flaggedLotCount: rule.flaggedLotIds.length,
+      flaggedLotIdsCsv: rule.flaggedLotIds.join(","),
+      result: result.impactedLotIds.length > 0 ? "impacted" : "safe",
+      durationMs: Date.now() - start,
+      impactedLots: result.impactedLotIds.length,
+    });
+
+    return result;
   }
 
   private flagLots(
     rule: RecallRule,
-    impactedLotIds: Set<string>,
+    lotIds: Set<string>,
     reasons: Set<string>,
   ): void {
     for (const lot of this.repo.lots.values()) {
       if (rule.flaggedLotIds.includes(lot.id)) {
-        impactedLotIds.add(lot.id);
+        lotIds.add(lot.id);
         reasons.add(
           `Lot ${lot.id} was explicitly flagged by quality assurance.`,
         );
       }
       if (rule.suspectSuppliers.includes(lot.supplier)) {
-        impactedLotIds.add(lot.id);
+        lotIds.add(lot.id);
         reasons.add(`Supplier ${lot.supplier} was placed under investigation.`);
       }
     }
@@ -53,9 +76,9 @@ export class RecallAssessor {
 
   private flagBreachedShipments(
     rule: RecallRule,
-    impactedLotIds: Set<string>,
-    impactedShipmentIds: Set<string>,
-    impactedDestinations: Set<string>,
+    lotIds: Set<string>,
+    shipmentIds: Set<string>,
+    destinations: Set<string>,
     reasons: Set<string>,
   ): void {
     for (const shipment of this.repo.shipments.values()) {
@@ -65,9 +88,9 @@ export class RecallAssessor {
       );
 
       if (breached) {
-        impactedLotIds.add(shipment.lotId);
-        impactedShipmentIds.add(shipment.id);
-        impactedDestinations.add(shipment.to);
+        lotIds.add(shipment.lotId);
+        shipmentIds.add(shipment.id);
+        destinations.add(shipment.to);
         reasons.add(
           `Shipment ${shipment.id} exceeded ${rule.maxTemperatureCelsius}C cold-chain limits.`,
         );
@@ -76,14 +99,14 @@ export class RecallAssessor {
   }
 
   private propagateImpact(
-    impactedLotIds: Set<string>,
-    impactedShipmentIds: Set<string>,
-    impactedDestinations: Set<string>,
+    lotIds: Set<string>,
+    shipmentIds: Set<string>,
+    destinations: Set<string>,
   ): void {
     for (const shipment of this.repo.shipments.values()) {
-      if (impactedLotIds.has(shipment.lotId)) {
-        impactedShipmentIds.add(shipment.id);
-        impactedDestinations.add(shipment.to);
+      if (lotIds.has(shipment.lotId)) {
+        shipmentIds.add(shipment.id);
+        destinations.add(shipment.to);
       }
     }
   }

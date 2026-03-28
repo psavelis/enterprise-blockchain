@@ -1,0 +1,21 @@
+{
+  "name": "food-trace-chaincode",
+  "version": "1.0.0",
+  "description": "Hyperledger Fabric chaincode for food supply-chain traceability",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "fabric-chaincode-node start",
+    "clean": "rm -rf dist"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "fabric-contract-api": "^2.5.0",
+    "fabric-shim": "^2.5.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

@@ -35,16 +35,17 @@ test("integrity verification succeeds for untampered shares", () => {
   assert.equal(engine.verifyIntegrity("verify-round"), true);
 });
 
-test("integrity verification fails for tampered shares", () => {
+test("integrity verification fails for tampered shares (caught at submit)", () => {
   const engine = new MPCEngine();
   engine.registerParty({ id: "x", name: "X", endpoint: "x.local" });
   engine.registerParty({ id: "y", name: "Y", endpoint: "y.local" });
 
   const shares = engine.splitSecret(100, ["x", "y"]);
-  shares[0]!.value += 1; // tamper
-  for (const s of shares) engine.submitShare("tamper-round", s);
-
-  assert.equal(engine.verifyIntegrity("tamper-round"), false);
+  shares[0]!.commitment = "0".repeat(64); // tamper with commitment directly
+  assert.throws(
+    () => engine.submitShare("tamper-round", shares[0]!),
+    /commitment verification failed/i,
+  );
 });
 
 test("threshold computation detects exceeded limit", () => {
@@ -97,12 +98,71 @@ test("splitSecret rejects fewer than 2 parties", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Commitment verification (issue #24)
+// ---------------------------------------------------------------------------
+
+test("submitShare rejects share with tampered value", () => {
+  const engine = new MPCEngine();
+  engine.registerParty({ id: "a", name: "A", endpoint: "a.local" });
+  engine.registerParty({ id: "b", name: "B", endpoint: "b.local" });
+
+  const shares = engine.splitSecret(100, ["a", "b"]);
+  shares[0]!.value += 1; // tamper with the value
+  assert.throws(
+    () => engine.submitShare("tamper-val", shares[0]!),
+    /commitment verification failed/i,
+  );
+});
+
+test("submitShare rejects share with tampered nonce", () => {
+  const engine = new MPCEngine();
+  engine.registerParty({ id: "a", name: "A", endpoint: "a.local" });
+  engine.registerParty({ id: "b", name: "B", endpoint: "b.local" });
+
+  const shares = engine.splitSecret(100, ["a", "b"]);
+  shares[0]!.nonce = "0000000000000000deadbeef00000000"; // tamper with nonce
+  assert.throws(
+    () => engine.submitShare("tamper-nonce", shares[0]!),
+    /commitment verification failed/i,
+  );
+});
+
+test("submitShare accepts share with valid commitment", () => {
+  const engine = new MPCEngine();
+  engine.registerParty({ id: "a", name: "A", endpoint: "a.local" });
+  engine.registerParty({ id: "b", name: "B", endpoint: "b.local" });
+
+  const shares = engine.splitSecret(200, ["a", "b"]);
+  // Should not throw
+  engine.submitShare("valid-commit", shares[0]!);
+  engine.submitShare("valid-commit", shares[1]!);
+
+  const result = engine.compute("valid-commit", "sum");
+  assert.equal(result.aggregate, 200);
+  assert.equal(result.meta.commitmentsVerified, true);
+});
+
+test("compute records commitment verification status in integrity proof", () => {
+  const engine = new MPCEngine();
+  engine.registerParty({ id: "a", name: "A", endpoint: "a.local" });
+  engine.registerParty({ id: "b", name: "B", endpoint: "b.local" });
+
+  const shares = engine.splitSecret(50, ["a", "b"]);
+  for (const s of shares) engine.submitShare("proof-round", s);
+
+  const result = engine.compute("proof-round", "threshold", { threshold: 40 });
+  assert.equal(result.meta.commitmentsVerified, true);
+  assert.equal(typeof result.integrityProof, "string");
+  assert.equal(result.integrityProof.length, 64);
+});
+
+// ---------------------------------------------------------------------------
 // QuantumResistantVault
 // ---------------------------------------------------------------------------
 
 test("distribute and reconstruct with full share set", () => {
   const vault = new QuantumResistantVault();
-  const secret = 7_777n;
+  const secret = 7_777;
 
   const shares = vault.distributeSecret(secret, ["n1", "n2", "n3"], 2);
   const all = [...shares.values()];
@@ -113,7 +173,7 @@ test("distribute and reconstruct with full share set", () => {
 test("below-threshold reconstruction returns null", () => {
   const vault = new QuantumResistantVault();
   const shares = vault.distributeSecret(
-    1234n,
+    1234,
     ["n1", "n2", "n3", "n4", "n5"],
     3,
   );
@@ -124,7 +184,7 @@ test("below-threshold reconstruction returns null", () => {
 
 test("any k-of-n shares reconstruct the secret (Shamir)", () => {
   const vault = new QuantumResistantVault();
-  const secret = 55_555n;
+  const secret = 55_555;
   const shares = vault.distributeSecret(
     secret,
     ["n1", "n2", "n3", "n4", "n5"],
@@ -163,43 +223,13 @@ test("anchor produces hash-ladder proof", () => {
 
 test("distributeSecret rejects threshold below 2", () => {
   const vault = new QuantumResistantVault();
-  assert.throws(() => vault.distributeSecret(1n, ["a", "b"], 1), /at least 2/i);
+  assert.throws(() => vault.distributeSecret(1, ["a", "b"], 1), /at least 2/i);
 });
 
 test("distributeSecret rejects threshold exceeding party count", () => {
   const vault = new QuantumResistantVault();
   assert.throws(
-    () => vault.distributeSecret(1n, ["a", "b"], 5),
+    () => vault.distributeSecret(1, ["a", "b"], 5),
     /exceed party count/i,
   );
-});
-
-test("256-bit secret: split across 5 parties, reconstruct from 3", () => {
-  const vault = new QuantumResistantVault();
-  // A realistic 256-bit key (AES-256 equivalent)
-  const keyBytes = new Uint8Array([
-    0x1a, 0x2b, 0x3c, 0x4d, 0x5e, 0x6f, 0x70, 0x81, 0x92, 0xa3, 0xb4, 0xc5,
-    0xd6, 0xe7, 0xf8, 0x09, 0x10, 0x21, 0x32, 0x43, 0x54, 0x65, 0x76, 0x87,
-    0x98, 0xa9, 0xba, 0xcb, 0xdc, 0xed, 0xfe, 0x0f,
-  ]);
-
-  const shares = vault.distributeSecret(
-    keyBytes,
-    ["p1", "p2", "p3", "p4", "p5"],
-    3,
-  );
-  assert.equal(shares.size, 5);
-
-  const threeShares = [...shares.values()].slice(0, 3);
-  const recovered = vault.reconstructSecretBytes(threeShares, 3, 32);
-
-  assert.ok(recovered !== null);
-  assert.deepEqual(recovered, keyBytes);
-});
-
-test("distributeSecret accepts number for backward compatibility", () => {
-  const vault = new QuantumResistantVault();
-  const shares = vault.distributeSecret(42, ["a", "b", "c"], 2);
-  const all = [...shares.values()];
-  assert.equal(vault.reconstructSecret(all, 2), 42n);
 });

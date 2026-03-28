@@ -13,9 +13,16 @@ export interface PurchaseOrder {
 
 export type Audience = "logistics" | "bank" | "regulator" | "supplier";
 
+export interface SignedAuditProof {
+  readonly hash: string;
+  readonly signature: string;
+  readonly signerKeyLabel: string;
+  readonly timestamp: string;
+}
+
 export interface SharedOrderView {
   readonly orderId: string;
   readonly audience: Audience;
   readonly data: Record<string, string | number>;
-  readonly auditProof: string;
+  readonly auditProof: string | SignedAuditProof;
 }

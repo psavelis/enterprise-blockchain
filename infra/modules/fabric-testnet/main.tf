@@ -21,6 +21,15 @@ resource "docker_image" "orderer" {
   keep_locally = true
 }
 
+resource "docker_volume" "orderer_data" {
+  name = "fabric-orderer-data"
+}
+
+resource "docker_volume" "peer_data" {
+  count = length(local.orgs)
+  name  = "fabric-peer-${local.orgs[count.index]}-data"
+}
+
 resource "docker_container" "orderer" {
   name  = "fabric-orderer"
   image = docker_image.orderer.image_id
@@ -35,6 +44,11 @@ resource "docker_container" "orderer" {
     ip       = "127.0.0.1"
   }
 
+  volumes {
+    volume_name    = docker_volume.orderer_data.name
+    container_path = "/var/hyperledger/production/orderer"
+  }
+
   env = [
     "FABRIC_LOGGING_SPEC=INFO",
     "ORDERER_GENERAL_LISTENADDRESS=0.0.0.0",
@@ -44,9 +58,24 @@ resource "docker_container" "orderer" {
 
   restart = "unless-stopped"
 
+  memory = var.memory_limit_mb
+
+  healthcheck {
+    test         = ["CMD-SHELL", "echo | nc -z localhost 7050"]
+    interval     = "10s"
+    timeout      = "5s"
+    retries      = 10
+    start_period = "15s"
+  }
+
   labels {
     label = "enterprise-blockchain"
     value = "fabric-orderer"
+  }
+
+  labels {
+    label = "enterprise-blockchain.module"
+    value = "fabric-testnet"
   }
 }
 
@@ -66,6 +95,11 @@ resource "docker_container" "peer" {
     ip       = "127.0.0.1"
   }
 
+  volumes {
+    volume_name    = docker_volume.peer_data[count.index].name
+    container_path = "/var/hyperledger/production"
+  }
+
   env = [
     "CORE_PEER_ID=peer0.${local.orgs[count.index]}.example.com",
     "CORE_PEER_ADDRESS=peer0.${local.orgs[count.index]}.example.com:7051",
@@ -76,8 +110,23 @@ resource "docker_container" "peer" {
 
   restart = "unless-stopped"
 
+  memory = var.memory_limit_mb
+
+  healthcheck {
+    test         = ["CMD-SHELL", "echo | nc -z localhost 7051"]
+    interval     = "10s"
+    timeout      = "5s"
+    retries      = 10
+    start_period = "15s"
+  }
+
   labels {
     label = "enterprise-blockchain"
     value = "fabric-peer"
+  }
+
+  labels {
+    label = "enterprise-blockchain.module"
+    value = "fabric-testnet"
   }
 }

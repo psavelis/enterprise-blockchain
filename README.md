@@ -18,6 +18,7 @@ The repository is organized around reusable domain modules and runnable examples
 - `examples/`: Runnable case studies, one folder per scenario.
 - `docs/`: Research material, presentation assets, and supporting documentation.
 - `scripts/`: Utility entrypoints for repository workflows.
+- `skills/`: AI skill files for coding assistants and agents — structured knowledge covering platform selection, privacy patterns, HSM, MPC, traceability, integration adapters, and smart contract patterns.
 
 ## Included Case Studies
 

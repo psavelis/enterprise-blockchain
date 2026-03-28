@@ -16,6 +16,13 @@ variable "besu_chain_id" {
   default     = 1337
 }
 
+variable "besu_wallet_private_key" {
+  description = "Hex-encoded private key for deploying contracts on Besu dev-net. Use only for local development."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "fabric_peer_image" {
   description = "Docker image for Hyperledger Fabric peers."
   type        = string
@@ -32,6 +39,13 @@ variable "corda_image" {
   description = "Docker image for Corda nodes."
   type        = string
   default     = "corda/corda-zulu-java11-5.1:5.1"
+}
+
+variable "corda_rpc_password" {
+  description = "RPC password for Corda node access. Use only for local development."
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 variable "network_name" {

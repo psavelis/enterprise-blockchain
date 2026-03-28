@@ -198,7 +198,9 @@ export class KyberKem {
     salt?: Buffer,
   ): Buffer {
     const saltBytes = salt ?? Buffer.alloc(32, 0);
-    // HKDF-SHA256 producing 32 bytes → suitable for AES-256-GCM
+    // HKDF-SHA256 producing 32 bytes → suitable for AES-256-GCM.
+    // RFC 5869 (HKDF): https://datatracker.ietf.org/doc/html/rfc5869
+    // NIST SP 800-38D (GCM): https://csrc.nist.gov/pubs/sp/800/38/d/final
     return Buffer.from(
       hkdfSync(
         "sha256",
