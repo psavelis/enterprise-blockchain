@@ -1,20 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-
-contract ConsortiumOrderRegistry is AccessControl {
-    bytes32 public constant ANCHOR_ADMIN = keccak256("ANCHOR_ADMIN");
-    bytes32 public constant VIEW_PUBLISHER = keccak256("VIEW_PUBLISHER");
-
-    error ZeroAdminAddress();
-
-    constructor(address admin) {
-        if (admin == address(0)) revert ZeroAdminAddress();
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(ANCHOR_ADMIN, admin);
-        _grantRole(VIEW_PUBLISHER, admin);
-    }
+contract ConsortiumOrderRegistry {
     struct CanonicalOrder {
         string orderId;
         string buyer;
@@ -53,7 +40,7 @@ contract ConsortiumOrderRegistry is AccessControl {
         string calldata buyer,
         string calldata supplier,
         string calldata auditProof
-    ) external onlyRole(ANCHOR_ADMIN) {
+    ) external {
         require(bytes(orderId).length > 0, "orderId required");
         require(bytes(auditProof).length > 0, "auditProof required");
         require(canonicalOrders[orderId].anchoredAt == 0, "order already anchored");
@@ -74,7 +61,7 @@ contract ConsortiumOrderRegistry is AccessControl {
         string calldata audience,
         string calldata payload,
         string calldata auditProof
-    ) external onlyRole(VIEW_PUBLISHER) {
+    ) external {
         require(bytes(canonicalOrders[orderId].orderId).length > 0, "order not anchored");
         require(bytes(audience).length > 0, "audience required");
         require(bytes(auditProof).length > 0, "auditProof required");

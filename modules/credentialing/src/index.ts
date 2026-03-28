@@ -23,12 +23,19 @@ import type {
   ProviderProfile,
   StaffingAssignment,
 } from "./domain/entities";
+import type { CredentialRepository } from "./domain/ports";
+import type { Logger } from "../../shared/src/logger";
 import { InMemoryCredentialRepository } from "./infrastructure/in-memory-store";
 import { ClearanceEvaluator } from "./application/clearance-evaluator";
 
 export class CredentialRegistry {
-  private readonly repo = new InMemoryCredentialRepository();
-  private readonly evaluator = new ClearanceEvaluator(this.repo);
+  private readonly repo: CredentialRepository;
+  private readonly evaluator: ClearanceEvaluator;
+
+  constructor(options?: { repo?: CredentialRepository; logger?: Logger }) {
+    this.repo = options?.repo ?? new InMemoryCredentialRepository();
+    this.evaluator = new ClearanceEvaluator(this.repo, options?.logger);
+  }
 
   registerProvider(provider: ProviderProfile): void {
     this.repo.addProvider(provider);

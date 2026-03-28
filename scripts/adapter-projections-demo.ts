@@ -124,7 +124,9 @@ console.log(
           financingBank: "Trade Capital NV",
           sustainabilityGrade: "A",
         },
-        bankView.auditProof,
+        typeof bankView.auditProof === "string"
+          ? bankView.auditProof
+          : bankView.auditProof.hash,
       ),
       publishBankView: besu.publishAudienceView(bankView),
     },

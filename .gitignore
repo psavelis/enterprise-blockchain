@@ -6,5 +6,4 @@ medium.md
 **/.terraform/
 contracts/solidity/out/
 contracts/solidity/cache/
-contracts/solidity/lib/
 *.terraform.lock.hcl

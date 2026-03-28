@@ -134,3 +134,36 @@ test("evaluateAssignment blocks credential outside target jurisdiction", () => {
   assert.equal(decision.approved, false);
   assert.ok(decision.missingCredentials.includes("medical-license"));
 });
+
+test("evaluateAssignment approves when credential expires on the schedule date", () => {
+  const registry = new CredentialRegistry();
+
+  registry.registerProvider({
+    id: "PROV-EDGE",
+    name: "Dr. Boundary",
+    specialties: ["General"],
+    sanctionStatus: "clear",
+  });
+
+  registry.issueCredential({
+    id: "LIC-EDGE",
+    providerId: "PROV-EDGE",
+    type: "medical-license",
+    jurisdictions: ["NL"],
+    validUntil: "2026-06-01",
+  });
+
+  const decision = registry.evaluateAssignment({
+    providerId: "PROV-EDGE",
+    facility: "Test Hospital",
+    jurisdiction: "NL",
+    requiredCredentials: ["medical-license"],
+    procedure: "Consultation",
+    scheduledAt: "2026-06-01T00:00:00Z",
+  });
+
+  // validUntil === scheduledAt: credential is still valid on that date
+  assert.equal(decision.approved, true);
+  assert.equal(decision.missingCredentials.length, 0);
+  assert.ok(decision.expiringSoon.some((e) => e.includes("0 days remaining")));
+});

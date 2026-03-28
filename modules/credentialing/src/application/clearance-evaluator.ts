@@ -1,11 +1,25 @@
 import { daysUntil } from "../../../shared/src/date";
 import type { ClearanceDecision, StaffingAssignment } from "../domain/entities";
 import type { CredentialRepository } from "../domain/ports";
+import type { Logger } from "../../../shared/src/logger";
+import { noopLogger } from "../../../shared/src/logger";
 
 export class ClearanceEvaluator {
-  constructor(private readonly repo: CredentialRepository) {}
+  private readonly logger: Logger;
+
+  constructor(
+    private readonly repo: CredentialRepository,
+    logger?: Logger,
+  ) {
+    this.logger = logger ?? noopLogger;
+  }
 
   evaluate(assignment: StaffingAssignment): ClearanceDecision {
+    const start = Date.now();
+    this.logger.info("clearance evaluation started", {
+      operation: "ClearanceEvaluator.evaluate",
+      entityId: assignment.providerId,
+    });
     const provider = this.repo.providers.get(assignment.providerId);
     if (!provider) {
       throw new Error(`Unknown provider ${assignment.providerId}`);
@@ -49,7 +63,7 @@ export class ClearanceEvaluator {
       }
     }
 
-    return {
+    const decision: ClearanceDecision = {
       approved:
         reasons.length === 0 &&
         missingCredentials.length === 0 &&
@@ -58,5 +72,17 @@ export class ClearanceEvaluator {
       expiringSoon,
       reasons,
     };
+
+    this.logger.info(
+      decision.approved ? "clearance approved" : "clearance denied",
+      {
+        operation: "ClearanceEvaluator.evaluate",
+        entityId: assignment.providerId,
+        result: decision.approved ? "approved" : "denied",
+        durationMs: Date.now() - start,
+      },
+    );
+
+    return decision;
   }
 }

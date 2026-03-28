@@ -13,3 +13,9 @@ variable "rpc_base_port" {
   type        = number
   default     = 10006
 }
+
+variable "memory_limit_mb" {
+  description = "Memory limit per Corda container in MB. JVM-based — at least 768 MB recommended."
+  type        = number
+  default     = 768
+}

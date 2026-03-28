@@ -24,3 +24,9 @@ variable "orderer_port" {
   type        = number
   default     = 7050
 }
+
+variable "memory_limit_mb" {
+  description = "Memory limit per Fabric container in MB."
+  type        = number
+  default     = 512
+}

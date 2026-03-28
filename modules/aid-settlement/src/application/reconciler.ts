@@ -4,11 +4,24 @@ import type {
   ReconciliationReport,
 } from "../domain/entities";
 import type { AidSettlementRepository } from "../domain/ports";
+import type { Logger } from "../../../shared/src/logger";
+import { noopLogger } from "../../../shared/src/logger";
 
 export class Reconciler {
-  constructor(private readonly repo: AidSettlementRepository) {}
+  private readonly logger: Logger;
+
+  constructor(
+    private readonly repo: AidSettlementRepository,
+    logger?: Logger,
+  ) {
+    this.logger = logger ?? noopLogger;
+  }
 
   reconcile(): ReconciliationReport {
+    const start = Date.now();
+    this.logger.info("reconciliation started", {
+      operation: "Reconciler.reconcile",
+    });
     const settledClaimIds: string[] = [];
     const rejectedClaimIds: string[] = [];
     const exceptions: string[] = [];
@@ -36,7 +49,21 @@ export class Reconciler {
       );
     }
 
-    return { settledClaimIds, rejectedClaimIds, exceptions };
+    const report: ReconciliationReport = {
+      settledClaimIds,
+      rejectedClaimIds,
+      exceptions,
+    };
+
+    this.logger.info("reconciliation completed", {
+      operation: "Reconciler.reconcile",
+      result: exceptions.length > 0 ? "with-exceptions" : "clean",
+      durationMs: Date.now() - start,
+      settled: settledClaimIds.length,
+      rejected: rejectedClaimIds.length,
+    });
+
+    return report;
   }
 
   private rejectOrphanedClaims(
