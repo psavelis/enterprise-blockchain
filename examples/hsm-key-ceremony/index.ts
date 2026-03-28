@@ -57,7 +57,7 @@ console.log(
 //
 // In production the ceremony seed would be derived from HSM key material
 // (e.g. a KDF output or a TRNG value exported in encrypted form).
-// Here we use a numeric value that fits the demo prime field.
+// Below: a numeric value that fits the demo prime field.
 
 const ceremonySeed = 7_419_253;
 
