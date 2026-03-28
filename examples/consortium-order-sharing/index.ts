@@ -6,7 +6,10 @@ const hsm = new HsmClient();
 hsm.initialize({ slotId: "slot-consortium-1", label: "order-sharing-hsm" });
 hsm.generateKeyPair("audit-signer");
 
-const ledger = new SelectiveDisclosureLedger(hsm, "audit-signer");
+const ledger = new SelectiveDisclosureLedger({
+  hsm,
+  signerKeyLabel: "audit-signer",
+});
 
 ledger.publishOrder({
   id: "PO-44018",

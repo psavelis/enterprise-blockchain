@@ -166,7 +166,10 @@ describe("SelectiveDisclosureLedger", () => {
 
     it("produces a SignedAuditProof when HSM is provided", () => {
       const hsm = createHsm();
-      const ledger = new SelectiveDisclosureLedger(hsm, "audit-signer");
+      const ledger = new SelectiveDisclosureLedger({
+        hsm,
+        signerKeyLabel: "audit-signer",
+      });
       ledger.publishOrder(sampleOrder());
 
       const view = ledger.createView("PO-1", "bank");
@@ -180,7 +183,10 @@ describe("SelectiveDisclosureLedger", () => {
 
     it("signature verifies with the public key", () => {
       const hsm = createHsm();
-      const ledger = new SelectiveDisclosureLedger(hsm, "audit-signer");
+      const ledger = new SelectiveDisclosureLedger({
+        hsm,
+        signerKeyLabel: "audit-signer",
+      });
       ledger.publishOrder(sampleOrder());
 
       const view = ledger.createView("PO-1", "bank");
@@ -198,7 +204,10 @@ describe("SelectiveDisclosureLedger", () => {
 
     it("signature fails verification when view content changes", () => {
       const hsm = createHsm();
-      const ledger = new SelectiveDisclosureLedger(hsm, "audit-signer");
+      const ledger = new SelectiveDisclosureLedger({
+        hsm,
+        signerKeyLabel: "audit-signer",
+      });
       ledger.publishOrder(sampleOrder());
 
       const bankView = ledger.createView("PO-1", "bank");

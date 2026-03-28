@@ -2,7 +2,7 @@ import { TraceabilityLedger } from "../../modules/traceability/src/index";
 import { ConsoleLogger } from "../../modules/shared/src/logger";
 
 const logger = new ConsoleLogger("food-recall");
-const ledger = new TraceabilityLedger(logger);
+const ledger = new TraceabilityLedger({ logger });
 
 ledger.registerLot({
   id: "LOT-SPINACH-001",
