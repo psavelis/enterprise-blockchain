@@ -6,9 +6,10 @@ import {TraceabilityAnchor} from "../src/TraceabilityAnchor.sol";
 
 contract TraceabilityAnchorTest is Test {
     TraceabilityAnchor anchor;
+    address admin = address(this);
 
     function setUp() public {
-        anchor = new TraceabilityAnchor();
+        anchor = new TraceabilityAnchor(admin);
     }
 
     // ---------------------------------------------------------------
@@ -153,5 +154,73 @@ contract TraceabilityAnchorTest is Test {
         TraceabilityAnchor.LotAnchor memory lot = anchor.getLot("UNKNOWN");
         assertEq(lot.anchoredAt, 0);
         assertEq(lot.stateRootHash, bytes32(0));
+    }
+
+    // ---------------------------------------------------------------
+    // Pausable
+    // ---------------------------------------------------------------
+
+    function test_pause_reverts_when_not_admin() public {
+        vm.prank(address(0xBEEF));
+        vm.expectRevert("caller is not admin");
+        anchor.pause();
+    }
+
+    function test_unpause_reverts_when_not_admin() public {
+        anchor.pause();
+        vm.prank(address(0xBEEF));
+        vm.expectRevert("caller is not admin");
+        anchor.unpause();
+    }
+
+    function test_anchorLot_reverts_when_paused() public {
+        anchor.pause();
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        anchor.anchorLot("LOT-P", "P", "US", keccak256("s"));
+    }
+
+    function test_recordShipment_reverts_when_paused() public {
+        anchor.anchorLot("LOT-P2", "P", "US", keccak256("s"));
+        anchor.pause();
+
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        anchor.recordShipment("SHIP-P", "LOT-P2", "DC", 400);
+    }
+
+    function test_issueRecall_reverts_when_paused() public {
+        anchor.anchorLot("LOT-P3", "P", "US", keccak256("s"));
+        anchor.pause();
+
+        string[] memory ids = new string[](0);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        anchor.issueRecall("LOT-P3", keccak256("h"), ids);
+    }
+
+    function test_views_callable_when_paused() public {
+        anchor.anchorLot("LOT-V", "P", "US", keccak256("s"));
+        anchor.recordShipment("SHIP-V", "LOT-V", "DC", 400);
+
+        string[] memory ids = new string[](1);
+        ids[0] = "SHIP-V";
+        anchor.issueRecall("LOT-V", keccak256("recall"), ids);
+
+        anchor.pause();
+
+        TraceabilityAnchor.LotAnchor memory lot = anchor.getLot("LOT-V");
+        assertEq(lot.lotId, "LOT-V");
+
+        TraceabilityAnchor.ShipmentRecord memory ship = anchor.getShipment("SHIP-V");
+        assertEq(ship.shipmentId, "SHIP-V");
+
+        TraceabilityAnchor.RecallEvent memory recall = anchor.getRecall("LOT-V");
+        assertEq(recall.lotId, "LOT-V");
+    }
+
+    function test_unpause_restores_functionality() public {
+        anchor.pause();
+        anchor.unpause();
+
+        anchor.anchorLot("LOT-UN", "P", "US", keccak256("s"));
+        assertGt(anchor.getLot("LOT-UN").anchoredAt, 0);
     }
 }

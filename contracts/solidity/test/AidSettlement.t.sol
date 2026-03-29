@@ -6,11 +6,12 @@ import {AidSettlement} from "../src/AidSettlement.sol";
 
 contract AidSettlementTest is Test {
     AidSettlement settlement;
+    address admin = address(this);
 
     string[] twoCategories;
 
     function setUp() public {
-        settlement = new AidSettlement();
+        settlement = new AidSettlement(admin);
         twoCategories = new string[](2);
         twoCategories[0] = "groceries";
         twoCategories[1] = "pharmacy";
@@ -211,5 +212,70 @@ contract AidSettlementTest is Test {
         AidSettlement.Claim memory c = settlement.getClaim("UNKNOWN");
         assertEq(bytes(c.claimId).length, 0);
         assertEq(uint8(c.status), uint8(AidSettlement.ClaimStatus.Pending));
+    }
+
+    // ---------------------------------------------------------------
+    // Pausable
+    // ---------------------------------------------------------------
+
+    function test_pause_reverts_when_not_admin() public {
+        vm.prank(address(0xBEEF));
+        vm.expectRevert("caller is not admin");
+        settlement.pause();
+    }
+
+    function test_unpause_reverts_when_not_admin() public {
+        settlement.pause();
+        vm.prank(address(0xBEEF));
+        vm.expectRevert("caller is not admin");
+        settlement.unpause();
+    }
+
+    function test_registerGrant_reverts_when_paused() public {
+        settlement.pause();
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        settlement.registerGrant(
+            "G-P", "HH", "P", 1000, 2000, twoCategories, 100
+        );
+    }
+
+    function test_submitClaim_reverts_when_paused() public {
+        settlement.registerGrant(
+            "G-P2", "HH", "P", 1000, 2000, twoCategories, 18000
+        );
+        settlement.pause();
+
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        settlement.submitClaim(
+            "C-P", "G-P2", "M", "groceries", "INV-P", 100, 1500
+        );
+    }
+
+    function test_views_callable_when_paused() public {
+        settlement.registerGrant(
+            "G-V", "HH", "P", 1000, 2000, twoCategories, 18000
+        );
+        settlement.submitClaim(
+            "C-V", "G-V", "M", "groceries", "INV-V", 100, 1500
+        );
+        settlement.pause();
+
+        AidSettlement.Grant memory g = settlement.getGrant("G-V");
+        assertEq(g.grantId, "G-V");
+
+        AidSettlement.Claim memory c = settlement.getClaim("C-V");
+        assertEq(c.claimId, "C-V");
+    }
+
+    function test_unpause_restores_functionality() public {
+        settlement.pause();
+        settlement.unpause();
+
+        settlement.registerGrant(
+            "G-UN", "HH", "P", 1000, 2000, twoCategories, 18000
+        );
+
+        AidSettlement.Grant memory g = settlement.getGrant("G-UN");
+        assertTrue(g.exists);
     }
 }

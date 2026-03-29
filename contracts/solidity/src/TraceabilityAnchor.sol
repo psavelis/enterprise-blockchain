@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+
 /**
  * @title TraceabilityAnchor
  * @notice Anchors product traceability state roots from Hyperledger Fabric to
@@ -15,7 +17,31 @@ pragma solidity ^0.8.24;
  *         deployments should integrate role-based access via OpenZeppelin
  *         AccessControl or an equivalent.
  */
-contract TraceabilityAnchor {
+contract TraceabilityAnchor is Pausable {
+    address public immutable ADMIN;
+
+    modifier onlyAdmin() {
+        _onlyAdmin();
+        _;
+    }
+
+    function _onlyAdmin() internal view {
+        require(msg.sender == ADMIN, "caller is not admin");
+    }
+
+    constructor(address admin) {
+        require(admin != address(0), "admin required");
+        ADMIN = admin;
+    }
+
+    function pause() external onlyAdmin {
+        _pause();
+    }
+
+    function unpause() external onlyAdmin {
+        _unpause();
+    }
+
     struct LotAnchor {
         bytes32 stateRootHash;
         string lotId;
@@ -77,7 +103,7 @@ contract TraceabilityAnchor {
         string calldata producer,
         string calldata origin,
         bytes32 stateRoot
-    ) external {
+    ) external whenNotPaused {
         require(bytes(lotId).length > 0, "lotId required");
         require(stateRoot != bytes32(0), "stateRoot required");
 
@@ -104,7 +130,7 @@ contract TraceabilityAnchor {
         string calldata lotId,
         string calldata destination,
         int256 tempC100
-    ) external {
+    ) external whenNotPaused {
         require(lots[lotId].anchoredAt > 0, "lot not anchored");
         require(bytes(shipmentId).length > 0, "shipmentId required");
         require(shipments[shipmentId].recordedAt == 0, "shipment already recorded");
@@ -130,7 +156,7 @@ contract TraceabilityAnchor {
         string calldata lotId,
         bytes32 assessmentHash,
         string[] calldata impactedShipmentIds
-    ) external {
+    ) external whenNotPaused {
         require(lots[lotId].anchoredAt > 0, "lot not anchored");
         require(assessmentHash != bytes32(0), "assessmentHash required");
 

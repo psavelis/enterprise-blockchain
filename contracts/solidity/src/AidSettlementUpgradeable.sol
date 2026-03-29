@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 /**
  * @title AidSettlementUpgradeable
@@ -20,7 +21,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
  *
  * @custom:storage-location erc7201:enterprise-blockchain.storage.AidSettlement
  */
-contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     struct Grant {
         string grantId;
         string beneficiaryId;
@@ -101,11 +102,20 @@ contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
     function initialize(address admin) external initializer {
         __Ownable_init(admin);
         __UUPSUpgradeable_init();
+        __Pausable_init();
         _getAidSettlementStorage().version = "1";
     }
 
     function version() external view returns (string memory) {
         return _getAidSettlementStorage().version;
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     function registerGrant(
@@ -116,7 +126,7 @@ contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
         uint256 expiresAt,
         string[] calldata approvedCategories,
         uint256 amountUsd100
-    ) external {
+    ) external whenNotPaused {
         AidSettlementStorage storage $ = _getAidSettlementStorage();
         require(bytes(grantId).length > 0, "grantId required");
         require(!$.grants[grantId].exists, "grant already registered");
@@ -145,7 +155,7 @@ contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
         string calldata invoiceRef,
         uint256 amountUsd100,
         uint256 submittedAt
-    ) external {
+    ) external whenNotPaused {
         AidSettlementStorage storage $ = _getAidSettlementStorage();
         require(bytes(claimId).length > 0, "claimId required");
         require(bytes(invoiceRef).length > 0, "invoiceRef required");

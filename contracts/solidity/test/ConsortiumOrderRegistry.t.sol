@@ -6,9 +6,10 @@ import {ConsortiumOrderRegistry} from "../src/ConsortiumOrderRegistry.sol";
 
 contract ConsortiumOrderRegistryTest is Test {
     ConsortiumOrderRegistry registry;
+    address admin = address(this);
 
     function setUp() public {
-        registry = new ConsortiumOrderRegistry();
+        registry = new ConsortiumOrderRegistry(admin);
     }
 
     function test_anchorOrder_stores_and_emits() public {
@@ -106,5 +107,61 @@ contract ConsortiumOrderRegistryTest is Test {
 
         assertEq(order.anchoredAt, 0);
         assertEq(bytes(order.orderId).length, 0);
+    }
+
+    // ---------------------------------------------------------------
+    // Pausable
+    // ---------------------------------------------------------------
+
+    function test_pause_reverts_when_not_admin() public {
+        vm.prank(address(0xBEEF));
+        vm.expectRevert("caller is not admin");
+        registry.pause();
+    }
+
+    function test_unpause_reverts_when_not_admin() public {
+        registry.pause();
+        vm.prank(address(0xBEEF));
+        vm.expectRevert("caller is not admin");
+        registry.unpause();
+    }
+
+    function test_anchorOrder_reverts_when_paused() public {
+        registry.pause();
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        registry.anchorOrder("PO-P", "Acme", "Supplier", "proof");
+    }
+
+    function test_publishAudienceView_reverts_when_paused() public {
+        registry.anchorOrder("PO-P2", "B", "S", "p");
+        registry.pause();
+
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        registry.publishAudienceView("PO-P2", "bank", "{}", "proof");
+    }
+
+    function test_views_callable_when_paused() public {
+        registry.anchorOrder("PO-V", "B", "S", "p");
+        registry.publishAudienceView("PO-V", "bank", "data", "proof");
+        registry.pause();
+
+        ConsortiumOrderRegistry.CanonicalOrder memory order =
+            registry.getCanonicalOrder("PO-V");
+        assertEq(order.orderId, "PO-V");
+
+        ConsortiumOrderRegistry.AudienceView memory av =
+            registry.getAudienceView("PO-V", "bank");
+        assertEq(av.payload, "data");
+    }
+
+    function test_unpause_restores_functionality() public {
+        registry.pause();
+        registry.unpause();
+
+        registry.anchorOrder("PO-UN", "B", "S", "p");
+
+        ConsortiumOrderRegistry.CanonicalOrder memory order =
+            registry.getCanonicalOrder("PO-UN");
+        assertGt(order.anchoredAt, 0);
     }
 }

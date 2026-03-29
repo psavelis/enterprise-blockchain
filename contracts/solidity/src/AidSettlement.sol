@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+
 /**
  * @title AidSettlement
  * @notice On-chain reconciliation anchoring for aid voucher redemption.
@@ -15,7 +17,31 @@ pragma solidity ^0.8.24;
  *         mirrors the off-chain AidSettlementLedger reconciliation rules so
  *         that settlement outcomes can be independently verified.
  */
-contract AidSettlement {
+contract AidSettlement is Pausable {
+    address public immutable ADMIN;
+
+    modifier onlyAdmin() {
+        _onlyAdmin();
+        _;
+    }
+
+    function _onlyAdmin() internal view {
+        require(msg.sender == ADMIN, "caller is not admin");
+    }
+
+    constructor(address admin) {
+        require(admin != address(0), "admin required");
+        ADMIN = admin;
+    }
+
+    function pause() external onlyAdmin {
+        _pause();
+    }
+
+    function unpause() external onlyAdmin {
+        _unpause();
+    }
+
     struct Grant {
         string grantId;
         string beneficiaryId;
@@ -88,7 +114,7 @@ contract AidSettlement {
         uint256 expiresAt,
         string[] calldata approvedCategories,
         uint256 amountUsd100
-    ) external {
+    ) external whenNotPaused {
         require(bytes(grantId).length > 0, "grantId required");
         require(!grants[grantId].exists, "grant already registered");
         require(expiresAt > issuedAt, "expiresAt must be after issuedAt");
@@ -130,7 +156,7 @@ contract AidSettlement {
         string calldata invoiceRef,
         uint256 amountUsd100,
         uint256 submittedAt
-    ) external {
+    ) external whenNotPaused {
         require(bytes(claimId).length > 0, "claimId required");
         require(bytes(invoiceRef).length > 0, "invoiceRef required");
         require(bytes(claims[claimId].claimId).length == 0, "claim already exists");
