@@ -1,12 +1,12 @@
-import { InMemoryStore } from "../../../shared/src/store";
+import { InMemoryStore, CollectionStore } from "../../../shared/src/index";
 import type { ClinicalCredential, ProviderProfile } from "../domain/entities";
 import type { CredentialRepository } from "../domain/ports";
 
 export class InMemoryCredentialRepository implements CredentialRepository {
   readonly providers = new InMemoryStore<string, ProviderProfile>();
-  private readonly credentials = new InMemoryStore<
+  private readonly credentials = new CollectionStore<
     string,
-    ClinicalCredential[]
+    ClinicalCredential
   >();
 
   addProvider(provider: ProviderProfile): void {
@@ -14,12 +14,10 @@ export class InMemoryCredentialRepository implements CredentialRepository {
   }
 
   addCredential(credential: ClinicalCredential): void {
-    const existing = this.credentials.get(credential.providerId) ?? [];
-    existing.push(credential);
-    this.credentials.set(credential.providerId, existing);
+    this.credentials.append(credential.providerId, credential);
   }
 
   getCredentials(providerId: string): readonly ClinicalCredential[] {
-    return [...(this.credentials.get(providerId) ?? [])];
+    return this.credentials.getAll(providerId);
   }
 }
