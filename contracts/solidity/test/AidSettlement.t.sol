@@ -3,14 +3,19 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {AidSettlement} from "../src/AidSettlement.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 contract AidSettlementTest is Test {
     AidSettlement settlement;
+    address admin = address(this);
+    address pauser = address(0x1);
+    address nonPauser = address(0x2);
 
     string[] twoCategories;
 
     function setUp() public {
-        settlement = new AidSettlement();
+        settlement = new AidSettlement(admin);
         twoCategories = new string[](2);
         twoCategories[0] = "groceries";
         twoCategories[1] = "pharmacy";
@@ -22,13 +27,10 @@ contract AidSettlementTest is Test {
 
     function test_registerGrant_stores_and_emits() public {
         vm.expectEmit(true, true, true, true);
-        emit AidSettlement.GrantRegistered(
-            "G-001", "HH-001", "Urban Food Support", 18000, 2000
-        );
+        emit AidSettlement.GrantRegistered("G-001", "HH-001", "Urban Food Support", 18000, 2000);
 
         settlement.registerGrant(
-            "G-001", "HH-001", "Urban Food Support",
-            1000, 2000, twoCategories, 18000
+            "G-001", "HH-001", "Urban Food Support", 1000, 2000, twoCategories, 18000
         );
 
         AidSettlement.Grant memory g = settlement.getGrant("G-001");
@@ -41,27 +43,19 @@ contract AidSettlementTest is Test {
 
     function test_registerGrant_reverts_on_empty_id() public {
         vm.expectRevert("grantId required");
-        settlement.registerGrant(
-            "", "HH-001", "Prog", 1000, 2000, twoCategories, 100
-        );
+        settlement.registerGrant("", "HH-001", "Prog", 1000, 2000, twoCategories, 100);
     }
 
     function test_registerGrant_reverts_on_duplicate() public {
-        settlement.registerGrant(
-            "G-DUP", "HH", "P", 1000, 2000, twoCategories, 100
-        );
+        settlement.registerGrant("G-DUP", "HH", "P", 1000, 2000, twoCategories, 100);
 
         vm.expectRevert("grant already registered");
-        settlement.registerGrant(
-            "G-DUP", "HH", "P", 1000, 2000, twoCategories, 100
-        );
+        settlement.registerGrant("G-DUP", "HH", "P", 1000, 2000, twoCategories, 100);
     }
 
     function test_registerGrant_reverts_if_expiresAt_not_after_issuedAt() public {
         vm.expectRevert("expiresAt must be after issuedAt");
-        settlement.registerGrant(
-            "G-BAD", "HH", "P", 2000, 1000, twoCategories, 100
-        );
+        settlement.registerGrant("G-BAD", "HH", "P", 2000, 1000, twoCategories, 100);
     }
 
     // ---------------------------------------------------------------
@@ -69,16 +63,12 @@ contract AidSettlementTest is Test {
     // ---------------------------------------------------------------
 
     function test_submitClaim_settles_valid_claim() public {
-        settlement.registerGrant(
-            "G-002", "HH", "P", 1000, 2000, twoCategories, 18000
-        );
+        settlement.registerGrant("G-002", "HH", "P", 1000, 2000, twoCategories, 18000);
 
         vm.expectEmit(true, true, true, true);
         emit AidSettlement.ClaimSettled("C-001", "G-002", 6500, 6500);
 
-        settlement.submitClaim(
-            "C-001", "G-002", "M-44", "groceries", "INV-001", 6500, 1500
-        );
+        settlement.submitClaim("C-001", "G-002", "M-44", "groceries", "INV-001", 6500, 1500);
 
         AidSettlement.Claim memory c = settlement.getClaim("C-001");
         assertEq(c.claimId, "C-001");
@@ -89,16 +79,10 @@ contract AidSettlementTest is Test {
     }
 
     function test_submitClaim_accumulates_budget() public {
-        settlement.registerGrant(
-            "G-003", "HH", "P", 1000, 2000, twoCategories, 10000
-        );
+        settlement.registerGrant("G-003", "HH", "P", 1000, 2000, twoCategories, 10000);
 
-        settlement.submitClaim(
-            "C-A", "G-003", "M", "groceries", "I-A", 4000, 1500
-        );
-        settlement.submitClaim(
-            "C-B", "G-003", "M", "pharmacy", "I-B", 3000, 1500
-        );
+        settlement.submitClaim("C-A", "G-003", "M", "groceries", "I-A", 4000, 1500);
+        settlement.submitClaim("C-B", "G-003", "M", "pharmacy", "I-B", 3000, 1500);
 
         AidSettlement.Grant memory g = settlement.getGrant("G-003");
         assertEq(g.consumedUsd, 7000);
@@ -112,95 +96,64 @@ contract AidSettlementTest is Test {
         vm.expectEmit(true, true, true, true);
         emit AidSettlement.ClaimRejected("C-X", "G-NONE", "grant not found");
 
-        settlement.submitClaim(
-            "C-X", "G-NONE", "M", "groceries", "I", 100, 1500
-        );
+        settlement.submitClaim("C-X", "G-NONE", "M", "groceries", "I", 100, 1500);
 
         assertEq(
-            uint8(settlement.getClaim("C-X").status),
-            uint8(AidSettlement.ClaimStatus.Rejected)
+            uint8(settlement.getClaim("C-X").status), uint8(AidSettlement.ClaimStatus.Rejected)
         );
     }
 
     function test_submitClaim_rejects_expired() public {
-        settlement.registerGrant(
-            "G-004", "HH", "P", 1000, 2000, twoCategories, 10000
-        );
+        settlement.registerGrant("G-004", "HH", "P", 1000, 2000, twoCategories, 10000);
 
-        settlement.submitClaim(
-            "C-EXP", "G-004", "M", "groceries", "I", 100, 3000
-        );
+        settlement.submitClaim("C-EXP", "G-004", "M", "groceries", "I", 100, 3000);
 
         assertEq(
-            uint8(settlement.getClaim("C-EXP").status),
-            uint8(AidSettlement.ClaimStatus.Rejected)
+            uint8(settlement.getClaim("C-EXP").status), uint8(AidSettlement.ClaimStatus.Rejected)
         );
     }
 
     function test_submitClaim_rejects_unapproved_category() public {
-        settlement.registerGrant(
-            "G-005", "HH", "P", 1000, 2000, twoCategories, 10000
-        );
+        settlement.registerGrant("G-005", "HH", "P", 1000, 2000, twoCategories, 10000);
 
-        settlement.submitClaim(
-            "C-CAT", "G-005", "M", "electronics", "I", 100, 1500
-        );
+        settlement.submitClaim("C-CAT", "G-005", "M", "electronics", "I", 100, 1500);
 
         assertEq(
-            uint8(settlement.getClaim("C-CAT").status),
-            uint8(AidSettlement.ClaimStatus.Rejected)
+            uint8(settlement.getClaim("C-CAT").status), uint8(AidSettlement.ClaimStatus.Rejected)
         );
     }
 
     function test_submitClaim_rejects_duplicate_invoice() public {
-        settlement.registerGrant(
-            "G-006", "HH", "P", 1000, 2000, twoCategories, 10000
-        );
+        settlement.registerGrant("G-006", "HH", "P", 1000, 2000, twoCategories, 10000);
 
-        settlement.submitClaim(
-            "C-D1", "G-006", "M", "groceries", "INV-SAME", 100, 1500
-        );
-        settlement.submitClaim(
-            "C-D2", "G-006", "M", "groceries", "INV-SAME", 100, 1500
-        );
+        settlement.submitClaim("C-D1", "G-006", "M", "groceries", "INV-SAME", 100, 1500);
+        settlement.submitClaim("C-D2", "G-006", "M", "groceries", "INV-SAME", 100, 1500);
 
         assertEq(
-            uint8(settlement.getClaim("C-D1").status),
-            uint8(AidSettlement.ClaimStatus.Settled)
+            uint8(settlement.getClaim("C-D1").status), uint8(AidSettlement.ClaimStatus.Settled)
         );
         assertEq(
-            uint8(settlement.getClaim("C-D2").status),
-            uint8(AidSettlement.ClaimStatus.Rejected)
+            uint8(settlement.getClaim("C-D2").status), uint8(AidSettlement.ClaimStatus.Rejected)
         );
     }
 
     function test_submitClaim_rejects_budget_exceeded() public {
-        settlement.registerGrant(
-            "G-007", "HH", "P", 1000, 2000, twoCategories, 5000
-        );
+        settlement.registerGrant("G-007", "HH", "P", 1000, 2000, twoCategories, 5000);
 
-        settlement.submitClaim(
-            "C-OK", "G-007", "M", "groceries", "I-1", 4000, 1500
-        );
-        settlement.submitClaim(
-            "C-OVER", "G-007", "M", "groceries", "I-2", 2000, 1500
-        );
+        settlement.submitClaim("C-OK", "G-007", "M", "groceries", "I-1", 4000, 1500);
+        settlement.submitClaim("C-OVER", "G-007", "M", "groceries", "I-2", 2000, 1500);
 
         assertEq(
-            uint8(settlement.getClaim("C-OK").status),
-            uint8(AidSettlement.ClaimStatus.Settled)
+            uint8(settlement.getClaim("C-OK").status), uint8(AidSettlement.ClaimStatus.Settled)
         );
         assertEq(
-            uint8(settlement.getClaim("C-OVER").status),
-            uint8(AidSettlement.ClaimStatus.Rejected)
+            uint8(settlement.getClaim("C-OVER").status), uint8(AidSettlement.ClaimStatus.Rejected)
         );
     }
 
     function test_submitClaim_reverts_on_empty_claimId() public {
         vm.expectRevert("claimId required");
-        settlement.submitClaim(
-            "", "G-001", "M", "groceries", "I", 100, 1500
-        );
+        settlement.submitClaim("", "G-001", "M", "groceries", "I", 100, 1500);
     }
 
     // ---------------------------------------------------------------
@@ -211,5 +164,65 @@ contract AidSettlementTest is Test {
         AidSettlement.Claim memory c = settlement.getClaim("UNKNOWN");
         assertEq(bytes(c.claimId).length, 0);
         assertEq(uint8(c.status), uint8(AidSettlement.ClaimStatus.Pending));
+    }
+
+    // ---------------------------------------------------------------
+    // Pausable
+    // ---------------------------------------------------------------
+
+    function test_pause_reverts_for_non_pauser() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                nonPauser,
+                settlement.PAUSER_ROLE()
+            )
+        );
+        vm.prank(nonPauser);
+        settlement.pause();
+    }
+
+    function test_pause_succeeds_for_pauser() public {
+        settlement.pause();
+        assertTrue(settlement.paused());
+    }
+
+    function test_unpause_succeeds_for_pauser() public {
+        settlement.pause();
+        settlement.unpause();
+        assertFalse(settlement.paused());
+    }
+
+    function test_registerGrant_reverts_when_paused() public {
+        settlement.pause();
+
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        settlement.registerGrant("G-PAUSE", "HH", "P", 1000, 2000, twoCategories, 100);
+    }
+
+    function test_submitClaim_reverts_when_paused() public {
+        settlement.registerGrant("G-010", "HH", "P", 1000, 2000, twoCategories, 10000);
+        settlement.pause();
+
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        settlement.submitClaim("C-PAUSE", "G-010", "M", "groceries", "I", 100, 1500);
+    }
+
+    function test_view_functions_work_when_paused() public {
+        settlement.registerGrant("G-011", "HH", "P", 1000, 2000, twoCategories, 10000);
+        settlement.pause();
+
+        AidSettlement.Grant memory g = settlement.getGrant("G-011");
+        assertEq(g.grantId, "G-011");
+    }
+
+    function test_operations_resume_after_unpause() public {
+        settlement.pause();
+        settlement.unpause();
+
+        settlement.registerGrant("G-012", "HH", "P", 1000, 2000, twoCategories, 10000);
+
+        AidSettlement.Grant memory g = settlement.getGrant("G-012");
+        assertTrue(g.exists);
     }
 }

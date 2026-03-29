@@ -3,7 +3,15 @@ pragma solidity ^0.8.24;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {
+    OwnableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {
+    PausableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {
+    AccessControlUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 /**
  * @title AidSettlementUpgradeable
@@ -20,7 +28,15 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
  *
  * @custom:storage-location erc7201:enterprise-blockchain.storage.AidSettlement
  */
-contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract AidSettlementUpgradeable is
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    AccessControlUpgradeable
+{
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
     struct Grant {
         string grantId;
         string beneficiaryId;
@@ -77,17 +93,10 @@ contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
     );
 
     event ClaimSettled(
-        string indexed claimId,
-        string indexed grantId,
-        uint256 amountUsd,
-        uint256 newConsumedTotal
+        string indexed claimId, string indexed grantId, uint256 amountUsd, uint256 newConsumedTotal
     );
 
-    event ClaimRejected(
-        string indexed claimId,
-        string indexed grantId,
-        string reason
-    );
+    event ClaimRejected(string indexed claimId, string indexed grantId, string reason);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -101,7 +110,19 @@ contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
     function initialize(address admin) external initializer {
         __Ownable_init(admin);
         __UUPSUpgradeable_init();
+        __Pausable_init();
+        __AccessControl_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(PAUSER_ROLE, admin);
         _getAidSettlementStorage().version = "1";
+    }
+
+    function pause() external onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(PAUSER_ROLE) {
+        _unpause();
     }
 
     function version() external view returns (string memory) {
@@ -116,7 +137,7 @@ contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
         uint256 expiresAt,
         string[] calldata approvedCategories,
         uint256 amountUsd100
-    ) external {
+    ) external whenNotPaused {
         AidSettlementStorage storage $ = _getAidSettlementStorage();
         require(bytes(grantId).length > 0, "grantId required");
         require(!$.grants[grantId].exists, "grant already registered");
@@ -145,7 +166,7 @@ contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
         string calldata invoiceRef,
         uint256 amountUsd100,
         uint256 submittedAt
-    ) external {
+    ) external whenNotPaused {
         AidSettlementStorage storage $ = _getAidSettlementStorage();
         require(bytes(claimId).length > 0, "claimId required");
         require(bytes(invoiceRef).length > 0, "invoiceRef required");
@@ -162,7 +183,8 @@ contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
             status: ClaimStatus.Pending
         });
 
-        string memory rejection = _validate($, grantId, category, invoiceRef, amountUsd100, submittedAt);
+        string memory rejection =
+            _validate($, grantId, category, invoiceRef, amountUsd100, submittedAt);
 
         if (bytes(rejection).length > 0) {
             $.claims[claimId].status = ClaimStatus.Rejected;
@@ -207,10 +229,11 @@ contract AidSettlementUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgr
         return "";
     }
 
-    function _isCategoryApproved(
-        Grant storage grant,
-        string calldata category
-    ) private view returns (bool) {
+    function _isCategoryApproved(Grant storage grant, string calldata category)
+        private
+        view
+        returns (bool)
+    {
         bytes32 target = keccak256(abi.encodePacked(category));
         for (uint256 i = 0; i < grant.approvedCategories.length; i++) {
             if (keccak256(abi.encodePacked(grant.approvedCategories[i])) == target) {

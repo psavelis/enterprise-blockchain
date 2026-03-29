@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+
 /**
  * @title AidSettlement
  * @notice On-chain reconciliation anchoring for aid voucher redemption.
@@ -15,7 +18,9 @@ pragma solidity ^0.8.24;
  *         mirrors the off-chain AidSettlementLedger reconciliation rules so
  *         that settlement outcomes can be independently verified.
  */
-contract AidSettlement {
+contract AidSettlement is Pausable, AccessControl {
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
     struct Grant {
         string grantId;
         string beneficiaryId;
@@ -49,6 +54,19 @@ contract AidSettlement {
     mapping(string => Claim) private claims;
     mapping(string => mapping(string => bool)) private usedInvoices; // grantId => invoiceRef => used
 
+    constructor(address admin) {
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(PAUSER_ROLE, admin);
+    }
+
+    function pause() external onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(PAUSER_ROLE) {
+        _unpause();
+    }
+
     event GrantRegistered(
         string indexed grantId,
         string beneficiaryId,
@@ -58,17 +76,10 @@ contract AidSettlement {
     );
 
     event ClaimSettled(
-        string indexed claimId,
-        string indexed grantId,
-        uint256 amountUsd,
-        uint256 newConsumedTotal
+        string indexed claimId, string indexed grantId, uint256 amountUsd, uint256 newConsumedTotal
     );
 
-    event ClaimRejected(
-        string indexed claimId,
-        string indexed grantId,
-        string reason
-    );
+    event ClaimRejected(string indexed claimId, string indexed grantId, string reason);
 
     /**
      * @notice Register a new aid grant on-chain.
@@ -88,7 +99,7 @@ contract AidSettlement {
         uint256 expiresAt,
         string[] calldata approvedCategories,
         uint256 amountUsd100
-    ) external {
+    ) external whenNotPaused {
         require(bytes(grantId).length > 0, "grantId required");
         require(!grants[grantId].exists, "grant already registered");
         require(expiresAt > issuedAt, "expiresAt must be after issuedAt");
@@ -130,7 +141,7 @@ contract AidSettlement {
         string calldata invoiceRef,
         uint256 amountUsd100,
         uint256 submittedAt
-    ) external {
+    ) external whenNotPaused {
         require(bytes(claimId).length > 0, "claimId required");
         require(bytes(invoiceRef).length > 0, "invoiceRef required");
         require(bytes(claims[claimId].claimId).length == 0, "claim already exists");
@@ -147,7 +158,8 @@ contract AidSettlement {
             status: ClaimStatus.Pending
         });
 
-        string memory rejection = _validate(grantId, category, invoiceRef, amountUsd100, submittedAt);
+        string memory rejection =
+            _validate(grantId, category, invoiceRef, amountUsd100, submittedAt);
 
         if (bytes(rejection).length > 0) {
             claims[claimId].status = ClaimStatus.Rejected;
@@ -189,10 +201,11 @@ contract AidSettlement {
         return "";
     }
 
-    function _isCategoryApproved(
-        Grant storage grant,
-        string calldata category
-    ) private view returns (bool) {
+    function _isCategoryApproved(Grant storage grant, string calldata category)
+        private
+        view
+        returns (bool)
+    {
         bytes32 target = keccak256(abi.encodePacked(category));
         for (uint256 i = 0; i < grant.approvedCategories.length; i++) {
             if (keccak256(abi.encodePacked(grant.approvedCategories[i])) == target) {

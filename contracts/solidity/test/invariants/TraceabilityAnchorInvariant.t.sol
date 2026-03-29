@@ -15,9 +15,10 @@ import {TraceabilityAnchorHandler} from "./TraceabilityAnchorHandler.sol";
 contract TraceabilityAnchorInvariant is Test {
     TraceabilityAnchor anchor;
     TraceabilityAnchorHandler handler;
+    address admin = address(this);
 
     function setUp() public {
-        anchor = new TraceabilityAnchor();
+        anchor = new TraceabilityAnchor(admin);
         handler = new TraceabilityAnchorHandler(anchor);
 
         targetContract(address(handler));
