@@ -4,6 +4,10 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {AidSettlementUpgradeable} from "../src/AidSettlementUpgradeable.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
+import {
+    PausableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 /**
  * @title AidSettlementV2Mock
@@ -17,8 +21,9 @@ contract AidSettlementV2Mock is AidSettlementUpgradeable {
         mapping(string => string) grantNotes;
     }
 
-    bytes32 private constant V2_STORAGE_LOCATION =
-        keccak256(abi.encode(uint256(keccak256("enterprise-blockchain.storage.AidSettlementV2")) - 1));
+    bytes32 private constant V2_STORAGE_LOCATION = keccak256(
+        abi.encode(uint256(keccak256("enterprise-blockchain.storage.AidSettlementV2")) - 1)
+    );
 
     function _getV2Storage() private pure returns (AidSettlementV2Storage storage $) {
         bytes32 slot = V2_STORAGE_LOCATION;
@@ -48,21 +53,16 @@ contract AidSettlementUpgradeTest is Test {
     AidSettlementUpgradeable implementation;
     AidSettlementUpgradeable proxy;
     address admin = address(this);
+    address nonPauser = address(0x2);
 
     string[] twoCategories;
 
     function setUp() public {
         implementation = new AidSettlementUpgradeable();
 
-        bytes memory initData = abi.encodeCall(
-            AidSettlementUpgradeable.initialize,
-            (admin)
-        );
+        bytes memory initData = abi.encodeCall(AidSettlementUpgradeable.initialize, (admin));
 
-        ERC1967Proxy erc1967Proxy = new ERC1967Proxy(
-            address(implementation),
-            initData
-        );
+        ERC1967Proxy erc1967Proxy = new ERC1967Proxy(address(implementation), initData);
 
         proxy = AidSettlementUpgradeable(address(erc1967Proxy));
 
@@ -102,10 +102,7 @@ contract AidSettlementUpgradeTest is Test {
         proxy.submitClaim("C-1", "G-1", "M-1", "groceries", "INV-1", 10000, 1500);
 
         AidSettlementUpgradeable.Claim memory c = proxy.getClaim("C-1");
-        assertEq(
-            uint8(c.status),
-            uint8(AidSettlementUpgradeable.ClaimStatus.Settled)
-        );
+        assertEq(uint8(c.status), uint8(AidSettlementUpgradeable.ClaimStatus.Settled));
 
         g = proxy.getGrant("G-1");
         assertEq(g.consumedUsd, 10000);
@@ -126,8 +123,7 @@ contract AidSettlementUpgradeTest is Test {
         // Deploy V2 and upgrade
         AidSettlementV2Mock v2Impl = new AidSettlementV2Mock();
         proxy.upgradeToAndCall(
-            address(v2Impl),
-            abi.encodeCall(AidSettlementV2Mock.initializeV2, ())
+            address(v2Impl), abi.encodeCall(AidSettlementV2Mock.initializeV2, ())
         );
 
         // Verify V1 data intact
@@ -137,10 +133,7 @@ contract AidSettlementUpgradeTest is Test {
         assertTrue(gAfter.exists);
 
         AidSettlementUpgradeable.Claim memory c = proxy.getClaim("C-UP");
-        assertEq(
-            uint8(c.status),
-            uint8(AidSettlementUpgradeable.ClaimStatus.Settled)
-        );
+        assertEq(uint8(c.status), uint8(AidSettlementUpgradeable.ClaimStatus.Settled));
 
         // Verify V2 functionality
         assertEq(AidSettlementV2Mock(address(proxy)).v2Ping(), "v2");
@@ -160,9 +153,67 @@ contract AidSettlementUpgradeTest is Test {
         address rando = address(0xbeef);
 
         vm.prank(rando);
-        vm.expectRevert(
-            abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", rando)
-        );
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", rando));
         proxy.upgradeToAndCall(address(v2Impl), "");
+    }
+
+    // ---------------------------------------------------------------
+    // Pausable
+    // ---------------------------------------------------------------
+
+    function test_pause_reverts_for_non_pauser() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                nonPauser,
+                proxy.PAUSER_ROLE()
+            )
+        );
+        vm.prank(nonPauser);
+        proxy.pause();
+    }
+
+    function test_pause_succeeds_for_pauser() public {
+        proxy.pause();
+        assertTrue(proxy.paused());
+    }
+
+    function test_unpause_succeeds_for_pauser() public {
+        proxy.pause();
+        proxy.unpause();
+        assertFalse(proxy.paused());
+    }
+
+    function test_registerGrant_reverts_when_paused() public {
+        proxy.pause();
+
+        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        proxy.registerGrant("G-PAUSE", "HH", "P", 1000, 2000, twoCategories, 100);
+    }
+
+    function test_submitClaim_reverts_when_paused() public {
+        proxy.registerGrant("G-010", "HH", "P", 1000, 2000, twoCategories, 10000);
+        proxy.pause();
+
+        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        proxy.submitClaim("C-PAUSE", "G-010", "M", "groceries", "I", 100, 1500);
+    }
+
+    function test_view_functions_work_when_paused() public {
+        proxy.registerGrant("G-011", "HH", "P", 1000, 2000, twoCategories, 10000);
+        proxy.pause();
+
+        AidSettlementUpgradeable.Grant memory g = proxy.getGrant("G-011");
+        assertEq(g.grantId, "G-011");
+    }
+
+    function test_operations_resume_after_unpause() public {
+        proxy.pause();
+        proxy.unpause();
+
+        proxy.registerGrant("G-012", "HH", "P", 1000, 2000, twoCategories, 10000);
+
+        AidSettlementUpgradeable.Grant memory g = proxy.getGrant("G-012");
+        assertTrue(g.exists);
     }
 }
