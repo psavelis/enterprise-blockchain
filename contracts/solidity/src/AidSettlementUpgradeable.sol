@@ -108,6 +108,7 @@ contract AidSettlementUpgradeable is
      * @param admin  Initial owner / upgrade authority.
      */
     function initialize(address admin) external initializer {
+        require(admin != address(0), "admin is the zero address");
         __Ownable_init(admin);
         __UUPSUpgradeable_init();
         __Pausable_init();

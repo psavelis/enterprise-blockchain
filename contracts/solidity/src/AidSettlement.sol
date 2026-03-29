@@ -55,6 +55,7 @@ contract AidSettlement is Pausable, AccessControl {
     mapping(string => mapping(string => bool)) private usedInvoices; // grantId => invoiceRef => used
 
     constructor(address admin) {
+        require(admin != address(0), "admin is the zero address");
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(PAUSER_ROLE, admin);
     }

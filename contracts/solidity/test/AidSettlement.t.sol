@@ -9,7 +9,6 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 contract AidSettlementTest is Test {
     AidSettlement settlement;
     address admin = address(this);
-    address pauser = address(0x1);
     address nonPauser = address(0x2);
 
     string[] twoCategories;

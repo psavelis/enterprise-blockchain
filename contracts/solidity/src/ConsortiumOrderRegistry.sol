@@ -26,6 +26,7 @@ contract ConsortiumOrderRegistry is Pausable, AccessControl {
     mapping(string => mapping(string => AudienceView)) private audienceViews;
 
     constructor(address admin) {
+        require(admin != address(0), "admin is the zero address");
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(PAUSER_ROLE, admin);
     }
