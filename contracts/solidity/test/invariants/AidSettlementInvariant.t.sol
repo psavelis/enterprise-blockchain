@@ -17,7 +17,7 @@ contract AidSettlementInvariant is Test {
     AidSettlementHandler handler;
 
     function setUp() public {
-        settlement = new AidSettlement();
+        settlement = new AidSettlement(address(this));
         handler = new AidSettlementHandler(settlement);
 
         // Only fuzz through the handler — never call the settlement directly

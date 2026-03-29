@@ -17,7 +17,7 @@ contract TraceabilityAnchorInvariant is Test {
     TraceabilityAnchorHandler handler;
 
     function setUp() public {
-        anchor = new TraceabilityAnchor();
+        anchor = new TraceabilityAnchor(address(this));
         handler = new TraceabilityAnchorHandler(anchor);
 
         targetContract(address(handler));
