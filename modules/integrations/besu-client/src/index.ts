@@ -19,26 +19,28 @@ import {
   getNumberEnv,
   getRequiredEnv,
 } from "../../shared/src/env";
+import {
+  extractErrorMessage,
+  isInsufficientFunds,
+  isNonceTooLow,
+} from "./error-mapper";
+import type {
+  BesuPrivateTransactionRequest,
+  BesuRpcProfile,
+  IBesuGasEstimator,
+  IBesuProfileFactory,
+  IBesuProviderFactory,
+  IBesuTransactionBuilder,
+  IBesuTransactionSender,
+} from "./ports";
+
+export type { BesuRpcProfile, BesuPrivateTransactionRequest } from "./ports";
 
 const consortiumInterface = new Interface(
   consortiumRegistryArtifact.abi as InterfaceAbi,
 );
 
-export interface BesuRpcProfile {
-  rpcUrl: string;
-  chainId: number;
-  contractAddress: string;
-  // NOTE: sketch only — do not store key material as plain strings in production
-  walletPrivateKey?: string;
-  privacyGroupId?: string;
-}
-
-export interface BesuPrivateTransactionRequest {
-  transaction: TransactionRequest;
-  privacyGroupId: string;
-}
-
-export class BesuEthersClientSketch {
+export class BesuProfileFactory implements IBesuProfileFactory {
   createProfileFromEnv(env: NodeJS.ProcessEnv = process.env): BesuRpcProfile {
     const profile: BesuRpcProfile = {
       rpcUrl: getRequiredEnv("BESU_RPC_URL", env),
@@ -68,7 +70,9 @@ export class BesuEthersClientSketch {
     }
     return profile;
   }
+}
 
+export class BesuProviderFactory implements IBesuProviderFactory {
   createProvider(profile: BesuRpcProfile): JsonRpcProvider {
     return new JsonRpcProvider(profile.rpcUrl, profile.chainId);
   }
@@ -77,15 +81,9 @@ export class BesuEthersClientSketch {
     if (!profile.walletPrivateKey) {
       throw new Error("walletPrivateKey is required to create a Besu signer");
     }
-
     return new Wallet(profile.walletPrivateKey, this.createProvider(profile));
   }
 
-  // Wrap a Wallet with ethers NonceManager so concurrent transactions from
-  // the same account within this service instance are sequenced correctly.
-  // Note: NonceManager only coordinates nonces in-process; if multiple
-  // independent services share the same signing account, they still need an
-  // external strategy to avoid cross-service NONCE_TOO_LOW races.
   createManagedSigner(profile: BesuRpcProfile): NonceManager {
     return new NonceManager(this.createSigner(profile));
   }
@@ -98,10 +96,11 @@ export class BesuEthersClientSketch {
       resolvedRunner,
     );
   }
+}
 
-  // Estimate the gas required for a transaction against the target provider.
-  // Returns the estimate as a bigint. Callers may pass a manual override
-  // (gasLimitOverride) to skip the RPC round-trip where the cost is known.
+export class BesuGasEstimator implements IBesuGasEstimator {
+  constructor(private readonly providerFactory: IBesuProviderFactory) {}
+
   async estimateGas(
     profile: BesuRpcProfile,
     tx: TransactionRequest,
@@ -111,26 +110,10 @@ export class BesuEthersClientSketch {
       return gasLimitOverride;
     }
     try {
-      return await this.createProvider(profile).estimateGas(tx);
+      return await this.providerFactory.createProvider(profile).estimateGas(tx);
     } catch (err: unknown) {
-      const anyErr = err as
-        | {
-            code?: unknown;
-            error?: { code?: unknown };
-            info?: { error?: { code?: unknown } };
-          }
-        | undefined;
-      const rawCode =
-        anyErr?.code ?? anyErr?.error?.code ?? anyErr?.info?.error?.code;
-      const normalizedCode =
-        typeof rawCode === "string" ? rawCode.toUpperCase() : "";
-      const msg = err instanceof Error ? err.message : String(err);
-      const msgLower = msg.toLowerCase();
-
-      if (
-        normalizedCode === "INSUFFICIENT_FUNDS" ||
-        msgLower.includes("insufficient funds")
-      ) {
+      const msg = extractErrorMessage(err);
+      if (isInsufficientFunds(err)) {
         throw new Error(
           `Besu gas estimation failed — sender account has insufficient funds: ${msg}`,
           { cause: err },
@@ -139,7 +122,9 @@ export class BesuEthersClientSketch {
       throw new Error(`Besu gas estimation failed: ${msg}`, { cause: err });
     }
   }
+}
 
+export class BesuTransactionBuilder implements IBesuTransactionBuilder {
   buildAnchorOrderTransaction(
     profile: BesuRpcProfile,
     order: PurchaseOrder,
@@ -197,9 +182,9 @@ export class BesuEthersClientSketch {
       transaction: tx,
     };
   }
+}
 
-  // Send a transaction through a NonceManager-wrapped signer.
-  // Catches common Besu-specific errors and provides actionable messages.
+export class BesuTransactionSender implements IBesuTransactionSender {
   async sendTransaction(
     signer: NonceManager,
     tx: TransactionRequest,
@@ -208,34 +193,14 @@ export class BesuEthersClientSketch {
       const response = await signer.sendTransaction(tx);
       return response.hash;
     } catch (err: unknown) {
-      const anyErr = err as
-        | {
-            code?: unknown;
-            error?: { code?: unknown };
-            info?: { error?: { code?: unknown } };
-          }
-        | undefined;
-      const rawCode =
-        anyErr?.code ?? anyErr?.error?.code ?? anyErr?.info?.error?.code;
-      const normalizedCode =
-        typeof rawCode === "string" ? rawCode.toUpperCase() : "";
-      const msg = err instanceof Error ? err.message : String(err);
-      const msgLower = msg.toLowerCase();
-
-      if (
-        normalizedCode === "NONCE_TOO_LOW" ||
-        msgLower.includes("nonce too low")
-      ) {
+      if (isNonceTooLow(err)) {
         throw new Error(
           `Besu NONCE_TOO_LOW — another transaction from this account was mined first. ` +
             `Retry with a fresh nonce or use createManagedSigner() for automatic sequencing.`,
           { cause: err },
         );
       }
-      if (
-        normalizedCode === "INSUFFICIENT_FUNDS" ||
-        msgLower.includes("insufficient funds")
-      ) {
+      if (isInsufficientFunds(err)) {
         throw new Error(
           `Besu INSUFFICIENT_FUNDS — the sender account cannot cover gas × gasPrice. ` +
             `Fund the account or lower gasLimit.`,
@@ -244,5 +209,98 @@ export class BesuEthersClientSketch {
       }
       throw err;
     }
+  }
+}
+
+/**
+ * Facade for backward compatibility.
+ * NOTE: sketch only — do not store key material as plain strings in production
+ */
+export class BesuEthersClientSketch
+  implements
+    IBesuProfileFactory,
+    IBesuProviderFactory,
+    IBesuGasEstimator,
+    IBesuTransactionBuilder,
+    IBesuTransactionSender
+{
+  private readonly profileFactory = new BesuProfileFactory();
+  private readonly providerFactory = new BesuProviderFactory();
+  private readonly txBuilder = new BesuTransactionBuilder();
+  private readonly txSender = new BesuTransactionSender();
+
+  createProfileFromEnv(env?: NodeJS.ProcessEnv): BesuRpcProfile {
+    return this.profileFactory.createProfileFromEnv(env);
+  }
+
+  createProfile(profile: BesuRpcProfile): BesuRpcProfile {
+    return this.profileFactory.createProfile(profile);
+  }
+
+  createProvider(profile: BesuRpcProfile): JsonRpcProvider {
+    return this.providerFactory.createProvider(profile);
+  }
+
+  createSigner(profile: BesuRpcProfile): Wallet {
+    return this.providerFactory.createSigner(profile);
+  }
+
+  createManagedSigner(profile: BesuRpcProfile): NonceManager {
+    return this.providerFactory.createManagedSigner(profile);
+  }
+
+  createContract(profile: BesuRpcProfile, runner?: ContractRunner): Contract {
+    return this.providerFactory.createContract(profile, runner);
+  }
+
+  async estimateGas(
+    profile: BesuRpcProfile,
+    tx: TransactionRequest,
+    gasLimitOverride?: bigint,
+  ): Promise<bigint> {
+    if (gasLimitOverride !== undefined) {
+      return gasLimitOverride;
+    }
+    try {
+      return await this.createProvider(profile).estimateGas(tx);
+    } catch (err: unknown) {
+      const msg = extractErrorMessage(err);
+      if (isInsufficientFunds(err)) {
+        throw new Error(
+          `Besu gas estimation failed — sender account has insufficient funds: ${msg}`,
+          { cause: err },
+        );
+      }
+      throw new Error(`Besu gas estimation failed: ${msg}`, { cause: err });
+    }
+  }
+
+  buildAnchorOrderTransaction(
+    profile: BesuRpcProfile,
+    order: PurchaseOrder,
+    auditProof: string,
+    gasLimit?: bigint,
+  ): TransactionRequest {
+    return this.txBuilder.buildAnchorOrderTransaction(
+      profile,
+      order,
+      auditProof,
+      gasLimit,
+    );
+  }
+
+  buildAudienceViewTransaction(
+    profile: BesuRpcProfile,
+    view: SharedOrderView,
+    gasLimit?: bigint,
+  ): BesuPrivateTransactionRequest {
+    return this.txBuilder.buildAudienceViewTransaction(profile, view, gasLimit);
+  }
+
+  sendTransaction(
+    signer: NonceManager,
+    tx: TransactionRequest,
+  ): Promise<string> {
+    return this.txSender.sendTransaction(signer, tx);
   }
 }
