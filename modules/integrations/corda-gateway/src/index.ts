@@ -1,32 +1,20 @@
 import { getNumberEnv, getRequiredEnv } from "../../shared/src/env";
+import type {
+  CordaGatewayProfile,
+  CordaGatewayRequest,
+  ICordaFlowInvoker,
+  ICordaProfileFactory,
+  ICordaRequestBuilder,
+  ProviderClearancePayload,
+} from "./ports";
 
-export interface CordaGatewayProfile {
-  baseUrl: string;
-  network: string;
-  // NOTE: sketch only — use a secrets manager or token provider in production
-  bearerToken: string;
-  timeoutMs: number;
-}
+export type {
+  CordaGatewayProfile,
+  CordaGatewayRequest,
+  ProviderClearancePayload,
+} from "./ports";
 
-export interface CordaGatewayRequest {
-  method: "POST";
-  url: string;
-  headers: Record<string, string>;
-  body: string;
-  timeoutMs: number;
-}
-
-export interface ProviderClearancePayload {
-  providerId: string;
-  facility: string;
-  jurisdiction: string;
-  scheduledAt: string;
-  requiredCredentials: string[];
-  approved: boolean;
-  reasons: string[];
-}
-
-export class CordaGatewayClientSketch {
+export class CordaProfileFactory implements ICordaProfileFactory {
   createProfileFromEnv(
     env: NodeJS.ProcessEnv = process.env,
   ): CordaGatewayProfile {
@@ -41,7 +29,9 @@ export class CordaGatewayClientSketch {
   createProfile(profile: CordaGatewayProfile): CordaGatewayProfile {
     return profile;
   }
+}
 
+export class CordaRequestBuilder implements ICordaRequestBuilder {
   buildIssueClearanceRequest(
     profile: CordaGatewayProfile,
     payload: ProviderClearancePayload,
@@ -61,7 +51,9 @@ export class CordaGatewayClientSketch {
       timeoutMs: profile.timeoutMs,
     };
   }
+}
 
+export class CordaFlowInvoker implements ICordaFlowInvoker {
   async invokeFlow(request: CordaGatewayRequest): Promise<Response> {
     const response = await fetch(request.url, {
       method: request.method,
@@ -75,5 +67,36 @@ export class CordaGatewayClientSketch {
       );
     }
     return response;
+  }
+}
+
+/**
+ * Facade for backward compatibility.
+ * NOTE: sketch only — use a secrets manager or token provider in production
+ */
+export class CordaGatewayClientSketch
+  implements ICordaProfileFactory, ICordaRequestBuilder, ICordaFlowInvoker
+{
+  private readonly profileFactory = new CordaProfileFactory();
+  private readonly requestBuilder = new CordaRequestBuilder();
+  private readonly flowInvoker = new CordaFlowInvoker();
+
+  createProfileFromEnv(env?: NodeJS.ProcessEnv): CordaGatewayProfile {
+    return this.profileFactory.createProfileFromEnv(env);
+  }
+
+  createProfile(profile: CordaGatewayProfile): CordaGatewayProfile {
+    return this.profileFactory.createProfile(profile);
+  }
+
+  buildIssueClearanceRequest(
+    profile: CordaGatewayProfile,
+    payload: ProviderClearancePayload,
+  ): CordaGatewayRequest {
+    return this.requestBuilder.buildIssueClearanceRequest(profile, payload);
+  }
+
+  invokeFlow(request: CordaGatewayRequest): Promise<Response> {
+    return this.flowInvoker.invokeFlow(request);
   }
 }
