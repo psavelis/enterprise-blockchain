@@ -14,27 +14,18 @@ import {
 } from "@hyperledger/fabric-gateway";
 
 import { getOptionalEnv, getRequiredEnv } from "../../shared/src/env";
+import type {
+  FabricGatewayProfile,
+  FabricProposalPlan,
+  IFabricConnectionFactory,
+  IFabricGatewayFactory,
+  IFabricProfileFactory,
+  IFabricProposalBuilder,
+} from "./ports";
 
-export interface FabricGatewayProfile {
-  mspId: string;
-  channelName: string;
-  chaincodeName: string;
-  peerEndpoint: string;
-  peerHostAlias?: string;
-  tlsCertPath: string;
-  identityCertPath: string;
-  privateKeyPath: string;
-}
+export type { FabricGatewayProfile, FabricProposalPlan } from "./ports";
 
-export interface FabricProposalPlan {
-  transactionName: string;
-  args: string[];
-  transientData?: Record<string, Uint8Array>;
-  endorsingOrganizations: string[];
-  payloadDigestHex: string;
-}
-
-export class FabricGatewayClientSketch {
+export class FabricProfileFactory implements IFabricProfileFactory {
   createProfileFromEnv(
     env: NodeJS.ProcessEnv = process.env,
   ): FabricGatewayProfile {
@@ -64,7 +55,9 @@ export class FabricGatewayClientSketch {
     }
     return profile;
   }
+}
 
+export class FabricConnectionFactory implements IFabricConnectionFactory {
   async createGrpcClient(profile: FabricGatewayProfile): Promise<grpc.Client> {
     const tlsRootCert = await readFile(profile.tlsCertPath);
     const credentials = grpc.credentials.createSsl(tlsRootCert);
@@ -91,13 +84,17 @@ export class FabricGatewayClientSketch {
 
     return signers.newPrivateKeySigner(privateKey);
   }
+}
+
+export class FabricGatewayFactory implements IFabricGatewayFactory {
+  constructor(private readonly connectionFactory: IFabricConnectionFactory) {}
 
   async createGateway(
     profile: FabricGatewayProfile,
   ): Promise<{ gateway: Gateway; client: grpc.Client }> {
-    const client = await this.createGrpcClient(profile);
-    const identity = await this.createIdentity(profile);
-    const signer = await this.createSigner(profile);
+    const client = await this.connectionFactory.createGrpcClient(profile);
+    const identity = await this.connectionFactory.createIdentity(profile);
+    const signer = await this.connectionFactory.createSigner(profile);
 
     const options: ConnectOptions = {
       client,
@@ -116,7 +113,9 @@ export class FabricGatewayClientSketch {
     const network = gateway.getNetwork(profile.channelName);
     return network.getContract(profile.chaincodeName);
   }
+}
 
+export class FabricProposalBuilder implements IFabricProposalBuilder {
   buildRecordShipmentProposal(input: {
     lotId: string;
     shipmentId: string;
@@ -162,5 +161,71 @@ export class FabricGatewayClientSketch {
         hash.sha256(Buffer.from(JSON.stringify(input), "utf8")),
       ).toString("hex"),
     };
+  }
+}
+
+/**
+ * Facade for backward compatibility.
+ */
+export class FabricGatewayClientSketch
+  implements
+    IFabricProfileFactory,
+    IFabricConnectionFactory,
+    IFabricGatewayFactory,
+    IFabricProposalBuilder
+{
+  private readonly profileFactory = new FabricProfileFactory();
+  private readonly connectionFactory = new FabricConnectionFactory();
+  private readonly gatewayFactory = new FabricGatewayFactory(
+    this.connectionFactory,
+  );
+  private readonly proposalBuilder = new FabricProposalBuilder();
+
+  createProfileFromEnv(env?: NodeJS.ProcessEnv): FabricGatewayProfile {
+    return this.profileFactory.createProfileFromEnv(env);
+  }
+
+  createProfile(profile: FabricGatewayProfile): FabricGatewayProfile {
+    return this.profileFactory.createProfile(profile);
+  }
+
+  createGrpcClient(profile: FabricGatewayProfile): Promise<grpc.Client> {
+    return this.connectionFactory.createGrpcClient(profile);
+  }
+
+  createIdentity(profile: FabricGatewayProfile): Promise<Identity> {
+    return this.connectionFactory.createIdentity(profile);
+  }
+
+  createSigner(profile: FabricGatewayProfile): Promise<Signer> {
+    return this.connectionFactory.createSigner(profile);
+  }
+
+  createGateway(
+    profile: FabricGatewayProfile,
+  ): Promise<{ gateway: Gateway; client: grpc.Client }> {
+    return this.gatewayFactory.createGateway(profile);
+  }
+
+  getContract(gateway: Gateway, profile: FabricGatewayProfile): Contract {
+    return this.gatewayFactory.getContract(gateway, profile);
+  }
+
+  buildRecordShipmentProposal(input: {
+    lotId: string;
+    shipmentId: string;
+    temperatureCelsius: number;
+    location: string;
+    telemetryTimestamp: string;
+    endorsingOrganizations: string[];
+  }): FabricProposalPlan {
+    return this.proposalBuilder.buildRecordShipmentProposal(input);
+  }
+
+  buildEvaluateRecallRequest(input: {
+    lotId: string;
+    reason: string;
+  }): FabricProposalPlan {
+    return this.proposalBuilder.buildEvaluateRecallRequest(input);
   }
 }
