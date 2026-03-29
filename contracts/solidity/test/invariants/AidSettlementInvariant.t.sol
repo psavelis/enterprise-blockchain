@@ -15,9 +15,10 @@ import {AidSettlementHandler} from "./AidSettlementHandler.sol";
 contract AidSettlementInvariant is Test {
     AidSettlement settlement;
     AidSettlementHandler handler;
+    address admin = address(this);
 
     function setUp() public {
-        settlement = new AidSettlement();
+        settlement = new AidSettlement(admin);
         handler = new AidSettlementHandler(settlement);
 
         // Only fuzz through the handler — never call the settlement directly

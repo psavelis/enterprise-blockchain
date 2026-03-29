@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+
 /**
  * @title TraceabilityAnchor
  * @notice Anchors product traceability state roots from Hyperledger Fabric to
@@ -11,11 +14,11 @@ pragma solidity ^0.8.24;
  *         by any participant with read access to the Fabric world state.
  *
  * @dev    Designed for consortium Besu networks with permissioned participants.
- *         Access control is kept minimal for demonstration; production
- *         deployments should integrate role-based access via OpenZeppelin
- *         AccessControl or an equivalent.
+ *         Uses OpenZeppelin AccessControl for role-based permissions.
  */
-contract TraceabilityAnchor {
+contract TraceabilityAnchor is Pausable, AccessControl {
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
     struct LotAnchor {
         bytes32 stateRootHash;
         string lotId;
@@ -43,11 +46,22 @@ contract TraceabilityAnchor {
     mapping(string => ShipmentRecord) private shipments;
     mapping(string => RecallEvent) private recalls;
 
+    constructor(address admin) {
+        require(admin != address(0), "admin is the zero address");
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(PAUSER_ROLE, admin);
+    }
+
+    function pause() external onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(PAUSER_ROLE) {
+        _unpause();
+    }
+
     event LotAnchored(
-        string indexed lotId,
-        bytes32 stateRootHash,
-        string producer,
-        uint256 anchoredAt
+        string indexed lotId, bytes32 stateRootHash, string producer, uint256 anchoredAt
     );
 
     event ShipmentRecorded(
@@ -59,10 +73,7 @@ contract TraceabilityAnchor {
     );
 
     event RecallIssued(
-        string indexed lotId,
-        bytes32 assessmentHash,
-        uint256 impactedCount,
-        uint256 issuedAt
+        string indexed lotId, bytes32 assessmentHash, uint256 impactedCount, uint256 issuedAt
     );
 
     /**
@@ -77,7 +88,7 @@ contract TraceabilityAnchor {
         string calldata producer,
         string calldata origin,
         bytes32 stateRoot
-    ) external {
+    ) external whenNotPaused {
         require(bytes(lotId).length > 0, "lotId required");
         require(stateRoot != bytes32(0), "stateRoot required");
 
@@ -104,7 +115,7 @@ contract TraceabilityAnchor {
         string calldata lotId,
         string calldata destination,
         int256 tempC100
-    ) external {
+    ) external whenNotPaused {
         require(lots[lotId].anchoredAt > 0, "lot not anchored");
         require(bytes(shipmentId).length > 0, "shipmentId required");
         require(shipments[shipmentId].recordedAt == 0, "shipment already recorded");
@@ -130,7 +141,7 @@ contract TraceabilityAnchor {
         string calldata lotId,
         bytes32 assessmentHash,
         string[] calldata impactedShipmentIds
-    ) external {
+    ) external whenNotPaused {
         require(lots[lotId].anchoredAt > 0, "lot not anchored");
         require(assessmentHash != bytes32(0), "assessmentHash required");
 

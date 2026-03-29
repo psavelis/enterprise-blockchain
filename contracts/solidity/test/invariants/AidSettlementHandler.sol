@@ -69,15 +69,7 @@ contract AidSettlementHandler {
         string memory cid = string(abi.encodePacked("C-", _uint2str(++_claimCounter)));
         string memory inv = string(abi.encodePacked("INV-", _uint2str(_claimCounter)));
 
-        SETTLEMENT.submitClaim(
-            cid,
-            gid,
-            "merchant",
-            "groceries",
-            inv,
-            amount,
-            block.timestamp
-        );
+        SETTLEMENT.submitClaim(cid, gid, "merchant", "groceries", inv, amount, block.timestamp);
 
         totalSubmitted++;
 
@@ -103,15 +95,7 @@ contract AidSettlementHandler {
         string memory cid = string(abi.encodePacked("C-", _uint2str(++_claimCounter)));
         string memory inv = string(abi.encodePacked("INV-", _uint2str(_claimCounter)));
 
-        SETTLEMENT.submitClaim(
-            cid,
-            gid,
-            "merchant",
-            "groceries",
-            inv,
-            overAmount,
-            block.timestamp
-        );
+        SETTLEMENT.submitClaim(cid, gid, "merchant", "groceries", inv, overAmount, block.timestamp);
 
         totalSubmitted++;
 

@@ -3,12 +3,16 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {ConsortiumOrderRegistry} from "../src/ConsortiumOrderRegistry.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 contract ConsortiumOrderRegistryTest is Test {
     ConsortiumOrderRegistry registry;
+    address admin = address(this);
+    address nonPauser = address(0x2);
 
     function setUp() public {
-        registry = new ConsortiumOrderRegistry();
+        registry = new ConsortiumOrderRegistry(admin);
     }
 
     function test_anchorOrder_stores_and_emits() public {
@@ -19,8 +23,7 @@ contract ConsortiumOrderRegistryTest is Test {
 
         registry.anchorOrder("PO-001", "Acme", "Supplier", "proof-abc");
 
-        ConsortiumOrderRegistry.CanonicalOrder memory order =
-            registry.getCanonicalOrder("PO-001");
+        ConsortiumOrderRegistry.CanonicalOrder memory order = registry.getCanonicalOrder("PO-001");
 
         assertEq(order.orderId, "PO-001");
         assertEq(order.buyer, "Acme");
@@ -79,14 +82,8 @@ contract ConsortiumOrderRegistryTest is Test {
         registry.publishAudienceView("PO-005", "bank", "bank-data", "p1");
         registry.publishAudienceView("PO-005", "regulator", "reg-data", "p2");
 
-        assertEq(
-            registry.getAudienceView("PO-005", "bank").payload,
-            "bank-data"
-        );
-        assertEq(
-            registry.getAudienceView("PO-005", "regulator").payload,
-            "reg-data"
-        );
+        assertEq(registry.getAudienceView("PO-005", "bank").payload, "bank-data");
+        assertEq(registry.getAudienceView("PO-005", "regulator").payload, "reg-data");
     }
 
     function test_overwrite_audience_view() public {
@@ -94,17 +91,73 @@ contract ConsortiumOrderRegistryTest is Test {
         registry.publishAudienceView("PO-006", "bank", "v1", "p1");
         registry.publishAudienceView("PO-006", "bank", "v2", "p2");
 
-        assertEq(
-            registry.getAudienceView("PO-006", "bank").payload,
-            "v2"
-        );
+        assertEq(registry.getAudienceView("PO-006", "bank").payload, "v2");
     }
 
     function test_getCanonicalOrder_returns_empty_for_unknown() public view {
-        ConsortiumOrderRegistry.CanonicalOrder memory order =
-            registry.getCanonicalOrder("UNKNOWN");
+        ConsortiumOrderRegistry.CanonicalOrder memory order = registry.getCanonicalOrder("UNKNOWN");
 
         assertEq(order.anchoredAt, 0);
         assertEq(bytes(order.orderId).length, 0);
+    }
+
+    // ---------------------------------------------------------------
+    // Pausable
+    // ---------------------------------------------------------------
+
+    function test_pause_reverts_for_non_pauser() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                nonPauser,
+                registry.PAUSER_ROLE()
+            )
+        );
+        vm.prank(nonPauser);
+        registry.pause();
+    }
+
+    function test_pause_succeeds_for_pauser() public {
+        registry.pause();
+        assertTrue(registry.paused());
+    }
+
+    function test_unpause_succeeds_for_pauser() public {
+        registry.pause();
+        registry.unpause();
+        assertFalse(registry.paused());
+    }
+
+    function test_anchorOrder_reverts_when_paused() public {
+        registry.pause();
+
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        registry.anchorOrder("PO-PAUSE", "Buyer", "Supplier", "proof");
+    }
+
+    function test_publishAudienceView_reverts_when_paused() public {
+        registry.anchorOrder("PO-007", "B", "S", "p");
+        registry.pause();
+
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        registry.publishAudienceView("PO-007", "bank", "{}", "proof");
+    }
+
+    function test_view_functions_work_when_paused() public {
+        registry.anchorOrder("PO-008", "B", "S", "p");
+        registry.pause();
+
+        ConsortiumOrderRegistry.CanonicalOrder memory order = registry.getCanonicalOrder("PO-008");
+        assertEq(order.orderId, "PO-008");
+    }
+
+    function test_operations_resume_after_unpause() public {
+        registry.pause();
+        registry.unpause();
+
+        registry.anchorOrder("PO-009", "B", "S", "p");
+
+        ConsortiumOrderRegistry.CanonicalOrder memory order = registry.getCanonicalOrder("PO-009");
+        assertEq(order.orderId, "PO-009");
     }
 }
