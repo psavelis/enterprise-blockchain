@@ -23,12 +23,26 @@ CircuitBreaker(threshold, cooldownMs)
   ├── state: 'CLOSED' | 'OPEN' | 'HALF_OPEN'
   └── reset()
 
-BesuEthersClientSketch
-  ├── createManagedSigner(profile) → NonceManager
-  ├── estimateGas(profile, tx, override?) → bigint
-  ├── buildAnchorOrderTransaction(profile, order, proof, gasLimit?) → TransactionRequest
-  ├── sendTransaction(signer, tx) → txHash  // catches NONCE_TOO_LOW, INSUFFICIENT_FUNDS
-  └── ...
+# Besu (ISP-compliant interfaces)
+IBesuProfileFactory     → createProfileFromEnv(), createProfile()
+IBesuProviderFactory    → createProvider(), createSigner(), createManagedSigner(), createContract()
+IBesuGasEstimator       → estimateGas(profile, tx, override?)
+IBesuTransactionBuilder → buildAnchorOrderTransaction(), buildAudienceViewTransaction()
+IBesuTransactionSender  → sendTransaction(signer, tx) → txHash
+
+# Fabric (ISP-compliant interfaces)
+IFabricProfileFactory    → createProfileFromEnv(), createProfile()
+IFabricConnectionFactory → createGrpcClient(), createIdentity(), createSigner()
+IFabricGatewayFactory    → createGateway(), getContract()
+IFabricProposalBuilder   → buildRecordShipmentProposal(), buildEvaluateRecallRequest()
+
+# Corda (ISP-compliant interfaces)
+ICordaProfileFactory  → createProfileFromEnv(), createProfile()
+ICordaRequestBuilder  → buildIssueClearanceRequest()
+ICordaFlowInvoker     → invokeFlow(request)
+
+# Facade classes for backward compatibility
+BesuEthersClientSketch, FabricGatewayClientSketch, CordaGatewayClientSketch
 ```
 
 ## Pitfalls
@@ -40,8 +54,12 @@ BesuEthersClientSketch
 
 ## References
 
-- `modules/integrations/shared/src/retry.ts`
-- `modules/integrations/besu-client/src/index.ts`
-- `modules/integrations/fabric-gateway/src/index.ts`
-- `modules/integrations/corda-gateway/src/index.ts`
+- `modules/integrations/shared/src/retry.ts` — retry policies, circuit breaker
+- `modules/integrations/besu-client/src/ports.ts` — ISP interfaces
+- `modules/integrations/besu-client/src/error-mapper.ts` — error code extraction
+- `modules/integrations/besu-client/src/index.ts` — implementations
+- `modules/integrations/fabric-gateway/src/ports.ts` — ISP interfaces
+- `modules/integrations/fabric-gateway/src/index.ts` — implementations
+- `modules/integrations/corda-gateway/src/ports.ts` — ISP interfaces
+- `modules/integrations/corda-gateway/src/index.ts` — implementations
 - `tests/integrations.test.ts`
