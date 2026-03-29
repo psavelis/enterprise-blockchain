@@ -2,6 +2,8 @@
 pragma solidity ^0.8.24;
 
 import {TraceabilityAnchor} from "../../src/TraceabilityAnchor.sol";
+import {Vm} from "forge-std/Vm.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @title TraceabilityAnchorHandler
@@ -10,7 +12,12 @@ import {TraceabilityAnchor} from "../../src/TraceabilityAnchor.sol";
  *         anchored lots and recorded shipments.
  */
 contract TraceabilityAnchorHandler {
+    using MessageHashUtils for bytes32;
+
+    Vm private constant VM = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+
     TraceabilityAnchor public immutable ANCHOR;
+    uint256 internal immutable ORACLE_KEY;
 
     string[] internal _lotIds;
     string[] internal _shipmentIds;
@@ -18,8 +25,16 @@ contract TraceabilityAnchorHandler {
     uint256 internal _lotCounter;
     uint256 internal _shipmentCounter;
 
-    constructor(TraceabilityAnchor _anchor) {
+    constructor(TraceabilityAnchor _anchor, uint256 oracleKey) {
         ANCHOR = _anchor;
+        ORACLE_KEY = oracleKey;
+    }
+
+    function _signLot(string memory lotId, bytes32 stateRoot) internal view returns (bytes memory) {
+        bytes32 digest = keccak256(abi.encodePacked(lotId, stateRoot));
+        bytes32 ethHash = digest.toEthSignedMessageHash();
+        (uint8 v, bytes32 r, bytes32 s) = VM.sign(ORACLE_KEY, ethHash);
+        return abi.encodePacked(r, s, v);
     }
 
     // --------------- fuzzed actions ---------------
@@ -30,8 +45,9 @@ contract TraceabilityAnchorHandler {
         }
 
         string memory lid = string(abi.encodePacked("LOT-", _uint2str(++_lotCounter)));
+        bytes memory sig = _signLot(lid, stateRootSeed);
 
-        ANCHOR.anchorLot(lid, "producer", "origin", stateRootSeed);
+        ANCHOR.anchorLot(lid, "producer", "origin", stateRootSeed, sig);
         _lotIds.push(lid);
     }
 
