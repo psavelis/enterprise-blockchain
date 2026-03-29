@@ -17,9 +17,15 @@ contract TraceabilityAnchorInvariant is Test {
     TraceabilityAnchorHandler handler;
     address admin = address(this);
 
+    uint256 constant ORACLE_PRIVATE_KEY = 0xA11CE;
+
     function setUp() public {
         anchor = new TraceabilityAnchor(admin);
-        handler = new TraceabilityAnchorHandler(anchor);
+
+        address oracle = vm.addr(ORACLE_PRIVATE_KEY);
+        anchor.registerOracle(oracle);
+
+        handler = new TraceabilityAnchorHandler(anchor, ORACLE_PRIVATE_KEY);
 
         targetContract(address(handler));
     }
