@@ -1,9 +1,35 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
-.DS_Store
-ci-results/
-medium.md
-**/.terraform/
+
+# Foundry build artifacts
 contracts/solidity/out/
 contracts/solidity/cache/
+contracts/solidity/foundry.lock
+
+# Terraform
+**/.terraform/
 *.terraform.lock.hcl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI artifacts
+ci-results/
+
+# Environment files (secrets)
+.env
+*.env.local
+
+# Misc
+medium.md
+coverage/

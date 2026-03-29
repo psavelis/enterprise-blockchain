@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
-import "../../src/TraceabilityAnchor.sol";
+import {TraceabilityAnchor} from "../../src/TraceabilityAnchor.sol";
 
 /**
  * @title TraceabilityAnchorHandler
@@ -10,7 +10,7 @@ import "../../src/TraceabilityAnchor.sol";
  *         anchored lots and recorded shipments.
  */
 contract TraceabilityAnchorHandler {
-    TraceabilityAnchor public immutable anchor;
+    TraceabilityAnchor public immutable ANCHOR;
 
     string[] internal _lotIds;
     string[] internal _shipmentIds;
@@ -19,7 +19,7 @@ contract TraceabilityAnchorHandler {
     uint256 internal _shipmentCounter;
 
     constructor(TraceabilityAnchor _anchor) {
-        anchor = _anchor;
+        ANCHOR = _anchor;
     }
 
     // --------------- fuzzed actions ---------------
@@ -31,7 +31,7 @@ contract TraceabilityAnchorHandler {
 
         string memory lid = string(abi.encodePacked("LOT-", _uint2str(++_lotCounter)));
 
-        anchor.anchorLot(lid, "producer", "origin", stateRootSeed);
+        ANCHOR.anchorLot(lid, "producer", "origin", stateRootSeed);
         _lotIds.push(lid);
     }
 
@@ -42,7 +42,7 @@ contract TraceabilityAnchorHandler {
         string memory lid = _lotIds[idx];
         string memory sid = string(abi.encodePacked("SHIP-", _uint2str(++_shipmentCounter)));
 
-        anchor.recordShipment(sid, lid, "destination", tempSeed);
+        ANCHOR.recordShipment(sid, lid, "destination", tempSeed);
         _shipmentIds.push(sid);
         _shipmentLotIndex.push(idx);
     }
@@ -53,7 +53,7 @@ contract TraceabilityAnchorHandler {
     function recordShipmentForNonAnchoredLot(int256 tempSeed) external {
         string memory fakeLot = string(abi.encodePacked("FAKE-LOT-", _uint2str(_lotCounter + 999)));
         string memory sid = string(abi.encodePacked("SHIP-", _uint2str(++_shipmentCounter)));
-        try anchor.recordShipment(sid, fakeLot, "destination", tempSeed) {
+        try ANCHOR.recordShipment(sid, fakeLot, "destination", tempSeed) {
             // If this succeeds, the contract has a bug — the invariant suite
             // will detect the unlinked shipment.
             _shipmentIds.push(sid);
@@ -83,7 +83,7 @@ contract TraceabilityAnchorHandler {
             }
         }
 
-        anchor.issueRecall(lid, keccak256(abi.encodePacked("recall", lid)), impacted);
+        ANCHOR.issueRecall(lid, keccak256(abi.encodePacked("recall", lid)), impacted);
     }
 
     // --------------- views for invariants ---------------
@@ -117,6 +117,7 @@ contract TraceabilityAnchorHandler {
         bytes memory buffer = new bytes(digits);
         while (v != 0) {
             digits -= 1;
+            // forge-lint: disable-next-line(unsafe-typecast)
             buffer[digits] = bytes1(uint8(48 + uint256(v % 10)));
             v /= 10;
         }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
-import "../../src/AidSettlement.sol";
+import {AidSettlement} from "../../src/AidSettlement.sol";
 
 /**
  * @title AidSettlementHandler
@@ -11,7 +11,7 @@ import "../../src/AidSettlement.sol";
  *         on-chain state for every claim.
  */
 contract AidSettlementHandler {
-    AidSettlement public immutable settlement;
+    AidSettlement public immutable SETTLEMENT;
 
     // Ghost counters — keep an external tally of submitted / settled / rejected
     uint256 public totalSubmitted;
@@ -26,7 +26,7 @@ contract AidSettlementHandler {
     string[] private _categories;
 
     constructor(AidSettlement _settlement) {
-        settlement = _settlement;
+        SETTLEMENT = _settlement;
         _categories = new string[](2);
         _categories[0] = "groceries";
         _categories[1] = "pharmacy";
@@ -40,7 +40,7 @@ contract AidSettlementHandler {
 
         string memory gid = string(abi.encodePacked("G-", _uint2str(++_grantCounter)));
 
-        settlement.registerGrant(
+        SETTLEMENT.registerGrant(
             gid,
             "beneficiary",
             "program",
@@ -59,7 +59,7 @@ contract AidSettlementHandler {
         uint256 idx = bound(grantSeed, 0, _grantIds.length - 1);
         string memory gid = _grantIds[idx];
 
-        AidSettlement.Grant memory g = settlement.getGrant(gid);
+        AidSettlement.Grant memory g = SETTLEMENT.getGrant(gid);
         if (!g.exists) return;
 
         uint256 remaining = g.amountUsd > g.consumedUsd ? g.amountUsd - g.consumedUsd : 0;
@@ -69,7 +69,7 @@ contract AidSettlementHandler {
         string memory cid = string(abi.encodePacked("C-", _uint2str(++_claimCounter)));
         string memory inv = string(abi.encodePacked("INV-", _uint2str(_claimCounter)));
 
-        settlement.submitClaim(
+        SETTLEMENT.submitClaim(
             cid,
             gid,
             "merchant",
@@ -81,7 +81,7 @@ contract AidSettlementHandler {
 
         totalSubmitted++;
 
-        AidSettlement.Claim memory c = settlement.getClaim(cid);
+        AidSettlement.Claim memory c = SETTLEMENT.getClaim(cid);
         if (c.status == AidSettlement.ClaimStatus.Settled) {
             totalSettled++;
         } else if (c.status == AidSettlement.ClaimStatus.Rejected) {
@@ -95,7 +95,7 @@ contract AidSettlementHandler {
         uint256 idx = bound(grantSeed, 0, _grantIds.length - 1);
         string memory gid = _grantIds[idx];
 
-        AidSettlement.Grant memory g = settlement.getGrant(gid);
+        AidSettlement.Grant memory g = SETTLEMENT.getGrant(gid);
         if (!g.exists) return;
 
         // Intentionally exceed remaining budget
@@ -103,7 +103,7 @@ contract AidSettlementHandler {
         string memory cid = string(abi.encodePacked("C-", _uint2str(++_claimCounter)));
         string memory inv = string(abi.encodePacked("INV-", _uint2str(_claimCounter)));
 
-        settlement.submitClaim(
+        SETTLEMENT.submitClaim(
             cid,
             gid,
             "merchant",
@@ -115,7 +115,7 @@ contract AidSettlementHandler {
 
         totalSubmitted++;
 
-        AidSettlement.Claim memory c = settlement.getClaim(cid);
+        AidSettlement.Claim memory c = SETTLEMENT.getClaim(cid);
         if (c.status == AidSettlement.ClaimStatus.Settled) {
             totalSettled++;
         } else if (c.status == AidSettlement.ClaimStatus.Rejected) {
@@ -130,18 +130,18 @@ contract AidSettlementHandler {
         uint256 idx = bound(grantSeed, 0, _grantIds.length - 1);
         string memory gid = _grantIds[idx];
 
-        AidSettlement.Grant memory g = settlement.getGrant(gid);
+        AidSettlement.Grant memory g = SETTLEMENT.getGrant(gid);
         if (!g.exists) return;
 
         // Re-use a known invoice ref to trigger "duplicate invoice" rejection
         string memory cid = string(abi.encodePacked("C-", _uint2str(++_claimCounter)));
         string memory inv = "INV-1"; // deterministic duplicate
 
-        settlement.submitClaim(cid, gid, "merchant", "groceries", inv, 1, block.timestamp);
+        SETTLEMENT.submitClaim(cid, gid, "merchant", "groceries", inv, 1, block.timestamp);
 
         totalSubmitted++;
 
-        AidSettlement.Claim memory c = settlement.getClaim(cid);
+        AidSettlement.Claim memory c = SETTLEMENT.getClaim(cid);
         if (c.status == AidSettlement.ClaimStatus.Settled) {
             totalSettled++;
         } else if (c.status == AidSettlement.ClaimStatus.Rejected) {
@@ -156,7 +156,7 @@ contract AidSettlementHandler {
         uint256 idx = bound(grantSeed, 0, _grantIds.length - 1);
         string memory gid = _grantIds[idx];
 
-        AidSettlement.Grant memory g = settlement.getGrant(gid);
+        AidSettlement.Grant memory g = SETTLEMENT.getGrant(gid);
         if (!g.exists) return;
 
         uint256 amount = bound(amountSeed, 1, 100);
@@ -164,11 +164,11 @@ contract AidSettlementHandler {
         string memory inv = string(abi.encodePacked("INV-", _uint2str(_claimCounter)));
 
         // "electronics" is not in the approved categories list
-        settlement.submitClaim(cid, gid, "merchant", "electronics", inv, amount, block.timestamp);
+        SETTLEMENT.submitClaim(cid, gid, "merchant", "electronics", inv, amount, block.timestamp);
 
         totalSubmitted++;
 
-        AidSettlement.Claim memory c = settlement.getClaim(cid);
+        AidSettlement.Claim memory c = SETTLEMENT.getClaim(cid);
         if (c.status == AidSettlement.ClaimStatus.Settled) {
             totalSettled++;
         } else if (c.status == AidSettlement.ClaimStatus.Rejected) {
@@ -183,7 +183,7 @@ contract AidSettlementHandler {
         uint256 idx = bound(grantSeed, 0, _grantIds.length - 1);
         string memory gid = _grantIds[idx];
 
-        AidSettlement.Grant memory g = settlement.getGrant(gid);
+        AidSettlement.Grant memory g = SETTLEMENT.getGrant(gid);
         if (!g.exists) return;
 
         uint256 amount = bound(amountSeed, 1, 100);
@@ -191,11 +191,11 @@ contract AidSettlementHandler {
         string memory inv = string(abi.encodePacked("INV-", _uint2str(_claimCounter)));
 
         // Submit with a timestamp after grant expiry
-        settlement.submitClaim(cid, gid, "merchant", "groceries", inv, amount, g.expiresAt + 1);
+        SETTLEMENT.submitClaim(cid, gid, "merchant", "groceries", inv, amount, g.expiresAt + 1);
 
         totalSubmitted++;
 
-        AidSettlement.Claim memory c = settlement.getClaim(cid);
+        AidSettlement.Claim memory c = SETTLEMENT.getClaim(cid);
         if (c.status == AidSettlement.ClaimStatus.Settled) {
             totalSettled++;
         } else if (c.status == AidSettlement.ClaimStatus.Rejected) {
@@ -229,6 +229,7 @@ contract AidSettlementHandler {
         bytes memory buffer = new bytes(digits);
         while (v != 0) {
             digits -= 1;
+            // forge-lint: disable-next-line(unsafe-typecast)
             buffer[digits] = bytes1(uint8(48 + uint256(v % 10)));
             v /= 10;
         }
