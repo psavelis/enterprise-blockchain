@@ -2,6 +2,7 @@
   "name": "food-trace-chaincode",
   "version": "1.0.0",
   "description": "Hyperledger Fabric chaincode for food supply-chain traceability",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
