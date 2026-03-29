@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
-import "forge-std/Test.sol";
-import "../../src/TraceabilityAnchor.sol";
-import "./TraceabilityAnchorHandler.sol";
+import {Test} from "forge-std/Test.sol";
+import {TraceabilityAnchor} from "../../src/TraceabilityAnchor.sol";
+import {TraceabilityAnchorHandler} from "./TraceabilityAnchorHandler.sol";
 
 /**
  * @title TraceabilityAnchorInvariant

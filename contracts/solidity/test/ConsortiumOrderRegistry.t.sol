@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
-import "forge-std/Test.sol";
-import "../src/ConsortiumOrderRegistry.sol";
+import {Test} from "forge-std/Test.sol";
+import {ConsortiumOrderRegistry} from "../src/ConsortiumOrderRegistry.sol";
 
 contract ConsortiumOrderRegistryTest is Test {
     ConsortiumOrderRegistry registry;
