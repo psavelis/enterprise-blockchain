@@ -1,0 +1,51 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[solidity]": {
+    "editor.defaultFormatter": "JuanBlanco.solidity"
+  },
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "eslint.validate": ["typescript", "javascript"],
+  "prettier.configPath": ".prettierrc.json",
+  "prettier.ignorePath": ".prettierignore",
+  "files.exclude": {
+    "**/node_modules": true,
+    "contracts/solidity/out": true,
+    "contracts/solidity/cache": true,
+    "dist": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "contracts/solidity/lib": true,
+    "contracts/solidity/out": true,
+    "contracts/solidity/cache": true,
+    "dist": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "contracts/solidity/lib/**": true,
+    "contracts/solidity/out/**": true,
+    "contracts/solidity/cache/**": true,
+    "dist/**": true
+  },
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "solidity.compileUsingRemoteVersion": "v0.8.24+commit.e11b9ed9",
+  "solidity.packageDefaultDependenciesContractsDirectory": "contracts",
+  "solidity.packageDefaultDependenciesDirectory": "lib",
+  "solidity.remappings": [
+    "forge-std/=contracts/solidity/lib/forge-std/src/",
+    "@openzeppelin/contracts/=contracts/solidity/lib/openzeppelin-contracts/contracts/",
+    "@openzeppelin/contracts-upgradeable/=contracts/solidity/lib/openzeppelin-contracts-upgradeable/contracts/"
+  ]
+}
