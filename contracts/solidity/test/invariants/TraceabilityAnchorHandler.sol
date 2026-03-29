@@ -34,7 +34,8 @@ contract TraceabilityAnchorHandler {
         view
         returns (bytes memory)
     {
-        bytes32 messageHash = keccak256(abi.encodePacked(lotId, stateRoot));
+        bytes32 messageHash =
+            keccak256(abi.encode(address(ANCHOR), block.chainid, lotId, stateRoot));
         bytes32 ethSignedHash = messageHash.toEthSignedMessageHash();
         (uint8 v, bytes32 r, bytes32 s) = VM.sign(ORACLE_PRIVATE_KEY, ethSignedHash);
         return abi.encodePacked(r, s, v);
@@ -50,6 +51,8 @@ contract TraceabilityAnchorHandler {
         string memory lid = string(abi.encodePacked("LOT-", _uint2str(++_lotCounter)));
         bytes memory sig = _signAnchor(lid, stateRootSeed);
 
+        address oracleAddr = VM.addr(ORACLE_PRIVATE_KEY);
+        VM.prank(oracleAddr);
         ANCHOR.anchorLot(lid, "producer", "origin", stateRootSeed, sig);
         _lotIds.push(lid);
     }

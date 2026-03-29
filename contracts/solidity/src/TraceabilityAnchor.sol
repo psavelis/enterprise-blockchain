@@ -123,12 +123,14 @@ contract TraceabilityAnchor is Pausable, AccessControl {
     /**
      * @notice Anchor a product lot's state root from the Fabric world state.
      *         Requires attestation signature from a registered oracle.
+     *         Caller must be the oracle that produced the signature.
      * @param lotId     Unique lot identifier matching the Fabric chaincode key.
      * @param producer  Name of the producing entity.
      * @param origin    Country or region of origin.
      * @param stateRoot SHA-256 hash of the lot's full state in Fabric.
-     * @param signature ECDSA signature of keccak256(abi.encodePacked(lotId, stateRoot))
-     *                  by a registered oracle.
+     * @param signature ECDSA signature over the Ethereum signed message hash
+     *                  of keccak256(abi.encode(address(this), block.chainid, lotId, stateRoot)),
+     *                  produced with EIP-191 ("\x19Ethereum Signed Message:\n32" prefix).
      */
     function anchorLot(
         string calldata lotId,
@@ -140,11 +142,12 @@ contract TraceabilityAnchor is Pausable, AccessControl {
         require(bytes(lotId).length > 0, "lotId required");
         require(stateRoot != bytes32(0), "stateRoot required");
 
-        bytes32 messageHash = keccak256(abi.encodePacked(lotId, stateRoot));
+        bytes32 messageHash = keccak256(abi.encode(address(this), block.chainid, lotId, stateRoot));
         bytes32 ethSignedHash = messageHash.toEthSignedMessageHash();
         address signer = ethSignedHash.recover(signature);
 
         require(oracleRegistry[signer], "signer is not a registered oracle");
+        require(signer == msg.sender, "caller must be oracle signer");
 
         lots[lotId] = LotAnchor({
             stateRootHash: stateRoot,

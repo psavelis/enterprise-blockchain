@@ -28,7 +28,8 @@ contract TraceabilityAnchorTest is Test {
         view
         returns (bytes memory)
     {
-        bytes32 messageHash = keccak256(abi.encodePacked(lotId, stateRoot));
+        bytes32 messageHash =
+            keccak256(abi.encode(address(anchor), block.chainid, lotId, stateRoot));
         bytes32 ethSignedHash = messageHash.toEthSignedMessageHash();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(oraclePrivateKey, ethSignedHash);
         return abi.encodePacked(r, s, v);
@@ -95,6 +96,7 @@ contract TraceabilityAnchorTest is Test {
         vm.expectEmit(true, true, true, true);
         emit TraceabilityAnchor.LotAnchored("LOT-001", root, "Green Valley Farms", block.timestamp);
 
+        vm.prank(oracle);
         anchor.anchorLot("LOT-001", "Green Valley Farms", "ES", root, sig);
 
         TraceabilityAnchor.LotAnchor memory lot = anchor.getLot("LOT-001");
@@ -109,24 +111,29 @@ contract TraceabilityAnchorTest is Test {
         bytes32 root = bytes32(uint256(1));
         bytes memory sig = _signAnchor("", root);
         vm.expectRevert("lotId required");
+        vm.prank(oracle);
         anchor.anchorLot("", "Producer", "US", root, sig);
     }
 
     function test_anchorLot_reverts_on_zero_stateRoot() public {
         bytes memory sig = _signAnchor("LOT-X", bytes32(0));
         vm.expectRevert("stateRoot required");
+        vm.prank(oracle);
         anchor.anchorLot("LOT-X", "Producer", "US", bytes32(0), sig);
     }
 
     function test_anchorLot_reverts_for_unregistered_oracle() public {
         uint256 fakeOracleKey = 0xBAD;
+        address fakeOracle = vm.addr(fakeOracleKey);
         bytes32 root = keccak256("lot-state");
-        bytes32 messageHash = keccak256(abi.encodePacked("LOT-FAKE", root));
+        bytes32 messageHash =
+            keccak256(abi.encode(address(anchor), block.chainid, "LOT-FAKE", root));
         bytes32 ethSignedHash = messageHash.toEthSignedMessageHash();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(fakeOracleKey, ethSignedHash);
         bytes memory fakeSig = abi.encodePacked(r, s, v);
 
         vm.expectRevert("signer is not a registered oracle");
+        vm.prank(fakeOracle);
         anchor.anchorLot("LOT-FAKE", "Producer", "US", root, fakeSig);
     }
 
@@ -134,8 +141,18 @@ contract TraceabilityAnchorTest is Test {
         bytes32 root = keccak256("lot-state");
         bytes memory wrongSig = _signAnchor("WRONG-LOT", root);
 
+        // Invalid signature recovers to wrong address, so fails oracle registry check
         vm.expectRevert("signer is not a registered oracle");
+        vm.prank(oracle);
         anchor.anchorLot("LOT-INVALID", "Producer", "US", root, wrongSig);
+    }
+
+    function test_anchorLot_reverts_for_non_oracle_caller() public {
+        bytes32 root = keccak256("lot-state");
+        bytes memory sig = _signAnchor("LOT-X", root);
+
+        vm.expectRevert("caller must be oracle signer");
+        anchor.anchorLot("LOT-X", "Producer", "US", root, sig);
     }
 
     function test_anchorLot_overwrites_on_reanchor() public {
@@ -144,7 +161,9 @@ contract TraceabilityAnchorTest is Test {
         bytes memory sig1 = _signAnchor("LOT-002", root1);
         bytes memory sig2 = _signAnchor("LOT-002", root2);
 
+        vm.prank(oracle);
         anchor.anchorLot("LOT-002", "P1", "US", root1, sig1);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-002", "P1", "US", root2, sig2);
 
         assertEq(anchor.getLot("LOT-002").stateRootHash, root2);
@@ -157,6 +176,7 @@ contract TraceabilityAnchorTest is Test {
     function test_recordShipment_stores_and_emits() public {
         bytes32 root = keccak256("s");
         bytes memory sig = _signAnchor("LOT-003", root);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-003", "P", "MX", root, sig);
 
         vm.expectEmit(true, true, true, true);
@@ -182,6 +202,7 @@ contract TraceabilityAnchorTest is Test {
     function test_recordShipment_reverts_on_empty_shipmentId() public {
         bytes32 root = keccak256("s");
         bytes memory sig = _signAnchor("LOT-004", root);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-004", "P", "US", root, sig);
         vm.expectRevert("shipmentId required");
         anchor.recordShipment("", "LOT-004", "DC", 400);
@@ -190,6 +211,7 @@ contract TraceabilityAnchorTest is Test {
     function test_recordShipment_negative_temperature() public {
         bytes32 root = keccak256("s");
         bytes memory sig = _signAnchor("LOT-005", root);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-005", "P", "NO", root, sig);
         anchor.recordShipment("SHIP-N", "LOT-005", "Oslo DC", -250);
 
@@ -203,6 +225,7 @@ contract TraceabilityAnchorTest is Test {
     function test_issueRecall_stores_and_emits() public {
         bytes32 root = keccak256("s");
         bytes memory sig = _signAnchor("LOT-006", root);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-006", "P", "ES", root, sig);
         anchor.recordShipment("SHIP-A", "LOT-006", "Rotterdam", 400);
         anchor.recordShipment("SHIP-B", "LOT-006", "Hamburg", 500);
@@ -234,6 +257,7 @@ contract TraceabilityAnchorTest is Test {
     function test_issueRecall_reverts_on_zero_hash() public {
         bytes32 root = keccak256("s");
         bytes memory sig = _signAnchor("LOT-007", root);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-007", "P", "US", root, sig);
         string[] memory ids = new string[](0);
         vm.expectRevert("assessmentHash required");
@@ -243,6 +267,7 @@ contract TraceabilityAnchorTest is Test {
     function test_issueRecall_empty_impacted_list() public {
         bytes32 root = keccak256("s");
         bytes memory sig = _signAnchor("LOT-008", root);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-008", "P", "US", root, sig);
         string[] memory ids = new string[](0);
         anchor.issueRecall("LOT-008", keccak256("h"), ids);
@@ -293,12 +318,14 @@ contract TraceabilityAnchorTest is Test {
         bytes32 root = keccak256("state");
         bytes memory sig = _signAnchor("LOT-PAUSE", root);
         vm.expectRevert(Pausable.EnforcedPause.selector);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-PAUSE", "Producer", "US", root, sig);
     }
 
     function test_recordShipment_reverts_when_paused() public {
         bytes32 root = keccak256("s");
         bytes memory sig = _signAnchor("LOT-009", root);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-009", "P", "US", root, sig);
         anchor.pause();
 
@@ -309,6 +336,7 @@ contract TraceabilityAnchorTest is Test {
     function test_issueRecall_reverts_when_paused() public {
         bytes32 root = keccak256("s");
         bytes memory sig = _signAnchor("LOT-010", root);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-010", "P", "US", root, sig);
         anchor.pause();
 
@@ -320,6 +348,7 @@ contract TraceabilityAnchorTest is Test {
     function test_view_functions_work_when_paused() public {
         bytes32 root = keccak256("s");
         bytes memory sig = _signAnchor("LOT-011", root);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-011", "P", "US", root, sig);
         anchor.pause();
 
@@ -333,6 +362,7 @@ contract TraceabilityAnchorTest is Test {
 
         bytes32 root = keccak256("s");
         bytes memory sig = _signAnchor("LOT-012", root);
+        vm.prank(oracle);
         anchor.anchorLot("LOT-012", "P", "US", root, sig);
 
         TraceabilityAnchor.LotAnchor memory lot = anchor.getLot("LOT-012");
