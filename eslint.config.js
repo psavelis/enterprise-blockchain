@@ -7,9 +7,10 @@ export default tseslint.config(
   {
     ignores: [
       "ci-results/**",
-      "contracts/**/*.json",
+      "contracts/**",
       "dist/**",
       "node_modules/**",
+      "eslint.config.js",
     ],
   },
   js.configs.recommended,
