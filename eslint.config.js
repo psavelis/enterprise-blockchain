@@ -11,6 +11,7 @@ export default tseslint.config(
       "dist/**",
       "node_modules/**",
       "eslint.config.js",
+      "commitlint.config.js",
     ],
   },
   js.configs.recommended,
