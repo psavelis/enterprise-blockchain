@@ -78,6 +78,11 @@ if (typeof view.auditProof === "object") {
 
 **Projecting at query time**: Compute projections at write time when possible. Query-time projection increases latency and complicates caching.
 
+## Related Skills
+
+- [hsm-key-management](hsm-key-management.md) — HSM configuration for `SignedAuditProof`
+- [integration-adapters](integration-adapters.md) — Protocol serialization for on-chain storage
+
 ## References
 
 - `modules/privacy/src/domain/entities.ts`

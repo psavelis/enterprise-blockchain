@@ -103,6 +103,11 @@ COMMITMENT_FORMAT = SHA-256(partyId || value || nonce)
 ANCHOR_FORMAT = SHA-256(result || timestamp || participantIds)
 ```
 
+## Related Skills
+
+- [hsm-key-management](hsm-key-management.md) — HSM signing for non-repudiable anchoring
+- [integration-adapters](integration-adapters.md) — On-chain result anchoring via Besu adapter
+
 ## References
 
 - `modules/mpc/src/index.ts`
