@@ -44,3 +44,21 @@ To help us prioritize your report, please provide:
 - **Crypto-Agility:** We design for the rapid rotation of cryptographic primitives.
 - **Boundary Enforcement:** We use **Hexagonal Architecture** to isolate core logic from external adapters, reducing the blast radius of any single vulnerability.
 - **Zero-Trust Logic:** All state transitions, especially in **DePIN** and **RWA** pipelines, are treated as untrusted until cryptographically verified.
+
+---
+
+## Software Bill of Materials (SBOM)
+
+We provide CycloneDX SBOM generation for supply chain transparency:
+
+```bash
+npm run sbom
+```
+
+This generates `sbom.json` in CycloneDX format, documenting all direct and transitive dependencies. The SBOM is:
+
+- Generated on-demand via the command above
+- Included as an artifact in GitHub Releases
+- Useful for compliance audits and vulnerability correlation
+
+For questions about specific dependencies, reference the SBOM or run `npm ls <package>`.

@@ -40,6 +40,7 @@
     "example:kyber-kem": "tsx examples/kyber-kem-key-exchange/index.ts",
     "example:hybrid-kem": "tsx examples/hybrid-kem-settlement/index.ts",
     "example:quantum-safe-payment": "tsx examples/quantum-safe-payment/index.ts",
+    "sbom": "cyclonedx-npm --output-file sbom.json --output-format JSON",
     "prepare": "husky"
   },
   "dependencies": {
@@ -51,6 +52,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
+    "@cyclonedx/cyclonedx-npm": "^4.2.1",
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.13.10",
     "eslint": "^10.0.3",

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/psavelis/enterprise-blockchain/tree/main/docs
+    about: Check the documentation before opening an issue
+  - name: Skills Reference
+    url: https://github.com/psavelis/enterprise-blockchain/tree/main/skills
+    about: Architecture patterns and implementation guidance
