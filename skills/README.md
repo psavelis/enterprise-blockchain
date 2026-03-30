@@ -2,6 +2,27 @@
 
 Structured knowledge files for AI coding agents. Each skill provides domain context, implementation patterns, and architectural guidance for enterprise blockchain development.
 
+## Skill Dependency Graph
+
+```
+                    platform-selection
+                           │
+              ┌────────────┼────────────┐
+              ▼            │            ▼
+    integration-adapters   │    smart-contract-patterns
+              │            │            │
+              └────────────┼────────────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         ▼                 ▼                 ▼
+  traceability-recall  selective-disclosure  mpc-secret-sharing
+         │                 │                 │
+         └─────────────────┼─────────────────┘
+                           │
+                           ▼
+                   hsm-key-management
+```
+
 ## Architecture Principles
 
 All skills enforce:

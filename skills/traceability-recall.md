@@ -100,6 +100,12 @@ FoodTraceContract (Fabric chaincode)
 
 **Ignoring contamination type**: Biological contamination (bacteria) spreads through contact. Chemical contamination (pesticide) is isolated to source lot. Assessment algorithms differ.
 
+## Related Skills
+
+- [platform-selection](platform-selection.md) — Fabric vs Besu for traceability use cases
+- [hsm-key-management](hsm-key-management.md) — HSM signing for recall notices
+- [smart-contract-patterns](smart-contract-patterns.md) — TraceabilityAnchor.sol patterns
+
 ## References
 
 - `modules/traceability/src/`

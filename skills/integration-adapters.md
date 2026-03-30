@@ -123,6 +123,11 @@ class CircuitBreaker {
 }
 ```
 
+## Related Skills
+
+- [platform-selection](platform-selection.md) — Protocol selection criteria (Besu vs Fabric vs Corda)
+- [smart-contract-patterns](smart-contract-patterns.md) — Solidity contracts deployed via Besu client
+
 ## References
 
 - `modules/integrations/shared/src/retry.ts`
