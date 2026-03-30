@@ -10,13 +10,13 @@ style: |
     font-family: "Aptos", "Segoe UI", sans-serif;
     background: #f6f7f9;
     color: #17202a;
-    padding: 44px 52px;
-    font-size: 30px;
-    line-height: 1.3;
+    padding: 40px 48px;
+    font-size: 28px;
+    line-height: 1.35;
   }
   h1, h2 {
     color: #0f2742;
-    margin: 0 0 18px 0;
+    margin: 0 0 16px 0;
   }
   strong {
     color: #0b5cab;
@@ -25,31 +25,27 @@ style: |
     background: transparent;
     display: block;
     margin: 0 auto;
-    max-width: 100%;
-    max-height: 58vh;
-    object-fit: contain;
   }
   code {
     font-family: "SFMono-Regular", "Menlo", monospace;
+    font-size: 0.85em;
   }
-  p, li, table {
-    font-size: 0.78em;
+  p, li {
+    font-size: 0.82em;
   }
   table {
     width: 100%;
+    font-size: 0.75em;
   }
   section.lead h1 {
-    margin-top: 40px;
+    margin-top: 36px;
   }
   section.compact p,
-  section.compact li,
-  section.compact table {
+  section.compact li {
     font-size: 0.72em;
   }
-  section.twoCol {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
+  section.compact table {
+    font-size: 0.68em;
   }
 ---
 
@@ -57,129 +53,135 @@ style: |
 
 # Enterprise Blockchain Case Studies
 
-TypeScript repository for enterprise blockchain design, protocol mapping, and integration boundaries.
+TypeScript repository demonstrating enterprise blockchain patterns.
 
-**Scope**
+**Focus areas**
 
-- Case studies tied to operating problems
-- Protocol-specific transaction models
-- SDK-oriented integration patterns
-- Off-chain cryptographic primitives (MPC, HSM, PQC)
+- Operational case studies (traceability, privacy, credentials, settlement)
+- Protocol adapters (Fabric, Besu, Corda)
+- Off-chain cryptography (MPC, HSM, post-quantum)
 
 ---
 
 # Repository Structure
 
-| Area         | Purpose                                                  |
-| ------------ | -------------------------------------------------------- |
-| `modules/`   | Domain logic, protocol adapters, and integration clients |
-| `examples/`  | Runnable case studies and protocol projections           |
-| `contracts/` | Solidity source, Fabric chaincode, and ABI artifacts     |
-| `docs/`      | Research, architecture notes, and presentation material  |
-| `skills/`    | AI skill files for coding assistants and agents          |
-
----
-
-# Operating Problems Covered
-
-1. Food recall response
-2. Consortium order sharing
-3. Hospital staffing clearance
-4. Aid voucher reconciliation
-
-These scenarios require provenance, privacy, cross-organization coordination, or settlement controls.
-
----
-
-# Off-Chain Cryptographic Patterns
-
-| Pattern | Purpose |
-| ------- | ------- |
-| **MPC** | Joint computation without disclosing individual inputs |
-| **HSM** | Hardware-protected key custody and signature provenance |
-| **PQC** | Post-quantum cryptography for long-term confidentiality |
-
-These complement ledger-based scenarios with cryptographic guarantees.
+| Folder | Contents |
+| ------ | -------- |
+| `modules/` | Domain logic, protocol adapters, integration clients |
+| `examples/` | 20 runnable scenarios |
+| `contracts/` | Solidity (Foundry), Fabric chaincode (TS), Corda (Kotlin) |
+| `docs/` | Architecture decisions, flow diagrams, this deck |
+| `skills/` | AI skill files for assisted development |
 
 ---
 
 <!-- _class: compact -->
 
-![bg right:48% contain](./diagrams/09-decision-framework.png)
+# Case Studies
 
-# Architecture Model
-
-- Domain modules hold the business rules.
-- Protocol adapters capture platform semantics.
-- Integration clients shape runtime requests.
-- Environment configuration supplies operational inputs.
-
----
-
-<!-- _class: compact -->
-
-![bg right:50% contain](./diagrams/01-fabric-tx-flow.png)
-
-# Food Recall Response
-
-**Why it matters**
-
-- Rapid impact analysis during a recall
-- Shared traceability across supplier, carrier, and retailer
-- Deterministic commit model for operational response
+| Scenario | Domain Problem | Protocol Fit |
+| -------- | -------------- | ------------ |
+| Food recall | Trace contaminated lots across supply chain | Fabric (channel isolation) |
+| Order sharing | Selective disclosure to bank/logistics/regulator | Besu (privacy groups) |
+| Staffing clearance | Verify credentials before clinical assignment | Corda (point-to-point) |
+| Aid reconciliation | Multi-agency voucher settlement | Besu (shared state) |
 
 ---
 
 <!-- _class: compact -->
 
-![bg right:50% contain](./diagrams/12-privacy-patterns.png)
+![bg right:52% fit](./diagrams/09-decision-framework.png)
 
-# Selective Disclosure
+# Platform Selection
 
-**Key point**
+Decision tree for protocol choice:
 
-The same commercial record can be anchored once and disclosed differently to logistics, banking, regulatory, and supplier audiences.
-
----
-
-<!-- _class: compact -->
-
-![bg right:50% contain](./diagrams/13-corda-credential-flow.png)
-
-# Credential Verification
-
-**Key point**
-
-Need-to-know distribution is often a better fit than broad ledger replication for regulated staffing workflows.
+- Data integrity only → **KSI / Guardtime**
+- Public anchoring → **Bitcoin / Ethereum**
+- Bilateral flows → **Corda**
+- EVM ecosystem → **Besu**
+- Channel isolation → **Fabric**
 
 ---
 
 <!-- _class: compact -->
 
-![bg right:50% contain](./diagrams/16-wfp-aid-flow.png)
+![bg right:52% fit](./diagrams/01-fabric-tx-flow.png)
 
-# Reconciliation And Controls
+# Fabric: Endorsement Flow
 
-**Key point**
+1. Client submits proposal
+2. Endorsing peers simulate chaincode
+3. Client collects endorsements
+4. Orderer batches into block
+5. All peers validate and commit
 
-Shared ledgers matter when multiple organizations need one settlement view without delegating control to a single operator.
+Use case: **Food recall traceability**
 
 ---
 
 <!-- _class: compact -->
 
-![bg right:48% contain](./diagrams/17-mpc-secret-sharing.png)
+![bg right:52% fit](./diagrams/12-privacy-patterns.png)
 
-# MPC: Secret Sharing
+# Privacy Patterns
 
-**Key point**
+| Platform | Mechanism |
+| -------- | --------- |
+| Fabric | Private data collections, transient data |
+| Besu | Privacy groups, restricted contract state |
+| Corda | Need-to-know state distribution |
 
-Parties compute a joint result without any participant revealing their individual input.
+Use case: **Consortium order sharing**
 
-Repository examples:
+---
 
-- `mpc-sealed-bid-auction` — additive secret sharing
-- `mpc-joint-risk-analysis` — cross-institution credit threshold
+<!-- _class: compact -->
+
+![bg right:52% fit](./diagrams/13-corda-credential-flow.png)
+
+# Corda: Flow Protocol
+
+1. Issuer builds `CredentialState`
+2. Contract verifies locally
+3. `CollectSignaturesFlow` gathers counterparty signatures
+4. Notary checks uniqueness
+5. `FinalityFlow` distributes to participants
+
+Use case: **Hospital staffing clearance**
+
+---
+
+<!-- _class: compact -->
+
+![bg right:52% fit](./diagrams/16-wfp-aid-flow.png)
+
+# Settlement Controls
+
+- Agency registers and allocates funds
+- Beneficiary redeems at POS
+- Contract enforces budget limits
+- Cross-agency duplicate detection
+
+Use case: **Aid voucher reconciliation**
+
+---
+
+<!-- _class: compact -->
+
+![bg right:52% fit](./diagrams/17-mpc-secret-sharing.png)
+
+# MPC: Additive Secret Sharing
+
+Parties split inputs into additive shares:
+
+```
+secret = share₁ + share₂ + share₃ (mod p)
+```
+
+Computation happens on shares; result reconstructed.
+
+Examples: `mpc-sealed-bid-auction`, `mpc-joint-risk-analysis`
 
 ---
 
@@ -189,23 +191,27 @@ Repository examples:
 
 **Shamir Secret Sharing (k-of-n)**
 
-Distribute a secret so that any k shares reconstruct it, but k−1 shares reveal nothing.
+- Polynomial interpolation over finite field
+- Any k shares reconstruct; k-1 reveal nothing
+- Used for key custody and quorum authorization
 
-Repository example:
-
-- `quantum-resistant-key-sharing` — 3-of-5 Shamir threshold with hash-ladder anchoring for post-quantum auditability
+Example: `quantum-resistant-key-sharing` — 3-of-5 threshold + hash-ladder anchoring
 
 ---
 
 <!-- _class: compact -->
 
-![bg right:48% contain](./diagrams/18-hsm-envelope.png)
+![bg right:52% fit](./diagrams/18-hsm-envelope.png)
 
-# HSM Key Management
+# HSM: Envelope Encryption
 
-**Key point**
+1. Generate ephemeral DEK (256-bit)
+2. Encrypt payload with DEK (AES-GCM)
+3. Wrap DEK with KEK inside HSM
+4. Store `ciphertext + wrappedDEK`
+5. Only HSM can unwrap
 
-Private keys and raw symmetric material never leave the HSM boundary. Only signatures, public keys, and wrapped DEKs appear on-chain.
+Private keys never leave hardware boundary.
 
 ---
 
@@ -215,9 +221,9 @@ Private keys and raw symmetric material never leave the HSM boundary. Only signa
 
 | Example | Pattern |
 | ------- | ------- |
-| `hsm-transaction-signing` | EC P-256 trade order signing with HSM attestation |
-| `hsm-key-ceremony` | 3-of-5 Shamir custodianship + HSM-signed certificate |
-| `hsm-envelope-encryption` | DEK/KEK pattern for on-ledger document confidentiality |
+| `hsm-transaction-signing` | EC P-256 ECDSA with audit digest |
+| `hsm-key-ceremony` | 3-of-5 Shamir + HSM-signed root certificate |
+| `hsm-envelope-encryption` | DEK/KEK for on-ledger document confidentiality |
 
 ---
 
@@ -225,48 +231,48 @@ Private keys and raw symmetric material never leave the HSM boundary. Only signa
 
 # Post-Quantum Cryptography
 
-**NIST FIPS 203 & 204 (2024)**
+**NIST Standards (August 2024)**
 
-| Standard | Algorithm | Purpose |
-| -------- | --------- | ------- |
-| FIPS 203 | ML-KEM (Kyber) | Key encapsulation mechanism |
-| FIPS 204 | ML-DSA (Dilithium) | Digital signature algorithm |
+| Standard | Algorithm | Wire Sizes |
+| -------- | --------- | ---------- |
+| FIPS 203 | ML-KEM-768 | pk: 1184 B, ct: 1088 B, ss: 32 B |
+| FIPS 204 | ML-DSA-65 | pk: 1952 B, sig: 3309 B |
 
-These provide quantum-resistant replacements for RSA, ECDH, and ECDSA.
-
----
-
-<!-- _class: compact -->
-
-# Kyber KEM Key Exchange
-
-**ML-KEM (FIPS 203)**
-
-- Lattice-based key encapsulation
-- Parameter sets: ML-KEM-512, ML-KEM-768, ML-KEM-1024
-- Shared secret derived via encapsulation/decapsulation
-
-Repository example:
-
-- `kyber-kem-key-exchange` — Full ML-KEM roundtrip with audit records
+Replaces RSA/ECDH (key exchange) and ECDSA (signatures).
 
 ---
 
 <!-- _class: compact -->
 
-# Hybrid KEM Settlement
+# ML-KEM Key Encapsulation
+
+**Lattice-based KEM (FIPS 203)**
+
+1. Recipient generates `(pk, sk)`
+2. Sender: `(ciphertext, sharedSecret) = encapsulate(pk)`
+3. Recipient: `sharedSecret = decapsulate(sk, ciphertext)`
+
+Parameter sets: ML-KEM-512, ML-KEM-768, ML-KEM-1024
+
+Example: `kyber-kem-key-exchange`
+
+---
+
+<!-- _class: compact -->
+
+# Hybrid KEM
 
 **X25519 + ML-KEM-768**
 
-Combines classical (X25519) and post-quantum (ML-KEM) key exchange for defense-in-depth.
+```
+combinedSecret = HKDF(x25519Secret || mlkemSecret)
+```
 
-- HKDF combines both shared secrets
-- Provides security even if one primitive breaks
-- Backward compatibility with classical systems
+- Defense-in-depth: secure if either primitive holds
+- Recommended for transition period
+- Backward compatible with classical peers
 
-Repository example:
-
-- `hybrid-kem-settlement` — Settlement channel with hybrid key agreement
+Example: `hybrid-kem-settlement`
 
 ---
 
@@ -274,161 +280,128 @@ Repository example:
 
 # Quantum-Safe Payment Flow
 
-**End-to-end post-quantum security**
+| Phase | Primitive |
+| ----- | --------- |
+| Key ceremony | Hybrid KEM (X25519 + ML-KEM-768) |
+| Sign instruction | ML-DSA-65 (FIPS 204) |
+| Encrypt payload | AES-256-GCM with hybrid key |
+| Authorize settlement | 3-of-3 MPC threshold |
 
-1. **Key ceremony** — Hybrid KEM key pairs (X25519 + ML-KEM)
-2. **Signing** — ML-DSA-65 digital signatures (FIPS 204)
-3. **Encryption** — AES-256-GCM with hybrid-derived key
-4. **Authorization** — 3-of-3 MPC threshold settlement
-
-Repository example:
-
-- `quantum-safe-payment` — Full FX settlement with PQC primitives
+Example: `quantum-safe-payment`
 
 ---
 
 <!-- _class: compact -->
 
-![bg right:50% contain](./diagrams/11-consensus-comparison.png)
+![bg right:50% fit](./diagrams/11-consensus-comparison.png)
 
-# Platform Fit
+# Consensus Comparison
 
-Decision criteria in this repository:
+| Protocol | Consensus | Finality |
+| -------- | --------- | -------- |
+| Fabric | Raft / BFT | Immediate |
+| Besu | QBFT / IBFT 2.0 | Immediate |
+| Corda | Notary (single/clustered) | Immediate |
 
-- Governance model
-- Privacy boundary
-- Finality model
-- Integration surface
-
----
-
-<!-- _class: compact -->
-
-# From Domain Logic To Runtime
-
-1. Domain module defines the business rule.
-2. Protocol adapter maps the event into a platform-specific transaction.
-3. Integration client shapes the request for the runtime boundary.
-4. Environment configuration supplies credentials and endpoints.
+All provide deterministic finality (no forks).
 
 ---
 
 <!-- _class: compact -->
 
-![bg right:48% contain](./diagrams/14-aura-erc721-flow.png)
+# Architecture Layers
 
-# Besu Path
+| Layer | Responsibility | Location |
+| ----- | -------------- | -------- |
+| Domain | Business rules, entities | `modules/{domain}/` |
+| Protocol | Platform-specific tx shapes | `modules/protocols/` |
+| Integration | SDK bindings, retry, errors | `modules/integrations/` |
+| Config | Endpoints, credentials | `examples/config/` |
+
+---
+
+<!-- _class: compact -->
+
+![bg right:50% fit](./diagrams/14-aura-erc721-flow.png)
+
+# Besu Integration
+
+**Stack**: Solidity + ethers.js + privacy groups
 
 Repository assets:
-
-- Solidity source in `contracts/solidity/src/`
-- ABI artifacts in `contracts/`
-- `ethers` integration in `modules/integrations/besu-client/`
-
----
-
-<!-- _class: compact -->
-
-![bg right:48% contain](./diagrams/15-chaincode-walkthrough.png)
-
-# Fabric Path
-
-Repository assets:
-
-- Chaincode in `contracts/fabric/`
-- Proposal builders in `modules/protocols/fabric/`
-- Gateway integration in `modules/integrations/fabric-gateway/`
+- `contracts/solidity/src/` — Foundry project
+- `modules/integrations/besu-client/` — tx builders
+- `modules/protocols/besu/` — privacy group calls
 
 ---
 
 <!-- _class: compact -->
 
-# Corda Path
+![bg right:50% fit](./diagrams/15-chaincode-walkthrough.png)
 
-TypeScript is the integration layer, not the CorDapp runtime.
+# Fabric Integration
+
+**Stack**: TypeScript chaincode + Gateway SDK
 
 Repository assets:
+- `contracts/fabric/` — FoodTraceContract
+- `modules/integrations/fabric-gateway/` — proposal builders
+- `modules/protocols/fabric/` — invoke/query shapes
 
-- Kotlin contracts in `contracts/corda/`
-- Flow projection in `modules/protocols/corda/`
-- Gateway builder in `modules/integrations/corda-gateway/`
+---
+
+<!-- _class: compact -->
+
+# Corda Integration
+
+**Stack**: Kotlin CorDapp + REST gateway
+
+Repository assets:
+- `contracts/corda/` — ProviderClearanceContract/Flow/State
+- `modules/integrations/corda-gateway/` — HTTP request builders
+- `modules/protocols/corda/` — flow invocation shapes
+
+TypeScript handles the integration boundary, not CorDapp runtime.
 
 ---
 
 # Quick Start
 
 ```bash
-npm install
-npm run verify
-npm run demo:adapters
-npm run demo:integrations
+npm install          # install dependencies
+npm run verify       # format + lint + typecheck + test + examples
+npm run demo:adapters       # protocol adapter projections
+npm run demo:integrations   # SDK integration sketches
 ```
+
+All examples run offline with mocked SDK boundaries.
 
 ---
 
-# Case Study Examples
+<!-- _class: compact -->
 
-```bash
-npm run example:food-recall
-npm run example:order-sharing
-npm run example:staffing-clearance
-npm run example:aid-reconciliation
-```
+# Example Commands
 
----
-
-# Protocol Projection Examples
-
-```bash
-npm run example:fabric-projection
-npm run example:besu-projection
-npm run example:corda-projection
-npm run example:fabric-gateway
-npm run example:besu-ethers
-npm run example:corda-rest
-```
+| Category | Commands |
+| -------- | -------- |
+| Case studies | `example:food-recall`, `example:order-sharing`, `example:staffing-clearance`, `example:aid-reconciliation` |
+| Protocol | `example:fabric-projection`, `example:besu-projection`, `example:corda-projection` |
+| Integration | `example:fabric-gateway`, `example:besu-ethers`, `example:corda-rest` |
+| MPC | `example:mpc-auction`, `example:mpc-risk-analysis`, `example:quantum-key-sharing` |
+| HSM | `example:hsm-tx-signing`, `example:hsm-key-ceremony`, `example:hsm-envelope-encryption` |
+| PQC | `example:kyber-kem`, `example:hybrid-kem`, `example:quantum-safe-payment` |
 
 ---
 
-# MPC & Threshold Examples
+# Navigation
 
-```bash
-npm run example:mpc-auction
-npm run example:mpc-risk-analysis
-npm run example:quantum-key-sharing
-```
-
----
-
-# HSM Examples
-
-```bash
-npm run example:hsm-tx-signing
-npm run example:hsm-key-ceremony
-npm run example:hsm-envelope-encryption
-```
-
----
-
-# Post-Quantum Examples
-
-```bash
-npm run example:kyber-kem
-npm run example:hybrid-kem
-npm run example:quantum-safe-payment
-```
-
----
-
-# Navigation Guide
-
-| Goal | Start Here |
-| ---- | ---------- |
-| Understand a scenario | `examples/` folder |
-| Read domain logic | `modules/` folder |
-| Review protocol shapes | `modules/protocols/` |
-| See integration patterns | `modules/integrations/` |
-| Study architecture | `docs/architecture/` |
+| Goal | Start |
+| ---- | ----- |
+| Run a scenario | `examples/` |
+| Read domain logic | `modules/{domain}/src/` |
+| See protocol shapes | `modules/protocols/` |
+| Study integration patterns | `modules/integrations/` |
+| Review architecture | `docs/architecture/` |
 
 ---
 
@@ -436,9 +409,9 @@ npm run example:quantum-safe-payment
 
 # Summary
 
-- **4** operating problems with domain modules
+- **4** case studies (traceability, privacy, credentials, settlement)
 - **3** protocol adapters (Fabric, Besu, Corda)
 - **3** integration clients (Gateway, ethers, REST)
-- **6** MPC/HSM/PQC cryptographic examples
+- **9** cryptographic examples (3 MPC + 3 HSM + 3 PQC)
 
-All examples pass `npm run verify` and run offline.
+All pass `npm run verify` and run offline.
