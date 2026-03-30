@@ -98,3 +98,18 @@ Protocol adapters under `modules/protocols/` implement port interfaces and produ
 - Prettier for formatting, ESLint for linting.
 - No AI-generated language patterns in comments or documentation.
 - Keep functions focused. Prefer small, composable units.
+
+## Releases
+
+Releases are automated via [semantic-release](https://semantic-release.gitbook.io/):
+
+1. Merge PR to `main` with conventional commit messages
+2. Release workflow triggers automatically
+3. Version is determined from commit types:
+   - `feat:` → minor version bump
+   - `fix:` → patch version bump
+   - `feat!:` or `BREAKING CHANGE:` → major version bump
+4. CHANGELOG.md is updated automatically
+5. GitHub Release is created with release notes
+
+Manual releases are not needed. The workflow handles versioning, changelog, and GitHub releases.

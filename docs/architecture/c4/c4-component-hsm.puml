@@ -1,0 +1,34 @@
+@startuml C4_Component_HSM
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title HSM Module - Component Diagram
+
+Container_Boundary(hsm, "HSM Module") {
+    Component(hsm_client, "HsmClient", "TypeScript", "Facade for HSM operations with audit logging")
+    Component(asymmetric_svc, "AsymmetricKeyService", "TypeScript", "EC P-256 key generation, ECDSA-SHA256 signing")
+    Component(symmetric_svc, "SymmetricKeyService", "TypeScript", "AES-256-GCM encryption/decryption")
+    Component(envelope_svc, "EnvelopeEncryptionService", "TypeScript", "DEK/KEK envelope encryption with key wrapping")
+    Component(key_store, "KeyStore", "TypeScript", "Port interface for key storage")
+    Component(audit_log, "AuditLog", "TypeScript", "Port interface for operation auditing")
+}
+
+Component_Ext(node_crypto, "node:crypto", "Node.js", "Native crypto primitives")
+Component_Ext(pkcs11, "PKCS#11 Module", "Native", "Hardware security module interface")
+
+Rel(hsm_client, asymmetric_svc, "Key generation, signing")
+Rel(hsm_client, symmetric_svc, "Encryption, decryption")
+Rel(hsm_client, envelope_svc, "Envelope encryption")
+Rel(hsm_client, audit_log, "Records operations")
+Rel(asymmetric_svc, key_store, "Stores key entries")
+Rel(symmetric_svc, key_store, "Stores key entries")
+Rel(asymmetric_svc, node_crypto, "ECDSA operations")
+Rel(symmetric_svc, node_crypto, "AES-GCM operations")
+Rel(envelope_svc, node_crypto, "Key wrapping")
+
+note right of pkcs11
+  Production deployments
+  connect to HSM via PKCS#11.
+  Demo uses node:crypto.
+end note
+
+@enduml
