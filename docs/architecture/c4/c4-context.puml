@@ -1,0 +1,26 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Enterprise Blockchain - System Context Diagram
+
+Person(consortium_member, "Consortium Member", "Organization participating in the blockchain network")
+Person(auditor, "Auditor", "Regulatory or compliance auditor")
+Person(developer, "Developer", "Platform engineer integrating blockchain capabilities")
+
+System(enterprise_blockchain, "Enterprise Blockchain Platform", "TypeScript modules for enterprise blockchain integration patterns: traceability, privacy, credentialing, aid settlement")
+
+System_Ext(fabric, "Hyperledger Fabric", "Permissioned blockchain for supply chain traceability")
+System_Ext(besu, "Hyperledger Besu", "EVM-compatible consortium blockchain for order privacy")
+System_Ext(corda, "R3 Corda", "Point-to-point blockchain for regulated workflows")
+System_Ext(hsm, "Hardware Security Module", "PKCS#11 key management for transaction signing")
+
+Rel(consortium_member, enterprise_blockchain, "Submits transactions, queries state")
+Rel(auditor, enterprise_blockchain, "Verifies audit proofs, traces provenance")
+Rel(developer, enterprise_blockchain, "Integrates via TypeScript SDK")
+
+Rel(enterprise_blockchain, fabric, "Chaincode invocation via Gateway SDK")
+Rel(enterprise_blockchain, besu, "Contract calls via ethers.js")
+Rel(enterprise_blockchain, corda, "Flow invocation via REST API")
+Rel(enterprise_blockchain, hsm, "Key operations via PKCS#11")
+
+@enduml

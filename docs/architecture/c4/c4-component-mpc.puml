@@ -1,0 +1,25 @@
+@startuml C4_Component_MPC
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title MPC Module - Component Diagram
+
+Container_Boundary(mpc, "MPC Module") {
+    Component(mpc_engine, "MPCEngine", "TypeScript", "Additive secret sharing for sealed-bid auctions and joint risk analysis")
+    Component(quantum_vault, "QuantumResistantVault", "TypeScript", "Shamir threshold sharing with hash-ladder anchoring")
+    Component(hybrid_kem, "HybridKem", "TypeScript", "X25519 + ML-KEM-768 hybrid key encapsulation")
+    Component(kyber, "Kyber", "TypeScript", "ML-KEM-768 key encapsulation (FIPS 203)")
+    Component(dilithium, "Dilithium", "TypeScript", "ML-DSA-65 digital signatures (FIPS 204)")
+    Component(crypto_utils, "Crypto Utilities", "TypeScript", "SHA-256, HKDF, field arithmetic")
+}
+
+Component_Ext(noble_pq, "@noble/post-quantum", "npm", "NIST-standardized PQ algorithms")
+Component_Ext(node_crypto, "node:crypto", "Node.js", "Native crypto primitives")
+
+Rel(mpc_engine, crypto_utils, "Field arithmetic")
+Rel(quantum_vault, crypto_utils, "Shamir polynomials, hash ladder")
+Rel(hybrid_kem, kyber, "PQ key encapsulation")
+Rel(hybrid_kem, node_crypto, "X25519 ECDH, HKDF")
+Rel(kyber, noble_pq, "ml_kem768")
+Rel(dilithium, noble_pq, "ml_dsa65")
+
+@enduml

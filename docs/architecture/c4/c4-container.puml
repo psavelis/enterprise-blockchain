@@ -1,0 +1,33 @@
+@startuml C4_Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Enterprise Blockchain - Container Diagram
+
+Person(developer, "Developer", "Platform engineer")
+
+System_Boundary(platform, "Enterprise Blockchain Platform") {
+    Container(domain_modules, "Domain Modules", "TypeScript", "Core business logic: traceability, privacy, credentialing, aid-settlement")
+    Container(protocol_adapters, "Protocol Adapters", "TypeScript", "Stateless transaction shape generators for Fabric, Besu, Corda")
+    Container(integration_clients, "Integration Clients", "TypeScript", "SDK wrappers with retry, circuit breaker, connection management")
+    Container(mpc_module, "MPC Module", "TypeScript", "Additive secret sharing, Shamir threshold, quantum-resistant vault")
+    Container(hsm_module, "HSM Module", "TypeScript", "Asymmetric/symmetric key services, envelope encryption")
+    Container(shared_module, "Shared Module", "TypeScript", "Crypto utilities, retry policies, logger, telemetry")
+}
+
+System_Ext(fabric, "Hyperledger Fabric", "gRPC + Gateway SDK")
+System_Ext(besu, "Hyperledger Besu", "JSON-RPC + ethers.js")
+System_Ext(corda, "R3 Corda", "REST API")
+System_Ext(hsm, "HSM / PKCS#11", "Hardware key storage")
+
+Rel(developer, domain_modules, "Uses domain services")
+Rel(domain_modules, protocol_adapters, "Projects commands to")
+Rel(protocol_adapters, integration_clients, "Submits transactions via")
+Rel(integration_clients, fabric, "Invokes chaincode")
+Rel(integration_clients, besu, "Calls contracts")
+Rel(integration_clients, corda, "Starts flows")
+Rel(domain_modules, mpc_module, "Secret sharing operations")
+Rel(domain_modules, hsm_module, "Key management operations")
+Rel(integration_clients, shared_module, "Retry, circuit breaker")
+Rel(hsm_module, hsm, "PKCS#11 operations")
+
+@enduml
