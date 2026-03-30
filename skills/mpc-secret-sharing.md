@@ -23,7 +23,7 @@ Multi-party computation patterns for confidential joint computation.
 
 **Commitment Verification**: Party commits to share before reveal: `commitment = SHA-256(partyId || value || nonce)`. Prevents post-hoc manipulation.
 
-**Field Size**: Operations use 256-bit prime field (2^256 - 189). Aligns with blockchain hash outputs. Prevents wrap-around attacks on small fields.
+**Field Size**: Additive sharing uses JS `number` (safe integer range). Shamir threshold sharing uses Mersenne prime `2^31 - 1` to stay within safe-integer bounds. Production deployments protecting key material should use larger primes (2^127 - 1 or 2^255 - 19).
 
 ## Architecture
 
@@ -40,34 +40,41 @@ Integration Points
 
 **Separation of Concerns**: `MpcEngine` handles share arithmetic. `QuantumResistantVault` handles threshold distribution. Neither knows about blockchain protocols.
 
-**Stateless Sessions**: `MpcEngine.createSession()` returns session ID. All state stored externally. Engine is pure computation.
+**Stateful Rounds**: `MPCEngine` maintains computation rounds internally. Parties register, split secrets, submit shares, then compute results.
 
 ## Implementation
 
 ```typescript
-MpcEngine
-├── createSession(parties: string[]): string
-├── splitSecret(secret: bigint, parties: string[]): Map<string, Share>
-├── submitShare(sessionId: string, partyId: string, value: bigint, commitment?: string)
-├── compute(sessionId: string): ComputeResult
-└── verifyCommitment(share: Share): boolean
+MPCEngine
+├── registerParty(party: PartyConfig): void
+├── splitSecret(secret: number, partyIds: string[]): SecretShare[]
+├── submitShare(computationId: string, share: SecretShare): void
+├── compute(computationId: string, op: 'sum' | 'threshold', opts?: { threshold?: number }): ComputationResult
+└── verifyIntegrity(computationId: string): boolean
 
 QuantumResistantVault
-├── distributeSecret(secret: Buffer, parties: string[], threshold: number): Share[]
-├── reconstruct(shares: Share[]): Buffer | null
-└── anchor(commitment: Buffer): AnchorProof
+├── distributeSecret(secret: number, parties: string[], threshold: number): Map<string, ThresholdShare>
+├── reconstructSecret(shares: ThresholdShare[], threshold: number): number | null
+├── createHashLadder(depth: number): HashLadderKey
+└── anchorWithPostQuantumProof(data: string): QuantumResistantAnchor
 
-Share {
+SecretShare {
   partyId: string
-  value: bigint
-  commitment?: string
-  nonce?: string
+  shareIndex: number
+  shareCount: number
+  value: number
+  nonce: string
+  commitment: string
 }
 
-ComputeResult {
-  result: bigint
+ComputationResult (SumResult | ThresholdResult) {
+  computationId: string
+  op: 'sum' | 'threshold'
+  participantCount: number
+  aggregate?: number        // sum only
+  exceeded?: boolean        // threshold only
+  meta: Record<string, string | number | boolean>
   integrityProof: string
-  commitmentsVerified: boolean
 }
 ```
 
@@ -97,10 +104,11 @@ ComputeResult {
 ## Cryptographic Constants
 
 ```
-FIELD_PRIME = 2^256 - 189
+SHAMIR_PRIME = 2^31 - 1 (Mersenne prime for safe-integer arithmetic)
+ADDITIVE_RANGE = ±2^47 (JS number safe range for share values)
 HASH_ALGORITHM = SHA-256
-COMMITMENT_FORMAT = SHA-256(partyId || value || nonce)
-ANCHOR_FORMAT = SHA-256(result || timestamp || participantIds)
+COMMITMENT_FORMAT = SHA-256(partyId || shareIndex || value || nonce)
+ANCHOR_FORMAT = SHA-256(dataHash || ladderRoot || timestamp)
 ```
 
 ## Related Skills

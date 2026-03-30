@@ -19,9 +19,9 @@ SDK client patterns with retry logic, circuit breakers, and blockchain-specific 
 
 **Protocol Adapter vs Integration Client**: Adapters transform domain events to transaction shapes (stateless, no I/O). Clients handle SDK connection, signing, and submission (stateful, I/O).
 
-**Retry Policy**: Exponential backoff with jitter. Parameters: `maxRetries`, `baseDelayMs`, `backoffFactor`. Jitter prevents thundering herd on recovery.
+**Retry Policy**: Exponential backoff with jitter (±15%). Parameters: `maxAttempts`, `baseDelayMs`, `maxDelayMs`, `retryableErrors`. Platform-specific error codes determine retryability.
 
-**Circuit Breaker**: Three-state machine: CLOSED → OPEN → HALF_OPEN → CLOSED. Opens after N consecutive failures. Auto-resets after cooldown. Prevents cascade failures.
+**Circuit Breaker**: Three-state machine: closed → open → half-open → closed. Opens after N consecutive failures (`failureThreshold`). Auto-resets after `cooldownMs`. Use `getState()` to check current state.
 
 **Nonce Management**: EVM transactions require sequential nonces. `NonceManager` wraps `Wallet` to auto-sequence concurrent submissions from same account.
 
@@ -70,21 +70,23 @@ ICordaFlowInvoker     → invokeFlow(request)
 
 ## Retry Configuration
 
-| Platform | Max Retries | Base Delay | Backoff Factor |
-| -------- | ----------- | ---------- | -------------- |
-| Fabric   | 5           | 500ms      | 2.0            |
-| Besu     | 3           | 1000ms     | 1.5            |
-| Corda    | 4           | 750ms      | 2.0            |
+| Platform | Max Attempts | Base Delay | Max Delay | Retryable Errors               |
+| -------- | ------------ | ---------- | --------- | ------------------------------ |
+| Fabric   | 4            | 500ms      | 8000ms    | UNAVAILABLE, DEADLINE_EXCEEDED |
+| Besu     | 3            | 1000ms     | 15000ms   | SERVER_ERROR, TIMEOUT          |
+| Corda    | 3            | 1000ms     | 10000ms   | 502, 503, 504, TIMEOUT         |
 
 ## Error Mapping
 
-| Error Code          | Platform | Action                         |
-| ------------------- | -------- | ------------------------------ |
-| NONCE_TOO_LOW       | Besu     | Reset nonce manager, retry     |
-| INSUFFICIENT_FUNDS  | Besu     | Abort, surface to caller       |
-| ENDORSEMENT_FAILURE | Fabric   | Check peer availability, retry |
-| MVCC_READ_CONFLICT  | Fabric   | Retry with fresh read          |
-| FLOW_TIMEOUT        | Corda    | Increase timeout, retry once   |
+| Error Code         | Platform | Action                                     |
+| ------------------ | -------- | ------------------------------------------ |
+| NONCE_TOO_LOW      | Besu     | Abort, resync nonce; do not auto-retry     |
+| INSUFFICIENT_FUNDS | Besu     | Abort, surface to caller                   |
+| SERVER_ERROR       | Besu     | Retry with backoff (transient RPC failure) |
+| UNAVAILABLE        | Fabric   | Retry with backoff                         |
+| DEADLINE_EXCEEDED  | Fabric   | Retry with backoff                         |
+| 502/503/504        | Corda    | Retry with backoff (gateway errors)        |
+| 400/401/403        | Corda    | Abort, do not retry (client errors)        |
 
 ## Anti-patterns
 
@@ -104,23 +106,28 @@ ICordaFlowInvoker     → invokeFlow(request)
 
 ```typescript
 RetryPolicy {
-  maxRetries: number
+  maxAttempts: number
   baseDelayMs: number
-  backoffFactor: number
-  jitter: boolean
+  maxDelayMs: number
+  retryableErrors: string[]
 }
 
 async function withRetry<T>(
   fn: () => Promise<T>,
-  policy: RetryPolicy
+  policy: RetryPolicy,
+  nonRetryable?: string[],
+  extractErrorCode?: (err: unknown) => string
 ): Promise<T>
 
 class CircuitBreaker {
-  constructor(threshold: number, cooldownMs: number)
+  constructor(options?: { failureThreshold?: number; cooldownMs?: number })
   execute<T>(fn: () => Promise<T>): Promise<T>
-  get state(): 'CLOSED' | 'OPEN' | 'HALF_OPEN'
+  getState(): 'closed' | 'open' | 'half-open'
   reset(): void
 }
+
+function isRetryable(errorCode: string, policy: RetryPolicy, nonRetryable?: string[]): boolean
+function computeDelay(attempt: number, policy: RetryPolicy): number
 ```
 
 ## Related Skills

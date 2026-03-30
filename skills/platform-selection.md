@@ -35,9 +35,11 @@ Business Scenario
     ↓
 docs/architecture/scenario-to-protocol-mapping.md
     ↓
-modules/protocols/{besu,fabric,corda}/src/index.ts  ← Protocol Adapter (Port)
+modules/protocols/src/*-port.ts                                   ← Protocol Ports (Interfaces)
     ↓
-modules/integrations/{besu-client,fabric-gateway,corda-gateway}/  ← SDK Client (Adapter)
+modules/protocols/{besu,fabric,corda}/src/index.ts                ← Protocol Adapters (Port Implementations)
+    ↓
+modules/integrations/{besu-client,fabric-gateway,corda-gateway}/  ← SDK Clients (SDK Adapters)
 ```
 
 Protocol adapters implement the Ports pattern (Hexagonal Architecture):
