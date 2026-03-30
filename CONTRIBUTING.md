@@ -44,8 +44,8 @@ The repository uses [husky](https://typicode.github.io/husky/) to enforce qualit
 
 **Pre-commit hook** runs [lint-staged](https://github.com/lint-staged/lint-staged):
 
-- Formats staged `.ts`, `.js`, `.json`, `.md`, `.yml` files with Prettier
-- Lints staged TypeScript/JavaScript files with ESLint (`--max-warnings=0`)
+- Formats staged `.ts`, `.json`, `.md`, `.yml` files with Prettier
+- Lints staged TypeScript files with ESLint (`--max-warnings=0`)
 
 **Commit-msg hook** runs [commitlint](https://commitlint.js.org/):
 
