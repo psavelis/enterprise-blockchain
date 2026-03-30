@@ -14,6 +14,7 @@ Multi-party computation patterns for confidential joint computation.
 - Single-party encryption (use envelope encryption)
 - Public verifiability requirements (use ZK proofs)
 - Real-time computation with strict latency bounds
+- Long-term secret storage (see [post-quantum-crypto](post-quantum-crypto.md))
 
 ## Key Concepts
 
@@ -21,26 +22,24 @@ Multi-party computation patterns for confidential joint computation.
 
 **Shamir Threshold Sharing**: k-of-n scheme using polynomial interpolation. Any k shares reconstruct; fewer than k reveal nothing. Based on Lagrange interpolation over finite field.
 
-**Commitment Verification**: Party commits to share before reveal: `commitment = SHA-256(partyId || value || nonce)`. Prevents post-hoc manipulation.
+**Commitment Verification**: Party commits to share before reveal: `commitment = SHA-256(partyId || shareIndex || value || nonce)`. Prevents post-hoc manipulation.
 
-**Field Size**: Additive sharing uses JS `number` (safe integer range). Shamir threshold sharing uses Mersenne prime `2^31 - 1` to stay within safe-integer bounds. Production deployments protecting key material should use larger primes (2^127 - 1 or 2^255 - 19).
+**Field Size**: Additive sharing uses JS `number` (safe integer range). Shamir uses Mersenne prime `2^31 - 1` for safe-integer arithmetic. Production deployments use larger primes.
 
 ## Architecture
 
 ```
 Domain Layer (modules/mpc/src/)
-├── crypto.ts   → Field arithmetic, random generation
-├── index.ts    → MpcEngine (additive), QuantumResistantVault (Shamir)
-└── quantum.ts  → Hash-ladder anchoring
+├── crypto.ts   → randomFieldElement(), modPow(), extendedGcd()
+├── index.ts    → MPCEngine (additive sharing)
+└── quantum.ts  → QuantumResistantVault (Shamir + hash ladders)
 
 Integration Points
 ├── modules/protocols/besu/src/index.ts  → anchorOrder (result commitment)
 └── modules/hsm/src/index.ts             → Sign result proofs
 ```
 
-**Separation of Concerns**: `MpcEngine` handles share arithmetic. `QuantumResistantVault` handles threshold distribution. Neither knows about blockchain protocols.
-
-**Stateful Rounds**: `MPCEngine` maintains computation rounds internally. Parties register, split secrets, submit shares, then compute results.
+**Separation of Concerns**: `MPCEngine` handles additive share arithmetic. `QuantumResistantVault` handles Shamir threshold distribution. Neither knows about blockchain protocols.
 
 ## Implementation
 
@@ -49,14 +48,13 @@ MPCEngine
 ├── registerParty(party: PartyConfig): void
 ├── splitSecret(secret: number, partyIds: string[]): SecretShare[]
 ├── submitShare(computationId: string, share: SecretShare): void
-├── compute(computationId: string, op: 'sum' | 'threshold', opts?: { threshold?: number }): ComputationResult
+├── compute(computationId: string, op: 'sum' | 'threshold', opts?: ComputeOptions): ComputationResult
 └── verifyIntegrity(computationId: string): boolean
 
-QuantumResistantVault
-├── distributeSecret(secret: number, parties: string[], threshold: number): Map<string, ThresholdShare>
-├── reconstructSecret(shares: ThresholdShare[], threshold: number): number | null
-├── createHashLadder(depth: number): HashLadderKey
-└── anchorWithPostQuantumProof(data: string): QuantumResistantAnchor
+PartyConfig {
+  partyId: string
+  publicKey?: string
+}
 
 SecretShare {
   partyId: string
@@ -67,12 +65,26 @@ SecretShare {
   commitment: string
 }
 
-ComputationResult (SumResult | ThresholdResult) {
+ComputeOptions {
+  threshold?: number  // For 'threshold' operation
+}
+
+ComputationResult = SumResult | ThresholdResult
+
+SumResult {
   computationId: string
-  op: 'sum' | 'threshold'
+  op: 'sum'
   participantCount: number
-  aggregate?: number        // sum only
-  exceeded?: boolean        // threshold only
+  aggregate: number
+  meta: Record<string, string | number | boolean>
+  integrityProof: string
+}
+
+ThresholdResult {
+  computationId: string
+  op: 'threshold'
+  participantCount: number
+  exceeded: boolean
   meta: Record<string, string | number | boolean>
   integrityProof: string
 }
@@ -85,21 +97,7 @@ ComputationResult (SumResult | ThresholdResult) {
 | Confidentiality | Information-theoretic security from secret sharing |
 | Integrity       | Commitment verification before computation         |
 | Availability    | Threshold allows k-of-n reconstruction             |
-| Non-repudiation | Hash-ladder anchoring with HSM signatures          |
-
-## Anti-patterns
-
-**Skipping commitment verification**: Without commitments, malicious party can submit crafted share biasing result. Always require `commitment` parameter.
-
-**Small field sizes**: Field size < 2^128 allows brute-force enumeration. Use 256-bit prime field.
-
-**Threshold equals party count**: If k = n, single absent party blocks reconstruction. Use k < n for availability.
-
-**Partial share submission**: `compute()` rejects incomplete sets. Ensure all parties submit before calling.
-
-**Reusing session IDs**: Each computation requires fresh session. Session reuse leaks correlation between computations.
-
-**Ignoring reconstruction failure**: `QuantumResistantVault.reconstruct()` returns null if threshold not met. Always check return value.
+| Non-repudiation | Result anchoring with HSM signatures               |
 
 ## Cryptographic Constants
 
@@ -108,20 +106,48 @@ SHAMIR_PRIME = 2^31 - 1 (Mersenne prime for safe-integer arithmetic)
 ADDITIVE_RANGE = ±2^47 (JS number safe range for share values)
 HASH_ALGORITHM = SHA-256
 COMMITMENT_FORMAT = SHA-256(partyId || shareIndex || value || nonce)
-ANCHOR_FORMAT = SHA-256(dataHash || ladderRoot || timestamp)
+```
+
+## Must-Preserve Invariants
+
+1. **Commitment verification**: `compute()` verifies all commitments before aggregation
+2. **Complete share sets**: `compute()` rejects incomplete share submissions
+3. **Session isolation**: Each `computationId` is fresh; reuse leaks correlation
+4. **Threshold semantics**: `ThresholdResult.exceeded` is boolean, not aggregate value
+5. **Integrity proof binding**: `integrityProof` covers all submitted shares
+
+## Anti-patterns
+
+**Skipping commitment verification**: Without commitments, malicious party can submit crafted share biasing result. Always verify commitments.
+
+**Small field sizes in production**: Field size < 2^128 allows brute-force enumeration. Current implementation uses 2^31-1 for demo; production needs 256-bit prime.
+
+**Threshold equals party count**: If k = n, single absent party blocks reconstruction. Use k < n for availability.
+
+**Partial share submission**: `compute()` rejects incomplete sets. Ensure all parties submit before calling.
+
+**Reusing session IDs**: Each computation requires fresh session. Session reuse leaks correlation between computations.
+
+**Ignoring operation type**: `SumResult` has `aggregate`; `ThresholdResult` has `exceeded`. Type-guard before accessing:
+
+```typescript
+if (result.op === "sum") {
+  console.log(result.aggregate);
+} else {
+  console.log(result.exceeded);
+}
 ```
 
 ## Related Skills
 
 - [hsm-key-management](hsm-key-management.md) — HSM signing for non-repudiable anchoring
+- [post-quantum-crypto](post-quantum-crypto.md) — Shamir SSS with hash-ladder anchoring
 - [integration-adapters](integration-adapters.md) — On-chain result anchoring via Besu adapter
 
 ## References
 
 - `modules/mpc/src/index.ts`
 - `modules/mpc/src/crypto.ts`
-- `modules/mpc/src/quantum.ts`
 - `examples/mpc-sealed-bid-auction/index.ts`
 - `examples/mpc-joint-risk-analysis/index.ts`
-- `examples/quantum-resistant-key-sharing/index.ts`
 - `tests/mpc.test.ts`

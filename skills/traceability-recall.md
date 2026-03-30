@@ -23,7 +23,7 @@ Supply chain provenance tracking and contamination response patterns.
 
 **Recall Assessment**: Algorithm evaluating contamination impact. Inputs: flagged lot IDs, contamination type, temperature breach thresholds. Output: impacted lots, shipments, destinations, reasons.
 
-**Cross-Chain Oracle**: `TraceabilityAnchor.sol` accepts signed lot hashes from Fabric. `ORACLE_ADMIN_ROLE` manages the `oracleRegistry` of authorized bridge operators, and the contract requires the oracle signer to be `msg.sender`. Registry checks plus signature verification prevent unauthorized anchoring.
+**Cross-Chain Oracle**: `TraceabilityAnchor.sol` accepts signed lot hashes from Fabric. `ORACLE_ADMIN_ROLE` manages the `oracleRegistry`. Contract requires oracle signer to be `msg.sender`. Registry checks plus signature verification prevent unauthorized anchoring.
 
 ## Architecture
 
@@ -72,6 +72,31 @@ RecallAssessment {
   reasons: string[]
 }
 
+ProductLot {
+  lotId: string
+  producer: string
+  product: string
+  harvestDate: Date
+  stateRoot: string
+}
+
+Shipment {
+  shipmentId: string
+  lotId: string
+  origin: string
+  destination: string
+  departedAt: Date
+  arrivedAt?: Date
+}
+
+TelemetryReading {
+  shipmentId: string
+  sensorId: string
+  temperatureCelsius: number
+  location: string
+  recordedAt: Date
+}
+
 FoodTraceContract (Fabric chaincode)
 ├── createProduct(lotId, origin, producer, harvestedAt)
 ├── recordShipment(lotId, shipmentId, origin, destination, departedAt)
@@ -88,6 +113,14 @@ FoodTraceContract (Fabric chaincode)
 | Frozen     | < -18°C      | Critical if > -10°C    |
 | Ambient    | 15°C to 25°C | Medium if > 30°C       |
 
+## Must-Preserve Invariants
+
+1. **Repository port dependency**: `RecallAssessor` depends on `TraceabilityRepository` interface, not concrete store
+2. **Assessment completeness**: `RecallAssessment` includes all four fields (lots, shipments, destinations, reasons)
+3. **Breach detection**: Telemetry exceeding `maxTemperatureCelsius` triggers reason entry
+4. **Supplier tracing**: Lots from `suspectSuppliers` included even without temperature breach
+5. **Cross-chain binding**: `TraceabilityAnchor.sol` verifies oracle signature matches `msg.sender`
+
 ## Anti-patterns
 
 **Storing telemetry on public ledger**: Temperature readings are operational data. Use Fabric transient data or private data collections. Anchor only breach summaries.
@@ -100,6 +133,8 @@ FoodTraceContract (Fabric chaincode)
 
 **Ignoring contamination type**: Biological contamination (bacteria) spreads through contact. Chemical contamination (pesticide) is isolated to source lot. Assessment algorithms differ.
 
+**Direct protocol access in assessor**: `RecallAssessor` must not import Fabric/Besu SDKs. Use repository port for data access.
+
 ## Related Skills
 
 - [platform-selection](platform-selection.md) — Fabric vs Besu for traceability use cases
@@ -108,8 +143,11 @@ FoodTraceContract (Fabric chaincode)
 
 ## References
 
-- `modules/traceability/src/`
+- `modules/traceability/src/domain/entities.ts`
+- `modules/traceability/src/domain/ports.ts`
 - `modules/traceability/src/domain/recall.ts`
+- `modules/traceability/src/application/recall-assessor.ts`
+- `modules/traceability/src/infrastructure/in-memory-store.ts`
 - `contracts/solidity/src/TraceabilityAnchor.sol`
 - `contracts/fabric/FoodTraceContract.ts`
 - `examples/food-recall-response/index.ts`

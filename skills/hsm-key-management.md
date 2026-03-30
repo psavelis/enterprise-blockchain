@@ -43,7 +43,7 @@ Infrastructure Layer (modules/hsm/src/infrastructure/)
 └── audit-log.ts  → InMemoryAuditLog
 ```
 
-**Interface Segregation**: Separate interfaces for asymmetric operations, symmetric operations, and envelope encryption. Clients depend only on required capabilities.
+**Interface Segregation**: Separate services for asymmetric operations, symmetric operations, and envelope encryption. Clients depend only on required capabilities.
 
 **Dependency Inversion**: `HsmClient` facade composes services. Services depend on `KeyStore` and `AuditLog` ports, not implementations.
 
@@ -62,11 +62,47 @@ HsmClient
 ├── encryptWithEnvelope(kekLabel: string, plaintext: string): EnvelopeEncryptionResult
 ├── decryptWithEnvelope(wrappedDek: WrappedKey, encryptedRecord: EncryptedRecord): string
 └── getAuditLog(): readonly HsmAuditEntry[]
+
+HsmSlotConfig {
+  slotId: string
+  label: string
+}
+
+HsmKeyPair {
+  label: string
+  publicKey: string
+  algorithm: 'EC_P256'
+}
+
+HsmSignatureResult {
+  signature: string
+  algorithm: 'ECDSA_SHA256'
+}
+
+WrappedKey {
+  wrappedDek: string
+  kekLabel: string
+  algorithm: 'AES_256_WRAP'
+}
+
+EnvelopeEncryptionResult {
+  wrappedDek: WrappedKey
+  encryptedRecord: EncryptedRecord
+}
+
+EncryptedRecord {
+  ciphertext: string
+  iv: string
+  algorithm: 'AES_256_GCM'
+}
+
+HsmAuditEntry {
+  operation: string
+  keyLabel: string
+  timestamp: number
+  status: 'success' | 'failure'
+}
 ```
-
-**Initialization Required**: All operations throw if `initialize()` not called. Enforces explicit lifecycle management.
-
-**Immutable Audit**: `getAuditLog()` returns readonly snapshot. Callers cannot modify history.
 
 ## Security Constraints
 
@@ -76,6 +112,14 @@ HsmClient
 | Label uniqueness        | Prevents key collision attacks                     |
 | Algorithm pinning       | EC P-256 for asymmetric, AES-256-GCM for symmetric |
 | Audit on all operations | Compliance and forensics                           |
+
+## Must-Preserve Invariants
+
+1. **Initialization required**: All operations throw if `initialize()` not called
+2. **Immutable audit**: `getAuditLog()` returns readonly snapshot; callers cannot modify
+3. **Label uniqueness**: `generateKeyPair()` throws on duplicate label
+4. **Round-trip verification**: `verify(label, data, sign(label, data).signature) === true`
+5. **Envelope binding**: `WrappedKey.kekLabel` must match KEK used for unwrapping
 
 ## Anti-patterns
 
@@ -89,10 +133,22 @@ HsmClient
 
 **Ignoring audit log**: Audit entries are compliance artifacts. Export and archive before log rotation.
 
+**Hardcoding slot configuration**: Load `HsmSlotConfig` from environment or secure config. Never commit slot IDs.
+
+## Related Skills
+
+- [mpc-secret-sharing](mpc-secret-sharing.md) — Threshold key distribution for ceremonies
+- [post-quantum-crypto](post-quantum-crypto.md) — Hybrid schemes combining HSM with PQ algorithms
+- [selective-disclosure](selective-disclosure.md) — HSM-signed audit proofs
+
 ## References
 
 - `modules/hsm/src/index.ts`
+- `modules/hsm/src/domain/entities.ts`
 - `modules/hsm/src/domain/ports.ts`
+- `modules/hsm/src/application/asymmetric-key-service.ts`
+- `modules/hsm/src/application/symmetric-key-service.ts`
+- `modules/hsm/src/application/envelope-encryption-service.ts`
 - `examples/hsm-transaction-signing/index.ts`
 - `examples/hsm-key-ceremony/index.ts`
 - `examples/hsm-envelope-encryption/index.ts`

@@ -2,6 +2,20 @@
 
 Structured knowledge files for AI coding agents. Each skill provides domain context, implementation patterns, and architectural guidance for enterprise blockchain development.
 
+## Quick Reference
+
+| Task                                         | Skill                                                 |
+| -------------------------------------------- | ----------------------------------------------------- |
+| Choose Besu vs Fabric vs Corda               | [platform-selection](platform-selection.md)           |
+| Add retry/circuit breaker to SDK client      | [integration-adapters](integration-adapters.md)       |
+| Deploy Solidity contract with access control | [smart-contract-patterns](smart-contract-patterns.md) |
+| Sign transactions with HSM                   | [hsm-key-management](hsm-key-management.md)           |
+| Implement sealed-bid auction                 | [mpc-secret-sharing](mpc-secret-sharing.md)           |
+| Add quantum-resistant anchoring              | [post-quantum-crypto](post-quantum-crypto.md)         |
+| Project order data per audience              | [selective-disclosure](selective-disclosure.md)       |
+| Track supply chain provenance                | [traceability-recall](traceability-recall.md)         |
+| Find example for use case                    | [examples-catalog](examples-catalog.md)               |
+
 ## Skill Dependency Graph
 
 ```
@@ -19,30 +33,44 @@ Structured knowledge files for AI coding agents. Each skill provides domain cont
          │                 │                 │
          └─────────────────┼─────────────────┘
                            │
+              ┌────────────┼────────────┐
+              ▼            │            ▼
+      hsm-key-management   │    post-quantum-crypto
+                           │
                            ▼
-                   hsm-key-management
+                   examples-catalog
 ```
 
 ## Architecture Principles
 
-All skills enforce:
+All modules enforce:
 
-- **SOLID**: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion
-- **Hexagonal Architecture**: Ports define contracts; adapters implement infrastructure
-- **Clean Architecture**: Domain logic isolated from framework and I/O concerns
-- **Object Calisthenics**: Small methods, minimal nesting, first-class collections, no getters/setters on domain objects
+- **Hexagonal Architecture**: Domain depends on port interfaces. Adapters implement ports. No direct SDK imports in domain.
+- **Interface Segregation (ISP)**: Clients split into focused interfaces. Consumers depend only on required capabilities.
+- **Dependency Inversion**: High-level modules depend on abstractions, not concrete implementations.
+- **Clean Architecture**: Domain → Application → Infrastructure. Dependencies point inward only.
+
+Layer responsibilities:
+
+```
+Domain Layer      → Entities, value objects, repository ports, domain services
+Application Layer → Use case orchestration, depends on domain ports
+Infrastructure    → SDK clients, database adapters, protocol adapters
+```
 
 ## Skills Index
 
-| Skill                                                 | Domain                                                     |
-| ----------------------------------------------------- | ---------------------------------------------------------- |
-| [platform-selection](platform-selection.md)           | Protocol selection criteria for Besu, Fabric, Corda        |
-| [selective-disclosure](selective-disclosure.md)       | Audience-based field projection, signed audit proofs       |
-| [hsm-key-management](hsm-key-management.md)           | Hardware key storage, envelope encryption, key ceremonies  |
-| [mpc-secret-sharing](mpc-secret-sharing.md)           | Additive shares, Shamir threshold, commitment verification |
-| [traceability-recall](traceability-recall.md)         | Lot anchoring, shipment telemetry, recall assessment       |
-| [integration-adapters](integration-adapters.md)       | SDK clients, retry policies, gas/nonce management          |
-| [smart-contract-patterns](smart-contract-patterns.md) | AccessControl, Pausable, UUPS, invariant testing           |
+| Skill                                                 | Domain                                    | Key Modules                  |
+| ----------------------------------------------------- | ----------------------------------------- | ---------------------------- |
+| [platform-selection](platform-selection.md)           | Protocol selection                        | `modules/protocols/*`        |
+| [integration-adapters](integration-adapters.md)       | SDK clients, retry, circuit breakers      | `modules/integrations/*`     |
+| [smart-contract-patterns](smart-contract-patterns.md) | Solidity, Foundry, OpenZeppelin           | `contracts/solidity/*`       |
+| [hsm-key-management](hsm-key-management.md)           | Hardware key storage, envelope encryption | `modules/hsm/*`              |
+| [mpc-secret-sharing](mpc-secret-sharing.md)           | Additive shares, Shamir SSS               | `modules/mpc/*`              |
+| [post-quantum-crypto](post-quantum-crypto.md)         | ML-KEM, ML-DSA, hash ladders              | `modules/mpc/src/quantum.ts` |
+| [selective-disclosure](selective-disclosure.md)       | Audience projection, audit proofs         | `modules/privacy/*`          |
+| [traceability-recall](traceability-recall.md)         | Lot anchoring, recall assessment          | `modules/traceability/*`     |
+| [examples-catalog](examples-catalog.md)               | 19 runnable examples                      | `examples/*`                 |
 
 ## Skill Structure
 
@@ -52,8 +80,9 @@ All skills enforce:
 3. Key Concepts      — domain terms, relationships
 4. Architecture      — layers, ports, adapters
 5. Implementation    — code structure, API surface
-6. Anti-patterns     — common mistakes with explanations
-7. References        — repo file paths
+6. Must-Preserve     — invariants AI agents cannot violate
+7. Anti-patterns     — common mistakes with explanations
+8. References        — repo file paths
 ```
 
 ## Quality Standards
@@ -63,6 +92,7 @@ All skills enforce:
 - Explain trade-offs and decision criteria
 - Document anti-patterns with rationale
 - Under 2,000 words per skill
+- Include must-preserve invariants for feature safety
 
 ## Commit Standards
 

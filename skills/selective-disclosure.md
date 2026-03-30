@@ -28,11 +28,11 @@ Audience-based field projection with cryptographic audit proofs.
 
 ```
 Domain Layer (modules/privacy/src/domain/)
-├── entities.ts      → PurchaseOrder, SharedOrderView, SignedAuditProof
+├── entities.ts      → PurchaseOrder, SharedOrderView, SignedAuditProof, Audience
 └── ports.ts         → OrderRepository interface
 
 Application Layer (modules/privacy/src/application/)
-└── view-projector.ts → ViewProjector (depends on port, optional HsmClient)
+└── view-projector.ts → ViewProjector
 
 Infrastructure Layer (modules/privacy/src/infrastructure/)
 └── in-memory-store.ts → InMemoryOrderRepository implements OrderRepository
@@ -54,17 +54,59 @@ ViewProjector
 │   )
 └── createView(orderId: string, audience: Audience): SharedOrderView
 
+Audience = 'logistics' | 'bank' | 'regulator' | 'supplier'
+
+PurchaseOrder {
+  orderId: string
+  buyerId: string
+  sellerId: string
+  product: string
+  quantity: number
+  unitPrice: number
+  totalValue: number
+  currency: string
+  shipmentAddress: string
+  paymentTerms: string
+  regulatoryCode: string
+}
+
 SharedOrderView {
   orderId: string
   audience: Audience
   data: Record<string, string | number>
   auditProof: string | SignedAuditProof
 }
+
+SignedAuditProof {
+  hash: string
+  signature: string
+  signerKeyLabel: string
+  timestamp: number
+}
 ```
 
-**Without HSM**: `auditProof = sha256hex(JSON.stringify(order))`
+## Field Visibility Matrix
 
-**With HSM**: `auditProof = { hash, signature, signerKeyLabel, timestamp }`
+| Field           | logistics | bank | regulator | supplier |
+| --------------- | --------- | ---- | --------- | -------- |
+| orderId         | ✓         | ✓    | ✓         | ✓        |
+| product         | ✓         |      | ✓         | ✓        |
+| quantity        | ✓         |      | ✓         | ✓        |
+| shipmentAddress | ✓         |      |           |          |
+| totalValue      |           | ✓    | ✓         |          |
+| currency        |           | ✓    | ✓         |          |
+| paymentTerms    |           | ✓    |           |          |
+| regulatoryCode  |           |      | ✓         |          |
+| buyerId         |           |      | ✓         |          |
+| sellerId        |           |      | ✓         | ✓        |
+
+## Must-Preserve Invariants
+
+1. **Projection determinism**: Same `(orderId, audience)` always produces identical `data` fields
+2. **Audit proof binding**: `auditProof` hash covers full source order, not just projected fields
+3. **HSM signature presence**: If `hsm` and `signerKeyLabel` provided, `auditProof` is `SignedAuditProof`
+4. **Type union handling**: Always type-guard before accessing `SignedAuditProof` properties
+5. **Repository dependency**: `ViewProjector` never accesses storage directly; uses `OrderRepository.findById()`
 
 ## Anti-patterns
 
@@ -82,6 +124,10 @@ if (typeof view.auditProof !== "string") {
 
 **Projecting at query time**: Compute projections at write time when possible. Query-time projection increases latency and complicates caching.
 
+**Hardcoding audience rules**: Field visibility rules should be configurable, not embedded in `ViewProjector`. Current implementation uses fixed rules for demo.
+
+**Ignoring missing orders**: `createView()` throws if order not found. Always handle `OrderNotFoundError`.
+
 ## Related Skills
 
 - [hsm-key-management](hsm-key-management.md) — HSM configuration for `SignedAuditProof`
@@ -90,6 +136,9 @@ if (typeof view.auditProof !== "string") {
 ## References
 
 - `modules/privacy/src/domain/entities.ts`
+- `modules/privacy/src/domain/ports.ts`
 - `modules/privacy/src/application/view-projector.ts`
+- `modules/privacy/src/infrastructure/in-memory-store.ts`
 - `examples/consortium-order-sharing/index.ts`
+- `examples/selective-attribute-disclosure/index.ts`
 - `tests/privacy.test.ts`
