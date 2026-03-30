@@ -24,6 +24,7 @@
     "contracts/solidity/out": true,
     "contracts/solidity/cache": true,
     "contracts/solidity/lib": true,
+    "contracts/fabric/node_modules": true,
     "dist": true
   },
   "search.exclude": {
@@ -31,6 +32,7 @@
     "contracts/solidity/lib": true,
     "contracts/solidity/out": true,
     "contracts/solidity/cache": true,
+    "contracts/fabric/node_modules": true,
     "dist": true
   },
   "files.watcherExclude": {
@@ -38,15 +40,35 @@
     "contracts/solidity/lib/**": true,
     "contracts/solidity/out/**": true,
     "contracts/solidity/cache/**": true,
+    "contracts/fabric/node_modules/**": true,
     "dist/**": true
   },
   "typescript.preferences.importModuleSpecifier": "relative",
+
+  // Solidity extension settings
   "solidity.compileUsingRemoteVersion": "v0.8.24+commit.e11b9ed9",
-  "solidity.packageDefaultDependenciesContractsDirectory": "contracts",
+  "solidity.packageDefaultDependenciesContractsDirectory": "src",
   "solidity.packageDefaultDependenciesDirectory": "lib",
   "solidity.remappings": [
     "forge-std/=contracts/solidity/lib/forge-std/src/",
     "@openzeppelin/contracts/=contracts/solidity/lib/openzeppelin-contracts/contracts/",
     "@openzeppelin/contracts-upgradeable/=contracts/solidity/lib/openzeppelin-contracts-upgradeable/contracts/"
+  ],
+  // Exclude submodule test/script files from Solidity analysis
+  "solidity.sources": "contracts/solidity/src",
+
+  // Wake extension settings - exclude submodules
+  "wake.compiler.solc.remappings": [
+    "forge-std/=contracts/solidity/lib/forge-std/src/",
+    "@openzeppelin/contracts/=contracts/solidity/lib/openzeppelin-contracts/contracts/",
+    "@openzeppelin/contracts-upgradeable/=contracts/solidity/lib/openzeppelin-contracts-upgradeable/contracts/"
+  ],
+  "wake.compiler.solc.exclude": [
+    "contracts/solidity/lib/**/test/**",
+    "contracts/solidity/lib/**/tests/**",
+    "contracts/solidity/lib/**/scripts/**",
+    "contracts/solidity/lib/**/script/**",
+    "contracts/solidity/lib/**/certora/**",
+    "contracts/solidity/lib/**/mocks/**"
   ]
 }
