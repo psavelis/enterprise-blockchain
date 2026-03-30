@@ -23,6 +23,7 @@
     "**/node_modules": true,
     "contracts/solidity/out": true,
     "contracts/solidity/cache": true,
+    "contracts/solidity/lib": true,
     "dist": true
   },
   "search.exclude": {

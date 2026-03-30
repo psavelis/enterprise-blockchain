@@ -4,5 +4,5 @@
     "esbenp.prettier-vscode",
     "JuanBlanco.solidity"
   ],
-  "unwantedRecommendations": []
+  "unwantedRecommendations": ["ackeeblockchain.tools-for-solidity"]
 }

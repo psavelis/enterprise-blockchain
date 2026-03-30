@@ -1,0 +1,5 @@
+# Wake extension configuration
+# Exclude Foundry library dependencies from analysis
+
+[compiler.solc]
+exclude_paths = ["lib"]
