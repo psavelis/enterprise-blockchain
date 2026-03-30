@@ -1,65 +1,136 @@
-# Skill: Integration Adapters & Resilience Patterns
+# Integration Adapters
 
-## When to use
+SDK client patterns with retry logic, circuit breakers, and blockchain-specific concerns.
 
-When connecting domain modules to real blockchain platform runtimes (Besu JSON-RPC, Fabric gRPC Gateway, Corda REST) and need retry logic, circuit breakers, gas estimation, or nonce management.
+## When to Use
 
-## Key concepts
+- Connecting domain modules to Besu JSON-RPC, Fabric gRPC Gateway, or Corda REST
+- Implementing retry policies with exponential backoff
+- Managing EVM nonces for concurrent transaction submission
+- Estimating gas with fallback to manual override
 
-- **Protocol adapter**: Transforms domain events into platform-specific transaction shapes (e.g., `BesuSelectiveDisclosureAdapter.publishAudienceView()` → `BesuContractCall`). Stateless, no I/O.
-- **Integration client sketch**: Thin wrapper around platform SDKs (ethers, fabric-gateway, HTTP) that handles connection, signing, and submission. Contains I/O.
-- **Retry policy**: Exponential backoff with jitter. Platform-specific defaults: Fabric (5 retries, 500ms base), Besu (3 retries, 1000ms base), Corda (4 retries, 750ms base).
-- **Circuit breaker**: Three-state machine (CLOSED → OPEN → HALF_OPEN → CLOSED). Opens after N failures, auto-resets after a cooldown period.
-- **Nonce management**: ethers `NonceManager` wraps a `Wallet` to auto-sequence concurrent transactions from the same account. Critical for consortium deployments.
-- **Gas estimation**: `estimateGas()` RPC call before building transactions. Supports manual override for known-cost operations.
+## When NOT to Use
 
-## Implementation pattern
+- Protocol-agnostic domain logic (use protocol adapters instead)
+- Mock/simulation environments (use in-memory implementations)
+- Batch operations requiring transaction atomicity
+
+## Key Concepts
+
+**Protocol Adapter vs Integration Client**: Adapters transform domain events to transaction shapes (stateless, no I/O). Clients handle SDK connection, signing, and submission (stateful, I/O).
+
+**Retry Policy**: Exponential backoff with jitter. Parameters: `maxRetries`, `baseDelayMs`, `backoffFactor`. Jitter prevents thundering herd on recovery.
+
+**Circuit Breaker**: Three-state machine: CLOSED → OPEN → HALF_OPEN → CLOSED. Opens after N consecutive failures. Auto-resets after cooldown. Prevents cascade failures.
+
+**Nonce Management**: EVM transactions require sequential nonces. `NonceManager` wraps `Wallet` to auto-sequence concurrent submissions from same account.
+
+**Gas Estimation**: `eth_estimateGas` RPC before building transaction. Returns 0 on free-gas networks (dev mode). Always support manual override.
+
+## Architecture
 
 ```
-RetryPolicy { maxRetries, baseDelayMs, backoffFactor, jitter }
-withRetry(fn, policy) → Promise<T>   // exponential backoff with jitter
-CircuitBreaker(threshold, cooldownMs)
-  ├── execute(fn) → Promise<T>
-  ├── state: 'CLOSED' | 'OPEN' | 'HALF_OPEN'
-  └── reset()
+Integration Layer (modules/integrations/)
+├── shared/src/
+│   ├── retry.ts  → RetryPolicy, withRetry(), CircuitBreaker
+│   └── env.ts    → Environment variable loading
+├── besu-client/src/
+│   ├── ports.ts       → ISP-compliant interfaces
+│   ├── index.ts       → Implementations
+│   └── error-mapper.ts → Blockchain error extraction
+├── fabric-gateway/src/
+│   ├── ports.ts  → ISP-compliant interfaces
+│   └── index.ts  → Implementations
+└── corda-gateway/src/
+    ├── ports.ts  → ISP-compliant interfaces
+    └── index.ts  → Implementations
+```
 
-# Besu (ISP-compliant interfaces)
+**Interface Segregation (ISP)**: Clients split into focused interfaces. Consumers depend only on required capabilities:
+
+```typescript
+// Besu
 IBesuProfileFactory     → createProfileFromEnv(), createProfile()
-IBesuProviderFactory    → createProvider(), createSigner(), createManagedSigner(), createContract()
+IBesuProviderFactory    → createProvider(), createSigner(), createManagedSigner()
 IBesuGasEstimator       → estimateGas(profile, tx, override?)
 IBesuTransactionBuilder → buildAnchorOrderTransaction(), buildAudienceViewTransaction()
-IBesuTransactionSender  → sendTransaction(signer, tx) → txHash
+IBesuTransactionSender  → sendTransaction(signer, tx)
 
-# Fabric (ISP-compliant interfaces)
+// Fabric
 IFabricProfileFactory    → createProfileFromEnv(), createProfile()
 IFabricConnectionFactory → createGrpcClient(), createIdentity(), createSigner()
 IFabricGatewayFactory    → createGateway(), getContract()
 IFabricProposalBuilder   → buildRecordShipmentProposal(), buildEvaluateRecallRequest()
 
-# Corda (ISP-compliant interfaces)
+// Corda
 ICordaProfileFactory  → createProfileFromEnv(), createProfile()
 ICordaRequestBuilder  → buildIssueClearanceRequest()
 ICordaFlowInvoker     → invokeFlow(request)
-
-# Facade classes for backward compatibility
-BesuEthersClientSketch, FabricGatewayClientSketch, CordaGatewayClientSketch
 ```
 
-## Pitfalls
+## Retry Configuration
 
-- Don't retry non-idempotent operations without nonce management — you'll double-submit.
-- Circuit breakers should be scoped per-endpoint, not per-client — a failing peer shouldn't block the orderer.
-- Gas estimation against a dev-mode Besu node returns 0 for free-gas networks; always allow manual override.
-- Fabric transient data (private payloads) must be passed as `Uint8Array`, not strings.
+| Platform | Max Retries | Base Delay | Backoff Factor |
+| -------- | ----------- | ---------- | -------------- |
+| Fabric   | 5           | 500ms      | 2.0            |
+| Besu     | 3           | 1000ms     | 1.5            |
+| Corda    | 4           | 750ms      | 2.0            |
+
+## Error Mapping
+
+| Error Code          | Platform | Action                         |
+| ------------------- | -------- | ------------------------------ |
+| NONCE_TOO_LOW       | Besu     | Reset nonce manager, retry     |
+| INSUFFICIENT_FUNDS  | Besu     | Abort, surface to caller       |
+| ENDORSEMENT_FAILURE | Fabric   | Check peer availability, retry |
+| MVCC_READ_CONFLICT  | Fabric   | Retry with fresh read          |
+| FLOW_TIMEOUT        | Corda    | Increase timeout, retry once   |
+
+## Anti-patterns
+
+**Retrying non-idempotent operations without nonce management**: Double-submit risk. Always use `NonceManager` for EVM transactions.
+
+**Global circuit breaker**: Failing peer should not block orderer. Scope breakers per-endpoint or per-service.
+
+**Trusting dev-mode gas estimates**: Free-gas networks return 0. Always allow manual override via `gasLimit` parameter.
+
+**String encoding for Fabric transient data**: Private payloads must be `Uint8Array`. String encoding corrupts binary data.
+
+**Ignoring partial failures**: Batch submissions may partially succeed. Track individual transaction status, not just batch result.
+
+**Hardcoded timeouts**: Network conditions vary. Load timeouts from configuration. Default to conservative values.
+
+## Implementation
+
+```typescript
+RetryPolicy {
+  maxRetries: number
+  baseDelayMs: number
+  backoffFactor: number
+  jitter: boolean
+}
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  policy: RetryPolicy
+): Promise<T>
+
+class CircuitBreaker {
+  constructor(threshold: number, cooldownMs: number)
+  execute<T>(fn: () => Promise<T>): Promise<T>
+  get state(): 'CLOSED' | 'OPEN' | 'HALF_OPEN'
+  reset(): void
+}
+```
 
 ## References
 
-- `modules/integrations/shared/src/retry.ts` — retry policies, circuit breaker
-- `modules/integrations/besu-client/src/ports.ts` — ISP interfaces
-- `modules/integrations/besu-client/src/error-mapper.ts` — error code extraction
-- `modules/integrations/besu-client/src/index.ts` — implementations
-- `modules/integrations/fabric-gateway/src/ports.ts` — ISP interfaces
-- `modules/integrations/fabric-gateway/src/index.ts` — implementations
-- `modules/integrations/corda-gateway/src/ports.ts` — ISP interfaces
-- `modules/integrations/corda-gateway/src/index.ts` — implementations
+- `modules/integrations/shared/src/retry.ts`
+- `modules/integrations/besu-client/src/ports.ts`
+- `modules/integrations/besu-client/src/index.ts`
+- `modules/integrations/besu-client/src/error-mapper.ts`
+- `modules/integrations/fabric-gateway/src/ports.ts`
+- `modules/integrations/fabric-gateway/src/index.ts`
+- `modules/integrations/corda-gateway/src/ports.ts`
+- `modules/integrations/corda-gateway/src/index.ts`
 - `tests/integrations.test.ts`

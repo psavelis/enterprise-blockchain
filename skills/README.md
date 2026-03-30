@@ -1,25 +1,44 @@
-# AI Skills
+# Skills
 
-This directory contains structured knowledge files designed for AI agents and coding assistants. Each skill covers a domain pattern from the repository with enough context for an agent to reason about design decisions, generate code, or answer architectural questions.
+Structured knowledge files for AI coding agents. Each skill provides domain context, implementation patterns, and architectural guidance for enterprise blockchain development.
 
-## Skills
+## Architecture Principles
 
-| Skill                                                    | Domain                                                                    |
-| -------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [platform-selection.md](platform-selection.md)           | Choosing between Besu, Fabric, and Corda for a given use case             |
-| [selective-disclosure.md](selective-disclosure.md)       | Audience-based field projection and signed audit proofs                   |
-| [hsm-key-management.md](hsm-key-management.md)           | HSM patterns: asymmetric signing, envelope encryption, key ceremonies     |
-| [mpc-secret-sharing.md](mpc-secret-sharing.md)           | Additive secret sharing, commitment verification, threshold authorization |
-| [traceability-recall.md](traceability-recall.md)         | Food-lot anchoring, shipment tracking, recall assessment                  |
-| [integration-adapters.md](integration-adapters.md)       | Protocol adapters, retry/circuit-breaker, gas/nonce management            |
-| [smart-contract-patterns.md](smart-contract-patterns.md) | AccessControl, Pausable, UUPS upgrades, invariant testing                 |
+All skills enforce:
 
-## Usage
+- **SOLID**: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion
+- **Hexagonal Architecture**: Ports define contracts; adapters implement infrastructure
+- **Clean Architecture**: Domain logic isolated from framework and I/O concerns
+- **Object Calisthenics**: Small methods, minimal nesting, first-class collections, no getters/setters on domain objects
 
-AI agents can read these files to gain domain-specific context before generating code or answering questions about enterprise blockchain patterns. Each file is self-contained and follows a consistent structure:
+## Skills Index
 
-1. **When to use** — problem description and trigger conditions
-2. **Key concepts** — domain terms and relationships
-3. **Implementation pattern** — code structure and API surface
-4. **Pitfalls** — common mistakes and how to avoid them
-5. **References** — pointers to relevant repo files
+| Skill                                                 | Domain                                                     |
+| ----------------------------------------------------- | ---------------------------------------------------------- |
+| [platform-selection](platform-selection.md)           | Protocol selection criteria for Besu, Fabric, Corda        |
+| [selective-disclosure](selective-disclosure.md)       | Audience-based field projection, signed audit proofs       |
+| [hsm-key-management](hsm-key-management.md)           | Hardware key storage, envelope encryption, key ceremonies  |
+| [mpc-secret-sharing](mpc-secret-sharing.md)           | Additive shares, Shamir threshold, commitment verification |
+| [traceability-recall](traceability-recall.md)         | Lot anchoring, shipment telemetry, recall assessment       |
+| [integration-adapters](integration-adapters.md)       | SDK clients, retry policies, gas/nonce management          |
+| [smart-contract-patterns](smart-contract-patterns.md) | AccessControl, Pausable, UUPS, invariant testing           |
+
+## Skill Structure
+
+```
+1. When to Use       — trigger conditions
+2. When NOT to Use   — anti-patterns, wrong scenarios
+3. Key Concepts      — domain terms, relationships
+4. Architecture      — layers, ports, adapters
+5. Implementation    — code structure, API surface
+6. Anti-patterns     — common mistakes with explanations
+7. References        — repo file paths
+```
+
+## Quality Standards
+
+- Third-person voice: "Implements X" not "I help with X"
+- Specific triggers: "Use when integrating Fabric Gateway SDK" not "Helps with Fabric"
+- Explain trade-offs and decision criteria
+- Document anti-patterns with rationale
+- Under 2,000 words per skill
