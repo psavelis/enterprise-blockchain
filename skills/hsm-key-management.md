@@ -1,42 +1,97 @@
-# Skill: HSM Key Management Patterns
+# HSM Key Management
 
-## When to use
+Hardware security module patterns for blockchain transaction signing and data encryption.
 
-When blockchain transactions or audit proofs require hardware-backed signing, envelope encryption for sensitive data at rest, or multi-custodian key ceremonies.
+## When to Use
 
-## Key concepts
+- Transaction signing requiring hardware-backed private keys
+- Envelope encryption for sensitive data at rest
+- Multi-custodian key ceremonies with threshold recovery
+- Audit-compliant cryptographic operations
 
-- **HsmClient**: Facade over asymmetric key, symmetric key, and envelope encryption services. Must call `initialize({ slotId, label })` before use.
-- **Asymmetric signing**: EC P-256 key generation + ECDSA-SHA256 signing. Used for transaction signing and audit proof commitments.
-- **Envelope encryption**: DEK (data encryption key) encrypted under a KEK (key encryption key) stored in the HSM. The HSM never exposes the KEK.
-- **Key ceremony**: Combines HSM root key generation with Shamir threshold sharing (e.g., 3-of-5 custodians) so no single person holds the full key.
+## When NOT to Use
 
-## Implementation pattern
+- Development/testing environments (use in-memory simulation)
+- Public key distribution (HSM stores private keys only)
+- Symmetric-only encryption without key hierarchy
+
+## Key Concepts
+
+**HSM Boundary**: Private keys never leave HSM hardware. All cryptographic operations execute inside the secure enclave. Only public keys and ciphertexts cross the boundary.
+
+**Envelope Encryption**: Two-tier key hierarchy. DEK (Data Encryption Key) encrypts payload. KEK (Key Encryption Key) wraps DEK. HSM holds KEK; wrapped DEK stored alongside ciphertext.
+
+**Key Ceremony**: Multi-party initialization combining HSM root key generation with Shamir threshold sharing. Requires k-of-n custodians to reconstruct. No single custodian holds complete key material.
+
+**Audit Log**: Immutable record of all HSM operations. Each entry includes operation type, key label, timestamp, and result status.
+
+## Architecture
 
 ```
+Application Layer (modules/hsm/src/application/)
+├── asymmetric-key-service.ts  → Sign, verify, export public key
+├── symmetric-key-service.ts   → Wrap, unwrap DEK
+└── envelope-encryption-service.ts → Encrypt/decrypt with envelope
+
+Domain Layer (modules/hsm/src/domain/)
+├── entities.ts  → KeyMetadata, WrappedKey, AuditEntry
+└── ports.ts     → KeyStore, AuditLog interfaces
+
+Infrastructure Layer (modules/hsm/src/infrastructure/)
+├── key-store.ts  → InMemoryKeyStore (simulation)
+└── audit-log.ts  → InMemoryAuditLog
+```
+
+**Interface Segregation**: Separate interfaces for asymmetric operations, symmetric operations, and envelope encryption. Clients depend only on required capabilities.
+
+**Dependency Inversion**: `HsmClient` facade composes services. Services depend on `KeyStore` and `AuditLog` ports, not implementations.
+
+## Implementation
+
+```typescript
 HsmClient
-  ├── generateKeyPair(label) → { publicKey, privateKey }
-  ├── sign(label, data)      → { signature, algorithm, keyLabel }
-  ├── verify(label, data, signature) → boolean
-  ├── exportPublicKey(label) → hex string
-  ├── generateSymmetricKey(label)
-  ├── wrapKey(dek, kekLabel) → WrappedKey
-  ├── unwrapKey(wrapped)     → Buffer
-  ├── encryptWithEnvelope(kekLabel, plaintext) → { wrappedDek, encryptedRecord }
-  └── decryptWithEnvelope(wrappedDek, encryptedRecord) → plaintext
+├── initialize(config: { slotId: number; label: string })
+├── generateKeyPair(label: string): KeyMetadata
+├── sign(label: string, data: Buffer): SignatureResult
+├── verify(label: string, data: Buffer, signature: Buffer): boolean
+├── exportPublicKey(label: string): string
+├── generateSymmetricKey(label: string): KeyMetadata
+├── wrapKey(dek: Buffer, kekLabel: string): WrappedKey
+├── unwrapKey(wrapped: WrappedKey): Buffer
+├── encryptWithEnvelope(kekLabel: string, plaintext: Buffer): EncryptedEnvelope
+├── decryptWithEnvelope(envelope: EncryptedEnvelope): Buffer
+└── getAuditLog(): readonly AuditEntry[]
 ```
 
-All operations are recorded in an `AuditLog` for compliance.
+**Initialization Required**: All operations throw if `initialize()` not called. Enforces explicit lifecycle management.
 
-## Pitfalls
+**Immutable Audit**: `getAuditLog()` returns readonly snapshot. Callers cannot modify history.
 
-- Never store private key material as plain strings in production — the in-memory implementations are for demonstration only.
-- Always call `initialize()` before any other method; the client throws if uninitialized.
-- The HSM client is not thread-safe — in concurrent environments, use one instance per goroutine/worker or serialize access.
+## Security Constraints
+
+| Constraint              | Rationale                                          |
+| ----------------------- | -------------------------------------------------- |
+| No private key export   | Keys bound to HSM hardware                         |
+| Label uniqueness        | Prevents key collision attacks                     |
+| Algorithm pinning       | EC P-256 for asymmetric, AES-256-GCM for symmetric |
+| Audit on all operations | Compliance and forensics                           |
+
+## Anti-patterns
+
+**Storing key material as strings**: In-memory implementations use `Buffer` for key bytes. Production HSMs return opaque handles. Never serialize private keys to strings.
+
+**Skipping initialization**: HSM slot binding is security-critical. Uninitialized client throws to prevent accidental plaintext operations.
+
+**Shared HSM instance across threads**: `HsmClient` is not thread-safe. Use one instance per worker or serialize access with mutex.
+
+**Reusing labels across key types**: Label `payment-key` for both asymmetric and symmetric keys causes type confusion. Use distinct naming: `payment-signer`, `payment-kek`.
+
+**Ignoring audit log**: Audit entries are compliance artifacts. Export and archive before log rotation.
 
 ## References
 
 - `modules/hsm/src/index.ts`
+- `modules/hsm/src/domain/ports.ts`
 - `examples/hsm-transaction-signing/index.ts`
 - `examples/hsm-key-ceremony/index.ts`
 - `examples/hsm-envelope-encryption/index.ts`
