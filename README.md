@@ -109,6 +109,10 @@ npm run example:quantum-safe-payment
 
 ## Protocol Adapters
 
+<p align="center">
+  <img src="big-picture-architecture.png" alt="Enterprise Blockchain - Big Picture" width="100%" />
+</p>
+
 The repository includes protocol adapters that map domain events into platform-specific transaction shapes.
 
 - `modules/protocols/fabric/`: Chaincode-style command generation for endorsement-driven workflows.
