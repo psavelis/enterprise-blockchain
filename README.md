@@ -150,17 +150,73 @@ For guided reading and presentation prep, use [docs/study-guide.md](docs/study-g
 
 ## Quality Gates
 
-Use the full validation command before publishing changes:
+### Purpose
+
+Enterprise blockchain systems demand correctness guarantees that exceed typical application standards. Cryptographic operations (MPC additive shares, Shamir threshold reconstruction, ML-KEM encapsulation, ML-DSA signing) produce silent failures when implemented incorrectly—no runtime exception, just compromised security. Protocol adapters must generate transaction shapes that precisely match Fabric chaincode, Besu contract ABIs, and Corda flow expectations. Hexagonal architecture boundaries prevent infrastructure concerns from leaking into domain logic, preserving testability and protocol portability. These quality gates enforce reproducibility across every example, maintain architectural invariants, and catch regressions before they reach any environment.
+
+### Local Verification Command
+
+Run the full quality gate locally before committing:
 
 ```bash
 npm run verify
 ```
 
-A GitHub Actions workflow is included to run the same checks on push and pull request.
+This aliases `npm run ci:core`, which executes five sequential checks:
 
-Environment templates for the integration examples live under `examples/config/`.
+```bash
+npm run format:check && npm run lint && npm run typecheck && npm run test && npm run examples
+```
 
-The Besu integration uses a contract ABI under `contracts/` (e.g., `ConsortiumOrderRegistry.sol` and its JSON ABI). Additional contract artifacts for Fabric and Corda may be added in dedicated PRs.
+| Step | Script         | Tool                          | Description                                                                                            |
+| ---- | -------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 1    | `format:check` | Prettier                      | Validates consistent formatting across all source files                                                |
+| 2    | `lint`         | ESLint + typescript-eslint    | Static analysis on `modules/`, `examples/`, `scripts/`, `tests/` with `--max-warnings=0`               |
+| 3    | `typecheck`    | `tsc --noEmit`                | TypeScript strict mode validation (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) |
+| 4    | `test`         | Node.js native test runner    | Executes `node --import tsx --test tests/**/*.test.ts`                                                 |
+| 5    | `examples`     | `scripts/run-all-examples.ts` | Runs every case study, protocol projection, MPC, HSM, and PQC demonstration                            |
+
+All five checks must pass. Any failure blocks the pipeline.
+
+### CI/CD Enforcement
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push to `main`/`master` and every pull request. It executes four parallel matrix jobs:
+
+- **Core validation** (`npm run ci:core`): Format, lint, typecheck, tests, primary examples
+- **Protocol projections** (`npm run ci:protocol-projections`): Fabric, Besu, Corda projection entrypoints
+- **Demo scripts** (`npm run ci:demos`): Adapter and integration client demonstrations
+- **Integration examples** (`npm run ci:integration-examples`): Fabric Gateway, Besu ethers, Corda REST sketches
+
+CI uses Node.js 22.13.0 with `npm ci` for deterministic installs. PRs receive automated status comments summarizing suite results. The `npm run verify` command is the single source of truth—passing locally guarantees CI success.
+
+### Detailed Quality Criteria
+
+- **Formatting & style**: Prettier enforces consistent whitespace, trailing commas, and quote style across TypeScript, JSON, and markdown
+- **Linting**: ESLint with `typescript-eslint/recommendedTypeChecked` catches type-aware issues; zero warnings tolerated
+- **Type safety**: TypeScript strict mode with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` prevents null/undefined surprises
+- **Testing**: Node.js native test runner validates domain logic, application services, and cross-module interactions
+- **Example execution**: Every demonstration script must run to completion without error, proving each pattern remains functional
+- **Architectural compliance**: Domain layers import no infrastructure; adapters implement ports without leaking protocol details; no circular dependencies
+- **Contribution hygiene**: Conventional Commits required; PRs address single concerns; no dead code, unused imports, or commented blocks
+
+### Blockchain-Specific Gates
+
+These gates exist because blockchain bugs are expensive and often irreversible:
+
+- **MPC correctness**: Additive secret sharing and Shamir reconstruction rely on precise field arithmetic—off-by-one errors silently corrupt computations
+- **Protocol fidelity**: Fabric endorsement policies, Besu gas estimation, and Corda flow serialization require exact transaction shapes; malformed payloads fail at network boundaries
+- **Quantum-resistance invariants**: ML-KEM and ML-DSA implementations must preserve ciphertext/signature lengths and decapsulation semantics across refactors
+- **Selective disclosure properties**: Audience projections and audit proof hashes must remain deterministic; any drift breaks cross-party verification
+- **Traceability chain integrity**: Lot anchoring and recall assessment depend on consistent hashing—corrupted state roots propagate through supply chain queries
+
+### How to Use
+
+1. **Before committing**: Run `npm run verify` locally. All five checks must pass.
+2. **On failure**: Fix the issue, re-run `npm run verify`. Do not push failing code.
+3. **Before opening PR**: Confirm `npm run verify` passes. CI will re-validate independently.
+4. **During review**: Reviewers run `npm run verify` to confirm changes integrate cleanly.
+
+Environment templates for the integration examples live under `examples/config/`. The Besu integration uses a contract ABI under `contracts/` (e.g., `ConsortiumOrderRegistry.sol` and its JSON ABI).
 
 ## Contributing
 
