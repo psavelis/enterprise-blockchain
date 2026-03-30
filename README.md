@@ -154,9 +154,13 @@ For guided reading and presentation prep, use [docs/study-guide.md](docs/study-g
 
 ## Quality Gates
 
-### Purpose
+Enterprise blockchain systems demand correctness guarantees that exceed typical application standards.
 
-Enterprise blockchain systems demand correctness guarantees that exceed typical application standards. Cryptographic operations (MPC additive shares, Shamir threshold reconstruction, ML-KEM encapsulation, ML-DSA signing) produce silent failures when implemented incorrectly—no runtime exception, just compromised security. Protocol adapters must generate transaction shapes that precisely match Fabric chaincode, Besu contract ABIs, and Corda flow expectations. Hexagonal architecture boundaries prevent infrastructure concerns from leaking into domain logic, preserving testability and protocol portability. These quality gates enforce reproducibility across every example, maintain architectural invariants, and catch regressions before they reach any environment.
+Cryptographic operations (MPC additive shares, Shamir threshold reconstruction, ML-KEM encapsulation, ML-DSA signing) produce silent failures when implemented incorrectly—no runtime exception, just compromised security.
+
+Protocol adapters must generate transaction shapes that precisely match Fabric chaincode, Besu contract ABIs, and Corda flow expectations. Hexagonal architecture boundaries prevent infrastructure concerns from leaking into domain logic, preserving testability and protocol portability.
+
+These quality gates enforce reproducibility across every example, maintain architectural invariants, and catch regressions before they reach any environment.
 
 ### Local Verification Command
 
