@@ -1,0 +1,25 @@
+# Snyk policy file
+# https://docs.snyk.io/scan-with-snyk/snyk-cli/using-snyk-policies
+version: v1.25.0
+
+# Exclude submodule dependencies from code analysis
+# These are third-party libraries maintained by their respective projects
+exclude:
+  code:
+    - contracts/solidity/lib/**
+
+# Ignore specific findings with justification
+ignore:
+  # SSRF in Corda Gateway - Mitigated with URL validation
+  # The validateGatewayUrl function enforces HTTPS and blocks private IP ranges
+  SNYK-JS-SSRF:
+    - "modules/integrations/corda-gateway/src/index.ts > *":
+        reason: "URL validation implemented - requires HTTPS and blocks private/internal IPs"
+        expires: 2027-03-30T00:00:00.000Z
+
+  # Test fixtures - Intentionally hardcoded for unit testing only
+  # These are fake keys with no cryptographic value
+  HardcodedNonCryptoSecret:
+    - "tests/**":
+        reason: "Test fixtures using intentionally fake keys for unit testing"
+        expires: 2027-03-30T00:00:00.000Z

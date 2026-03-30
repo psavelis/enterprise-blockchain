@@ -28,6 +28,7 @@ import {
   diffieHellman,
   generateKeyPairSync,
   hkdfSync,
+  createHash,
 } from "node:crypto";
 import type { KeyObject } from "node:crypto";
 
@@ -189,6 +190,15 @@ export class HybridKem {
   // ---------------------------------------------------------------------------
 
   /**
+   * Domain-specific salt for HKDF key derivation.
+   * Per RFC 5869, salt provides additional entropy for the extraction step.
+   * Using SHA-256 of domain string ensures cryptographic binding to this context.
+   */
+  static readonly #HKDF_SALT = createHash("sha256")
+    .update("enterprise-blockchain:hybrid-kem-v1:salt")
+    .digest();
+
+  /**
    * Derive a single 32-byte key from two independent shared secrets using
    * HKDF-SHA256.  The label "hybrid-kem-v1" acts as a domain separator.
    */
@@ -198,7 +208,7 @@ export class HybridKem {
       hkdfSync(
         "sha256",
         ikm,
-        Buffer.alloc(32, 0),
+        HybridKem.#HKDF_SALT,
         Buffer.from("hybrid-kem-v1", "utf8"),
         32,
       ),

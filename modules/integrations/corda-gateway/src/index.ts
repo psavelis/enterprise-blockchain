@@ -53,9 +53,55 @@ export class CordaRequestBuilder implements ICordaRequestBuilder {
   }
 }
 
+/**
+ * Validates that a URL is safe to fetch (SSRF protection).
+ * - Must be HTTPS protocol
+ * - Must not target private/internal IP ranges
+ * @throws Error if URL fails validation
+ */
+function validateGatewayUrl(urlString: string): URL {
+  const url = new URL(urlString);
+
+  // Require HTTPS for production gateway connections
+  if (url.protocol !== "https:") {
+    throw new Error(
+      `SSRF protection: Corda gateway URL must use HTTPS, got ${url.protocol}`,
+    );
+  }
+
+  // Block private/internal IP ranges
+  const hostname = url.hostname.toLowerCase();
+  const privatePatterns = [
+    /^localhost$/,
+    /^127\./,
+    /^10\./,
+    /^172\.(1[6-9]|2\d|3[01])\./,
+    /^192\.168\./,
+    /^169\.254\./, // link-local
+    /^0\./, // current network
+    /^\[::1\]$/, // IPv6 localhost
+    /^\[fc/, // IPv6 unique local
+    /^\[fd/, // IPv6 unique local
+    /^\[fe80:/, // IPv6 link-local
+  ];
+
+  for (const pattern of privatePatterns) {
+    if (pattern.test(hostname)) {
+      throw new Error(
+        `SSRF protection: Corda gateway URL must not target private networks`,
+      );
+    }
+  }
+
+  return url;
+}
+
 export class CordaFlowInvoker implements ICordaFlowInvoker {
   async invokeFlow(request: CordaGatewayRequest): Promise<Response> {
-    const response = await fetch(request.url, {
+    // Validate URL before making the request (SSRF protection)
+    const validatedUrl = validateGatewayUrl(request.url);
+
+    const response = await fetch(validatedUrl.toString(), {
       method: request.method,
       headers: request.headers,
       body: request.body,

@@ -42,11 +42,21 @@
 import {
   createCipheriv,
   createDecipheriv,
+  createHash,
   hkdfSync,
   randomBytes,
 } from "node:crypto";
 
 import { HybridKem } from "../../modules/mpc/src/hybrid-kem";
+
+/**
+ * Domain-specific salt for HKDF key derivation in quantum-safe payments.
+ * Per RFC 5869, salt provides additional entropy for the extraction step.
+ * Using SHA-256 of domain string ensures cryptographic binding to this context.
+ */
+const HKDF_SALT = createHash("sha256")
+  .update("enterprise-blockchain:quantum-safe-payment-v1:salt")
+  .digest();
 import { MlDsaSigner } from "../../modules/mpc/src/dsa";
 import { MPCEngine } from "../../modules/mpc/src/index";
 
@@ -210,7 +220,7 @@ const aesKey = Buffer.from(
   hkdfSync(
     "sha256",
     encap.combinedKey,
-    Buffer.alloc(32),
+    HKDF_SALT,
     `quantum-safe-payment-v1:${INSTRUCTION_ID}`,
     32,
   ),
@@ -245,7 +255,7 @@ const aesKeyRecovered = Buffer.from(
   hkdfSync(
     "sha256",
     decap.combinedKey,
-    Buffer.alloc(32),
+    HKDF_SALT,
     `quantum-safe-payment-v1:${INSTRUCTION_ID}`,
     32,
   ),
@@ -394,7 +404,7 @@ const attackerAesKey = Buffer.from(
   hkdfSync(
     "sha256",
     attackerDecap.combinedKey,
-    Buffer.alloc(32),
+    HKDF_SALT,
     `quantum-safe-payment-v1:${INSTRUCTION_ID}`,
     32,
   ),

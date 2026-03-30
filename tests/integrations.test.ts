@@ -6,6 +6,18 @@ import { BesuEthersClientSketch } from "../modules/integrations/besu-client/src/
 import { CordaGatewayClientSketch } from "../modules/integrations/corda-gateway/src/index";
 import { SelectiveDisclosureLedger } from "../modules/privacy/src/index";
 
+/**
+ * Test-only wallet private key. This is an intentionally fake key used
+ * exclusively for unit testing. It has no value and is not used in any
+ * production or testnet environment.
+ *
+ * Pattern: sequential hex digits repeated to fill 32 bytes.
+ * DO NOT use this key for any real transactions.
+ */
+// snyk:ignore[HardcodedNonCryptoSecret] - Intentional test fixture
+const TEST_WALLET_PRIVATE_KEY =
+  "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
 test("fabric gateway sketch builds shipment proposal plans with transient data", () => {
   const client = new FabricGatewayClientSketch();
 
@@ -268,8 +280,7 @@ test("createManagedSigner returns a NonceManager instance", () => {
     rpcUrl: "https://rpc.example.org",
     chainId: 1337,
     contractAddress: "0x0000000000000000000000000000000000001001",
-    walletPrivateKey:
-      "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    walletPrivateKey: TEST_WALLET_PRIVATE_KEY,
   };
 
   const signer = client.createManagedSigner(profile);
@@ -314,8 +325,7 @@ test("sendTransaction surfaces NONCE_TOO_LOW with actionable guidance", async ()
     rpcUrl: "https://rpc.example.org",
     chainId: 1337,
     contractAddress: "0x0000000000000000000000000000000000001001",
-    walletPrivateKey:
-      "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    walletPrivateKey: TEST_WALLET_PRIVATE_KEY,
   };
 
   const besuErr: Error & { code?: string } = new Error("nonce too low");
@@ -341,8 +351,7 @@ test("sendTransaction surfaces INSUFFICIENT_FUNDS with actionable guidance", asy
     rpcUrl: "https://rpc.example.org",
     chainId: 1337,
     contractAddress: "0x0000000000000000000000000000000000001001",
-    walletPrivateKey:
-      "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    walletPrivateKey: TEST_WALLET_PRIVATE_KEY,
   };
 
   const besuErr: Error & { code?: string } = new Error("insufficient funds");
