@@ -35,3 +35,6 @@ ci-results/
 # Misc
 medium.md
 coverage/
+
+# SBOM (generated on-demand)
+sbom.json

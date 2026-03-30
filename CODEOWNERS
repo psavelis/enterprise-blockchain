@@ -1,0 +1,30 @@
+# CODEOWNERS - Code review routing
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @psavelis
+
+# Smart contracts require Solidity expertise
+contracts/solidity/** @psavelis
+
+# Security-critical cryptographic modules
+modules/mpc/** @psavelis
+modules/hsm/** @psavelis
+
+# Protocol integration adapters
+modules/integrations/** @psavelis
+modules/protocols/** @psavelis
+
+# Infrastructure and DevOps
+infra/** @psavelis
+.github/** @psavelis
+
+# Architecture doctrine and AI skills
+skills/** @psavelis
+docs/architecture/** @psavelis
+
+# Core domain modules
+modules/traceability/** @psavelis
+modules/privacy/** @psavelis
+modules/credentialing/** @psavelis
+modules/aid-settlement/** @psavelis
