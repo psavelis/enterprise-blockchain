@@ -63,3 +63,11 @@ All skills enforce:
 - Explain trade-offs and decision criteria
 - Document anti-patterns with rationale
 - Under 2,000 words per skill
+
+## Commit Standards
+
+- No AI co-author attributions (`Co-Authored-By: Claude`, `Co-Authored-By: Copilot`, etc.)
+- No AI-generated badges or footers in commit messages
+- No "Generated with" disclaimers
+- Commits must read as if written by a human engineer
+- Follow Conventional Commits format without AI tooling markers

@@ -34,7 +34,8 @@ Application Layer (modules/hsm/src/application/)
 └── envelope-encryption-service.ts → Encrypt/decrypt with envelope
 
 Domain Layer (modules/hsm/src/domain/)
-├── entities.ts  → KeyMetadata, WrappedKey, AuditEntry
+├── entities.ts  → HsmSlotConfig, HsmKeyPair, HsmSignatureResult, WrappedKey,
+│                  EncryptedRecord, EnvelopeEncryptionResult, HsmAuditEntry
 └── ports.ts     → KeyStore, AuditLog interfaces
 
 Infrastructure Layer (modules/hsm/src/infrastructure/)
@@ -50,17 +51,17 @@ Infrastructure Layer (modules/hsm/src/infrastructure/)
 
 ```typescript
 HsmClient
-├── initialize(config: { slotId: number; label: string })
-├── generateKeyPair(label: string): KeyMetadata
-├── sign(label: string, data: Buffer): SignatureResult
-├── verify(label: string, data: Buffer, signature: Buffer): boolean
+├── initialize(config: HsmSlotConfig)  // { slotId: string; label: string }
+├── generateKeyPair(label: string): HsmKeyPair
+├── sign(label: string, data: string): HsmSignatureResult
+├── verify(label: string, data: string, signature: string): boolean
 ├── exportPublicKey(label: string): string
-├── generateSymmetricKey(label: string): KeyMetadata
-├── wrapKey(dek: Buffer, kekLabel: string): WrappedKey
+├── generateSymmetricKey(label: string): void
+├── wrapKey(plaintextDek: Buffer, kekLabel: string): WrappedKey
 ├── unwrapKey(wrapped: WrappedKey): Buffer
-├── encryptWithEnvelope(kekLabel: string, plaintext: Buffer): EncryptedEnvelope
-├── decryptWithEnvelope(envelope: EncryptedEnvelope): Buffer
-└── getAuditLog(): readonly AuditEntry[]
+├── encryptWithEnvelope(kekLabel: string, plaintext: string): EnvelopeEncryptionResult
+├── decryptWithEnvelope(wrappedDek: WrappedKey, encryptedRecord: EncryptedRecord): string
+└── getAuditLog(): readonly HsmAuditEntry[]
 ```
 
 **Initialization Required**: All operations throw if `initialize()` not called. Enforces explicit lifecycle management.

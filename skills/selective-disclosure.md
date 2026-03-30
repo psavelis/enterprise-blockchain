@@ -46,14 +46,18 @@ Infrastructure Layer (modules/privacy/src/infrastructure/)
 
 ```typescript
 ViewProjector
-├── constructor(repo: OrderRepository, hsm?: HsmClient, signerKeyLabel?: string)
-├── createView(orderId: string, audience: Audience): SharedOrderView
-└── private projectFields(order: PurchaseOrder, audience: Audience): Record<string, unknown>
+├── constructor(
+│     repo: OrderRepository,
+│     logger?: Logger,
+│     hsm?: HsmClient,
+│     signerKeyLabel?: string,
+│   )
+└── createView(orderId: string, audience: Audience): SharedOrderView
 
 SharedOrderView {
   orderId: string
   audience: Audience
-  data: Record<string, unknown>
+  data: Record<string, string | number>
   auditProof: string | SignedAuditProof
 }
 ```
@@ -71,7 +75,7 @@ SharedOrderView {
 **Type confusion on auditProof**: `SharedOrderView.auditProof` is union type. Always type-guard before accessing properties:
 
 ```typescript
-if (typeof view.auditProof === "object") {
+if (typeof view.auditProof !== "string") {
   console.log(view.auditProof.signature);
 }
 ```

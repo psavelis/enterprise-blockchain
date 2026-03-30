@@ -23,21 +23,21 @@ Supply chain provenance tracking and contamination response patterns.
 
 **Recall Assessment**: Algorithm evaluating contamination impact. Inputs: flagged lot IDs, contamination type, temperature breach thresholds. Output: impacted lots, shipments, destinations, reasons.
 
-**Cross-Chain Oracle**: `TraceabilityAnchor.sol` accepts signed lot hashes from Fabric. `ANCHOR_ORACLE` role authorizes bridge operators. Signature verification prevents unauthorized anchoring.
+**Cross-Chain Oracle**: `TraceabilityAnchor.sol` accepts signed lot hashes from Fabric. `ORACLE_ADMIN_ROLE` manages the `oracleRegistry` of authorized bridge operators, and the contract requires the oracle signer to be `msg.sender`. Registry checks plus signature verification prevent unauthorized anchoring.
 
 ## Architecture
 
 ```
 Domain Layer (modules/traceability/src/domain/)
-├── entities.ts  → FoodLot, Shipment, TelemetryReading, RecallDecision
-├── ports.ts     → LotRepository, ShipmentRepository interfaces
-└── recall.ts    → Contamination types, threshold constants
+├── entities.ts  → ProductLot, Shipment, TelemetryReading
+├── ports.ts     → TraceabilityRepository, TraceabilityWriter, TraceabilityStore
+└── recall.ts    → RecallRule, RecallAssessment
 
 Application Layer (modules/traceability/src/application/)
-└── recall-assessor.ts → RecallAssessor.assess(criteria): RecallDecision
+└── recall-assessor.ts → RecallAssessor.assess(rule): RecallAssessment
 
 Infrastructure Layer (modules/traceability/src/infrastructure/)
-└── in-memory-store.ts → InMemoryLotRepository, InMemoryShipmentRepository
+└── in-memory-store.ts → InMemoryTraceabilityStore
 
 Protocol Adapters
 ├── modules/protocols/fabric/src/index.ts  → recordShipment, anchorLot
@@ -56,16 +56,16 @@ Smart Contracts
 
 ```typescript
 RecallAssessor
-├── constructor(lotRepo: LotRepository, shipmentRepo: ShipmentRepository)
-└── assess(criteria: RecallCriteria): RecallDecision
+├── constructor(repo: TraceabilityRepository, logger?: Logger)
+└── assess(rule: RecallRule): RecallAssessment
 
-RecallCriteria {
-  flaggedLotIds?: string[]
-  contaminationType?: 'biological' | 'chemical'
-  temperatureBreachThreshold?: number
+RecallRule {
+  suspectSuppliers: string[]
+  flaggedLotIds: string[]
+  maxTemperatureCelsius: number
 }
 
-RecallDecision {
+RecallAssessment {
   impactedLotIds: string[]
   impactedShipmentIds: string[]
   impactedDestinations: string[]
@@ -73,11 +73,11 @@ RecallDecision {
 }
 
 FoodTraceContract (Fabric chaincode)
-├── createProduct(lotId, producer, product, harvestDate)
-├── recordShipment(shipmentId, lotId, origin, destination, timestamp)
-├── recordTelemetry(shipmentId, temperature, location, timestamp)
+├── createProduct(lotId, origin, producer, harvestedAt)
+├── recordShipment(lotId, shipmentId, origin, destination, departedAt)
+├── recordTelemetry(shipmentId, sensorId, metric, value, unit, recordedAt)
 ├── traceOrigin(lotId): ProvenanceChain
-└── assessRecall(criteria): RecallDecision
+└── assessRecall(lotId, metric, threshold): RecallAssessmentResult
 ```
 
 ## Temperature Thresholds

@@ -53,16 +53,17 @@ contracts/solidity/
 ### Access Control Setup
 
 ```solidity
-bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-bytes32 public constant SUBMITTER_ROLE = keccak256("SUBMITTER_ROLE");
+bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+bytes32 public constant ORACLE_ADMIN_ROLE = keccak256("ORACLE_ADMIN_ROLE");
 
 constructor(address admin) {
-    if (admin == address(0)) revert ZeroAdminAddress();
+    require(admin != address(0), "admin is the zero address");
     _grantRole(DEFAULT_ADMIN_ROLE, admin);
-    _grantRole(ADMIN_ROLE, admin);
+    _grantRole(PAUSER_ROLE, admin);
+    _grantRole(ORACLE_ADMIN_ROLE, admin);
 }
 
-function submitClaim(...) external onlyRole(SUBMITTER_ROLE) whenNotPaused {
+function anchorLot(...) external whenNotPaused {
     // ...
 }
 ```
@@ -126,7 +127,7 @@ contract Invariant is Test {
 
 ## Anti-patterns
 
-**Zero-address admin in constructor**: Locks contract permanently. Always validate: `if (admin == address(0)) revert ZeroAdminAddress();`
+**Zero-address admin in constructor**: Locks contract permanently. Always validate: `require(admin != address(0), "admin is the zero address");`
 
 **Forgetting `_disableInitializers()`**: UUPS implementation contract can be initialized by attacker. Call in constructor to prevent.
 
