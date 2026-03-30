@@ -51,9 +51,24 @@ Three examples show hardware security module patterns for production blockchain 
 2. `hsm-key-ceremony`: Root key ceremony combining HSM signing with 3-of-5 Shamir threshold custodianship (GlobalNet consortium).
 3. `hsm-envelope-encryption`: DEK/KEK envelope encryption for sensitive trade documents stored on a shared ledger (TradeFin platform).
 
+## Post-Quantum Cryptography Examples
+
+Three examples demonstrate NIST-standardized post-quantum algorithms (FIPS 203/204).
+
+1. `kyber-kem-key-exchange`: ML-KEM-768 key encapsulation for quantum-resistant key establishment.
+2. `hybrid-kem-settlement`: X25519 + ML-KEM-768 hybrid KEM for defense-in-depth key exchange.
+3. `quantum-safe-payment`: End-to-end quantum-safe payment flow using hybrid KEM and ML-DSA-65 signatures.
+
 ## Quick Start
 
 ```bash
+# Clone with submodules (required for Foundry contracts)
+git clone --recursive https://github.com/psavelis/enterprise-blockchain.git
+cd enterprise-blockchain
+
+# Or if already cloned without --recursive:
+git submodule update --init --recursive
+
 npm install
 npm run typecheck
 npm run test
@@ -81,6 +96,9 @@ npm run example:quantum-key-sharing
 npm run example:hsm-tx-signing
 npm run example:hsm-key-ceremony
 npm run example:hsm-envelope-encryption
+npm run example:kyber-kem
+npm run example:hybrid-kem
+npm run example:quantum-safe-payment
 ```
 
 ## Design Goals
