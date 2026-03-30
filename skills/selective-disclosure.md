@@ -1,38 +1,95 @@
-# Skill: Selective Disclosure & Privacy Patterns
+# Selective Disclosure
 
-## When to use
+Audience-based field projection with cryptographic audit proofs.
 
-When a consortium needs to share order data with multiple audiences (logistics, banks, regulators, suppliers) while hiding fields that each audience shouldn't see.
+## When to Use
 
-## Key concepts
+- Sharing order data with multiple parties (logistics, banks, regulators, suppliers)
+- Hiding sensitive fields per audience while proving data consistency
+- Generating non-repudiable audit trails with HSM-signed commitments
 
-- **Audience**: A role that receives a projected view of the original data (e.g., `logistics`, `bank`, `regulator`, `supplier`).
-- **Field projection**: A function that maps a full `PurchaseOrder` to a role-specific `Record<string, string | number>`, hiding sensitive fields.
-- **Audit proof**: A SHA-256 hash (or HSM-signed commitment) that ties the projected view back to the canonical order. Proves consistency without revealing hidden fields.
-- **SignedAuditProof**: When an HSM is available, the proof includes `{ hash, signature, signerKeyLabel, timestamp }` — making it non-repudiable (tied to a specific issuer and time).
+## When NOT to Use
 
-## Implementation pattern
+- Full data replication across all parties
+- Encryption-based access control (use envelope encryption instead)
+- Zero-knowledge proofs (this pattern uses hash commitments, not ZKPs)
+
+## Key Concepts
+
+**Audience**: Role-based data consumer (e.g., `logistics`, `bank`, `regulator`, `supplier`). Each audience receives a projected view with different visible fields.
+
+**Field Projection**: Pure function mapping full entity to audience-specific subset. No side effects. Deterministic output for identical inputs.
+
+**Audit Proof**: SHA-256 hash binding projected view to canonical source. Proves consistency without revealing hidden fields.
+
+**SignedAuditProof**: HSM-signed commitment including `{ hash, signature, signerKeyLabel, timestamp }`. Provides non-repudiation and temporal binding.
+
+## Architecture
 
 ```
-PurchaseOrder → ViewProjector.createView(orderId, audience) → SharedOrderView
-                ├── data: projected fields for audience
-                └── auditProof: string | SignedAuditProof
+Domain Layer (modules/privacy/src/domain/)
+├── entities.ts      → PurchaseOrder, SharedOrderView, SignedAuditProof
+└── ports.ts         → OrderRepository interface
+
+Application Layer (modules/privacy/src/application/)
+└── view-projector.ts → ViewProjector (depends on port, optional HsmClient)
+
+Infrastructure Layer (modules/privacy/src/infrastructure/)
+└── in-memory-store.ts → InMemoryOrderRepository implements OrderRepository
 ```
 
-- `ViewProjector` accepts optional `HsmClient` and `signerKeyLabel` in constructor.
-- Without HSM: `auditProof = sha256hex(JSON.stringify(order))` — plain hash.
-- With HSM: `auditProof = { hash: sha256hex(order+audience+timestamp), signature, signerKeyLabel, timestamp }`.
-- `SelectiveDisclosureLedger` is a convenience facade over `InMemoryOrderRepository` + `ViewProjector`.
+**Dependency Inversion**: `ViewProjector` depends on `OrderRepository` port, not concrete store. HSM integration is optional constructor parameter.
 
-## Pitfalls
+**Single Responsibility**: `ViewProjector` handles projection logic only. Storage, signing, and protocol serialization are separate concerns.
 
-- Don't assume the hash alone proves who created the view — without HSM signing, anyone with the order can recompute the same hash.
-- Protocol adapters must serialize `SignedAuditProof` to a string before passing to on-chain methods (the contract ABI expects `string`).
-- The `SharedOrderView.auditProof` is a union type — always check `typeof auditProof === "string"` before accessing properties.
+## Implementation
+
+```typescript
+ViewProjector
+├── constructor(
+│     repo: OrderRepository,
+│     logger?: Logger,
+│     hsm?: HsmClient,
+│     signerKeyLabel?: string,
+│   )
+└── createView(orderId: string, audience: Audience): SharedOrderView
+
+SharedOrderView {
+  orderId: string
+  audience: Audience
+  data: Record<string, string | number>
+  auditProof: string | SignedAuditProof
+}
+```
+
+**Without HSM**: `auditProof = sha256hex(JSON.stringify(order))`
+
+**With HSM**: `auditProof = { hash, signature, signerKeyLabel, timestamp }`
+
+## Anti-patterns
+
+**Assuming hash proves authorship**: Without HSM signing, any party with source data can compute identical hash. Hash alone proves consistency, not origin.
+
+**Mixing projection with serialization**: Protocol adapters serialize `SignedAuditProof` to string for on-chain storage. Keep serialization in adapter layer, not domain.
+
+**Type confusion on auditProof**: `SharedOrderView.auditProof` is union type. Always type-guard before accessing properties:
+
+```typescript
+if (typeof view.auditProof !== "string") {
+  console.log(view.auditProof.signature);
+}
+```
+
+**Projecting at query time**: Compute projections at write time when possible. Query-time projection increases latency and complicates caching.
+
+## Related Skills
+
+- [hsm-key-management](hsm-key-management.md) — HSM configuration for `SignedAuditProof`
+- [integration-adapters](integration-adapters.md) — Protocol serialization for on-chain storage
 
 ## References
 
-- `modules/privacy/src/application/view-projector.ts`
 - `modules/privacy/src/domain/entities.ts`
+- `modules/privacy/src/application/view-projector.ts`
 - `examples/consortium-order-sharing/index.ts`
 - `tests/privacy.test.ts`

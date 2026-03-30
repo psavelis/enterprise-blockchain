@@ -34,9 +34,29 @@ type(scope): short description
 Optional body with context.
 ```
 
-**Types:** `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `ci`, `perf`.
+**Types:** `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `ci`, `perf`, `style`, `build`, `revert`.
 
 **Scope examples:** `traceability`, `privacy`, `hsm`, `contracts`, `infra`.
+
+## Git Hooks
+
+The repository uses [husky](https://typicode.github.io/husky/) to enforce quality gates at commit time.
+
+**Pre-commit hook** runs [lint-staged](https://github.com/lint-staged/lint-staged):
+
+- Formats staged `.ts`, `.json`, `.md`, `.yml` files with Prettier
+- Lints staged TypeScript files with ESLint (`--max-warnings=0`)
+
+**Commit-msg hook** runs [commitlint](https://commitlint.js.org/):
+
+- Validates commit message format against Conventional Commits
+- Enforces kebab-case scopes and 100-character header limit
+
+Hooks install automatically via the `prepare` script when running `npm install`. To bypass hooks in exceptional cases:
+
+```bash
+git commit --no-verify -m "emergency fix"
+```
 
 ## Pull Request Process
 

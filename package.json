@@ -39,7 +39,8 @@
     "example:hsm-envelope-encryption": "tsx examples/hsm-envelope-encryption/index.ts",
     "example:kyber-kem": "tsx examples/kyber-kem-key-exchange/index.ts",
     "example:hybrid-kem": "tsx examples/hybrid-kem-settlement/index.ts",
-    "example:quantum-safe-payment": "tsx examples/quantum-safe-payment/index.ts"
+    "example:quantum-safe-payment": "tsx examples/quantum-safe-payment/index.ts",
+    "prepare": "husky"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.3",
@@ -48,14 +49,27 @@
     "ethers": "^6.16.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.13.10",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.57.0"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "prettier --write",
+      "eslint --fix --max-warnings=0"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }

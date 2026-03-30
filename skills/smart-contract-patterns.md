@@ -1,55 +1,160 @@
-# Skill: Solidity Smart Contract Patterns
+# Smart Contract Patterns
 
-## When to use
+Solidity patterns for permissioned enterprise blockchains (Besu/QBFT).
 
-When writing or reviewing Solidity contracts for permissioned enterprise blockchains (Besu/QBFT). Covers access control, emergency stops, upgradeability, and testing.
+## When to Use
 
-## Key concepts
+- Implementing access control with role-based permissions
+- Adding emergency stop (pause) capabilities
+- Deploying upgradeable contracts via UUPS proxy
+- Writing invariant tests with Foundry
 
-- **AccessControl (OpenZeppelin)**: Role-based permission system. Each contract defines roles (e.g., `ANCHOR_ADMIN`, `CLAIM_SUBMITTER`) and guards state-changing functions with `onlyRole()`.
-- **Pausable**: Emergency stop pattern. `pause()` / `unpause()` controlled by admin role. All state-changing functions check `whenNotPaused`.
-- **UUPS Proxy (ERC-1967)**: Upgradeable contracts using ERC-7201 namespaced storage. The logic contract includes `_authorizeUpgrade()` restricted to owner. Deploy via `ERC1967Proxy`.
-- **Invariant testing (Foundry)**: Stateful fuzz testing where a handler contract drives random operations and an invariant contract asserts properties that must always hold (e.g., consumed ≤ budget, settled + rejected == submitted).
+## When NOT to Use
 
-## Implementation pattern
+- Public mainnet contracts (different gas/security trade-offs)
+- Simple data anchoring without access control
+- Contracts requiring transparent proxy pattern
+
+## Key Concepts
+
+**AccessControl (OpenZeppelin)**: Role-based permission system. Roles defined as `bytes32` constants. Functions guarded with `onlyRole(ROLE)` modifier. Admin role manages role assignments.
+
+**Pausable**: Emergency stop pattern. Admin calls `pause()` to halt state-changing operations. `whenNotPaused` modifier guards protected functions. View functions remain accessible.
+
+**UUPS Proxy (ERC-1967)**: Upgradeable pattern where logic contract contains upgrade function. Uses ERC-7201 namespaced storage to prevent slot collisions. Proxy delegates all calls to implementation.
+
+**Invariant Testing**: Stateful fuzz testing. Handler contract exposes actions. Fuzzer calls handler methods with random inputs. Invariant contract asserts properties that must always hold.
+
+## Architecture
 
 ```
-Constructor validation:
-  if (admin == address(0)) revert ZeroAdminAddress();
+contracts/solidity/
+├── src/
+│   ├── AidSettlement.sol           → Non-upgradeable, AccessControl + Pausable
+│   ├── AidSettlementUpgradeable.sol → UUPS upgradeable version
+│   ├── ConsortiumOrderRegistry.sol  → Order anchoring with privacy groups
+│   └── TraceabilityAnchor.sol       → Cross-chain lot verification
+├── test/
+│   ├── AidSettlement.t.sol
+│   ├── AidSettlementUpgrade.t.sol
+│   ├── ConsortiumOrderRegistry.t.sol
+│   ├── TraceabilityAnchor.t.sol
+│   └── invariants/
+│       ├── AidSettlementHandler.sol
+│       └── AidSettlementInvariant.sol
+└── lib/
+    ├── forge-std/
+    ├── openzeppelin-contracts/
+    └── openzeppelin-contracts-upgradeable/
+```
 
-Role setup:
-  _grantRole(DEFAULT_ADMIN_ROLE, admin);
-  _grantRole(SPECIFIC_ROLE, admin);
+## Implementation Patterns
 
-UUPS upgrade:
-  contract V1 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
-    function initialize(address owner) external initializer {
-      __Ownable_init(owner);
-      __UUPSUpgradeable_init();
+### Access Control Setup
+
+```solidity
+bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+bytes32 public constant ORACLE_ADMIN_ROLE = keccak256("ORACLE_ADMIN_ROLE");
+
+constructor(address admin) {
+    require(admin != address(0), "admin is the zero address");
+    _grantRole(DEFAULT_ADMIN_ROLE, admin);
+    _grantRole(PAUSER_ROLE, admin);
+    _grantRole(ORACLE_ADMIN_ROLE, admin);
+}
+
+function anchorLot(...) external whenNotPaused {
+    // ...
+}
+```
+
+### UUPS Upgrade Pattern
+
+```solidity
+contract V1 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
     }
-    function _authorizeUpgrade(address) internal override onlyOwner {}
-  }
 
-Invariant test:
-  contract Handler { function doAction() external { ... } }
-  contract Invariant is Test {
-    function setUp() { targetContract(handler); }
-    function invariant_property() external view { assert(condition); }
-  }
+    function initialize(address owner) external initializer {
+        __Ownable_init(owner);
+        __UUPSUpgradeable_init();
+    }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
+}
 ```
 
-## Pitfalls
+### Invariant Test Structure
 
-- Always validate `admin != address(0)` in constructors — a zero-address admin locks the contract permanently.
-- UUPS contracts must call `_disableInitializers()` in the constructor to prevent implementation contract initialization.
-- Foundry invariant tests need a handler contract to mediate between the fuzzer and the target — don't let the fuzzer call the contract directly with random calldata.
-- Use `forge install` for OpenZeppelin contracts, not npm — Foundry resolves dependencies from `lib/`.
+```solidity
+contract Handler {
+    Target target;
+    constructor(Target _target) { target = _target; }
+
+    function doAction(uint256 input) external {
+        // Bound inputs, call target
+        target.action(bound(input, 0, 100));
+    }
+}
+
+contract Invariant is Test {
+    Handler handler;
+    Target target;
+
+    function setUp() public {
+        target = new Target();
+        handler = new Handler(target);
+        targetContract(address(handler));
+    }
+
+    function invariant_propertyHolds() external view {
+        assertLe(target.consumed(), target.budget());
+    }
+}
+```
+
+## Security Constraints
+
+| Constraint            | Implementation                          |
+| --------------------- | --------------------------------------- |
+| Zero-address admin    | Revert in constructor                   |
+| Re-entrancy           | Checks-effects-interactions pattern     |
+| Integer overflow      | Solidity 0.8+ built-in checks           |
+| Upgrade authorization | `onlyOwner` in `_authorizeUpgrade`      |
+| Initialization replay | `_disableInitializers()` in constructor |
+
+## Anti-patterns
+
+**Zero-address admin in constructor**: Locks contract permanently. Always validate: `require(admin != address(0), "admin is the zero address");`
+
+**Forgetting `_disableInitializers()`**: UUPS implementation contract can be initialized by attacker. Call in constructor to prevent.
+
+**Direct fuzzer-to-contract calls**: Fuzzer generates random calldata. Use handler contract to mediate and bound inputs.
+
+**npm for OpenZeppelin**: Foundry resolves dependencies from `lib/`. Use `forge install OpenZeppelin/openzeppelin-contracts`.
+
+**Mixing storage layouts in upgrades**: Adding storage variables in wrong position corrupts state. Use ERC-7201 namespaced storage or append-only slots.
+
+**View functions checking `whenNotPaused`**: Emergency pause should not block reads. Only guard state-changing functions.
+
+## Foundry Commands
+
+```bash
+forge build                    # Compile
+forge test                     # Run all tests
+forge test --match-test test_  # Run unit tests
+forge test --match-contract Invariant  # Run invariant tests
+forge coverage                 # Coverage report
+forge fmt                      # Format code
+```
 
 ## References
 
 - `contracts/solidity/src/AidSettlement.sol`
+- `contracts/solidity/src/AidSettlementUpgradeable.sol`
 - `contracts/solidity/src/ConsortiumOrderRegistry.sol`
 - `contracts/solidity/src/TraceabilityAnchor.sol`
-- `contracts/solidity/src/AidSettlementUpgradeable.sol`
 - `contracts/solidity/test/invariants/`
-- `docs/architecture/overview.md`
+- `docs/architecture/contract-upgrade-patterns.md`

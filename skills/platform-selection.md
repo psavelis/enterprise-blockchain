@@ -1,40 +1,72 @@
-# Skill: Platform Selection (Besu vs Fabric vs Corda)
+# Platform Selection
 
-## When to use
+Protocol selection framework for enterprise blockchain deployments.
 
-When deciding which enterprise blockchain platform fits a consortium's requirements, or when mapping a business scenario to the right protocol.
+## When to Use
 
-## Key concepts
+- Evaluating Besu vs Fabric vs Corda for a consortium use case
+- Mapping business requirements to protocol capabilities
+- Designing multi-protocol architectures with cross-chain anchoring
 
-- **Besu (EVM/Solidity)**: Permissioned Ethereum. Best for multi-party state anchoring with privacy groups. Supports ERC standards, Solidity tooling (Foundry/Hardhat), and JSON-RPC APIs.
-- **Fabric (Go/TypeScript chaincode)**: Channel-based privacy. Best for endorsement-driven workflows where organizations need fine-grained data isolation. Supports transient data for off-chain secrets.
-- **Corda (Kotlin flows)**: Point-to-point regulated workflows. Best for bilateral or trilateral transactions where only parties to a deal see the data. Uses notary consensus, not global ordering.
+## When NOT to Use
 
-## Decision matrix
+- Public blockchain selection (Ethereum mainnet, Polygon, etc.)
+- Layer 2 scaling decisions
+- Token economics design
 
-| Criterion               | Besu                                  | Fabric                                  | Corda                                   |
-| ----------------------- | ------------------------------------- | --------------------------------------- | --------------------------------------- |
-| Privacy model           | Privacy groups (Tessera)              | Channels + private data collections     | Point-to-point, need-to-know            |
-| Smart contract language | Solidity                              | Go, TypeScript, Java                    | Kotlin, Java                            |
-| Consensus               | IBFT2, QBFT, Clique                   | Raft, etcdraft                          | Notary (single or clustered)            |
-| Token standards         | ERC-20, ERC-721, ERC-1155             | Custom chaincode                        | None native                             |
-| Best fit                | Anchoring, settlement, token issuance | Supply chain, traceability, endorsement | Regulated finance, bilateral agreements |
+## Key Concepts
 
-## Implementation pattern
+| Protocol | Privacy Model                      | Consensus                 | Contract Language | Fit                                     |
+| -------- | ---------------------------------- | ------------------------- | ----------------- | --------------------------------------- |
+| Besu     | Privacy groups (Tessera)           | QBFT, IBFT2               | Solidity          | Settlement, token issuance, anchoring   |
+| Fabric   | Channels, private data collections | Raft, etcdraft            | Go, TypeScript    | Endorsement workflows, traceability     |
+| Corda    | Point-to-point, need-to-know       | Notary (single/clustered) | Kotlin            | Bilateral agreements, regulated finance |
+
+**Besu**: Permissioned EVM. Supports ERC standards, Solidity tooling (Foundry), JSON-RPC. Privacy groups isolate state between participant subsets.
+
+**Fabric**: Channel-based isolation. Endorsement policies define which peers must sign before commit. Transient data enables off-chain secrets.
+
+**Corda**: Flow-based bilateral transactions. Only parties to a deal see the data. Notary prevents double-spend without global ordering.
+
+## Architecture
 
 ```
-scenario → docs/architecture/scenario-to-protocol-mapping.md
-         → modules/protocols/{besu,fabric,corda}/src/index.ts  (adapter)
-         → modules/integrations/{besu-client,fabric-gateway,corda-gateway}/  (client sketch)
+Business Scenario
+    ↓
+docs/architecture/scenario-to-protocol-mapping.md
+    ↓
+modules/protocols/src/*-port.ts                                   ← Protocol Ports (Interfaces)
+    ↓
+modules/protocols/{besu,fabric,corda}/src/index.ts                ← Protocol Adapters (Port Implementations)
+    ↓
+modules/integrations/{besu-client,fabric-gateway,corda-gateway}/  ← SDK Clients (SDK Adapters)
 ```
 
-Each protocol adapter transforms domain events into platform-specific transaction shapes without coupling business logic to infrastructure.
+Protocol adapters implement the Ports pattern (Hexagonal Architecture):
 
-## Pitfalls
+- Domain modules depend on port interfaces, not SDK implementations
+- Adapters translate domain events to platform-specific transaction shapes
+- No business logic in adapters; transformation only
 
-- Don't pick Besu just because "Ethereum". Permissioned Besu has no public liquidity or token ecosystem.
-- Fabric channels are heavyweight — don't create one per transaction type.
-- Corda flows are bilateral by default; multi-party coordination requires additional design.
+## Decision Criteria
+
+| Criterion                  | Besu                   | Fabric                   | Corda           |
+| -------------------------- | ---------------------- | ------------------------ | --------------- |
+| EVM compatibility required | Yes                    | No                       | No              |
+| Multi-party endorsement    | Privacy groups         | Endorsement policies     | Flow sessions   |
+| Token standards            | ERC-20/721/1155        | Custom chaincode         | None native     |
+| Bilateral confidentiality  | Limited                | Private data collections | Native          |
+| Cross-chain anchoring      | Native (public anchor) | Requires oracle          | Requires oracle |
+
+## Anti-patterns
+
+**Selecting Besu for "Ethereum ecosystem"**: Permissioned Besu has no public liquidity, no token markets, no DeFi integrations. Ecosystem benefits do not transfer.
+
+**One Fabric channel per transaction type**: Channels are heavyweight (separate ledger, separate gossip). Use private data collections for field-level privacy within a channel.
+
+**Corda for multi-party coordination**: Corda flows are bilateral by default. N-party transactions require chained flows or explicit session management.
+
+**Ignoring finality guarantees**: All three protocols provide deterministic finality. Do not build fork-handling logic for permissioned networks.
 
 ## References
 
