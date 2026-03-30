@@ -5,6 +5,7 @@
 # Enterprise Blockchain Case Studies
 
 [![CI](https://github.com/psavelis/enterprise-blockchain/actions/workflows/ci.yml/badge.svg)](https://github.com/psavelis/enterprise-blockchain/actions/workflows/ci.yml)
+[![Known Vulnerabilities](https://snyk.io/test/github/psavelis/enterprise-blockchain/badge.svg)](https://snyk.io/test/github/psavelis/enterprise-blockchain)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen)
 
