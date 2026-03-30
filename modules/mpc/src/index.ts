@@ -2,6 +2,17 @@ import { randomBytes, randomInt } from "node:crypto";
 
 import { commitShare, sha256hex } from "./crypto";
 
+// Re-export field arithmetic for advanced use cases
+export {
+  FieldArithmetic,
+  getFieldConfig,
+  DEMO_PRIME,
+  PRODUCTION_PRIME,
+  demoField,
+  productionField,
+} from "./field";
+export type { FieldConfig, FieldMode } from "./field";
+
 export interface PartyConfig {
   id: string;
   name: string;
@@ -291,3 +302,10 @@ export type {
   DsaAuditRecord,
   MlDsaParams,
 } from "./dsa";
+export { QuantumResistantVault } from "./quantum";
+export type {
+  ThresholdShare,
+  HashLadderKey,
+  QuantumResistantAnchor,
+  VaultConfig,
+} from "./quantum";

@@ -1,11 +1,20 @@
-import { randomBytes, randomInt } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import { commitShare, sha256hex } from "./crypto";
+import {
+  FieldArithmetic,
+  getFieldConfig,
+  type FieldConfig,
+  type FieldMode,
+} from "./field";
 
 export interface ThresholdShare {
   partyId: string;
   shareIndex: number;
-  value: number;
+  /** Share value as bigint for production mode compatibility. */
+  value: bigint;
+  /** Legacy number value for backward compatibility (demo mode only). */
+  valueNumber?: number | undefined;
   nonce: string;
   commitment: string;
 }
@@ -24,19 +33,54 @@ export interface QuantumResistantAnchor {
   scheme: "hash-ladder";
 }
 
-// Mersenne prime 2^31 − 1.  Large enough for the demo secrets used in
-// examples while keeping share values within safe-integer range.
-// For production Shamir SSS protecting key material, use a prime at least as
-// large as the secret space: 2^127 − 1 or 2^255 − 19 for 128/256-bit security.
-const PRIME = 2_147_483_647n;
+export interface VaultConfig {
+  /** Field mode: "demo" (default) or "production". */
+  fieldMode?: FieldMode;
+}
 
+/**
+ * Quantum-resistant secret sharing vault using Shamir's Secret Sharing.
+ *
+ * Supports two field sizes:
+ * - Demo mode (default): 2^31-1 prime, fast but NOT secure for production
+ * - Production mode: 256-bit prime, cryptographically secure
+ *
+ * Set MPC_FIELD_MODE=production or pass { fieldMode: "production" } for
+ * production deployments.
+ *
+ * @see skills/mpc-secret-sharing.md for security guidance
+ */
 export class QuantumResistantVault {
+  private readonly field: FieldArithmetic;
+
+  constructor(config?: VaultConfig) {
+    const fieldConfig = getFieldConfig(config?.fieldMode);
+    this.field = new FieldArithmetic(fieldConfig);
+  }
+
+  /**
+   * Get the current field configuration.
+   */
+  getFieldConfig(): FieldConfig {
+    return { mode: this.field.mode, prime: this.field.prime };
+  }
+
+  /**
+   * Check if the vault is configured for production-grade security.
+   */
+  isProductionSecure(): boolean {
+    return this.field.isProductionSecure();
+  }
   /**
    * Distribute `secret` across `parties` using Shamir's Secret Sharing.
    * Any `threshold` shares reconstruct the secret; fewer reveal nothing.
+   *
+   * @param secret - The secret to share (must be within field range)
+   * @param parties - Party identifiers to receive shares
+   * @param threshold - Minimum shares needed for reconstruction
    */
   distributeSecret(
-    secret: number,
+    secret: number | bigint,
     parties: string[],
     threshold: number,
   ): Map<string, ThresholdShare> {
@@ -46,27 +90,37 @@ export class QuantumResistantVault {
     if (threshold > parties.length) {
       throw new Error("Threshold cannot exceed party count");
     }
-    if (secret < 0 || secret >= Number(PRIME)) {
-      throw new Error(`Secret must be in range [0, ${PRIME})`);
+
+    const secretBigint = BigInt(secret);
+    if (secretBigint < 0n || secretBigint >= this.field.prime) {
+      throw new Error(
+        `Secret must be in range [0, ${this.field.prime}). ` +
+          `Current field mode: ${this.field.mode}`,
+      );
     }
 
     // Random polynomial of degree (threshold − 1) with secret as constant term.
-    const coeffs: bigint[] = [BigInt(secret)];
+    const coeffs: bigint[] = [secretBigint];
     for (let i = 1; i < threshold; i++) {
-      coeffs.push(BigInt(randomInt(1, Number(PRIME))));
+      coeffs.push(this.field.random());
     }
 
     const shares = new Map<string, ThresholdShare>();
     for (let i = 0; i < parties.length; i++) {
       const x = BigInt(i + 1);
-      const y = Number(this.evalPoly(coeffs, x));
+      const y = this.evalPoly(coeffs, x);
       const nonce = randomBytes(16).toString("hex");
+
+      // For commitment, use number if in demo mode for backward compatibility
+      const commitValue = this.field.mode === "demo" ? Number(y) : y;
+
       shares.set(parties[i]!, {
         partyId: parties[i]!,
         shareIndex: i,
         value: y,
+        valueNumber: this.field.mode === "demo" ? Number(y) : undefined,
         nonce,
-        commitment: commitShare(parties[i]!, i, y, nonce),
+        commitment: commitShare(parties[i]!, i, commitValue, nonce),
       });
     }
 
@@ -76,11 +130,14 @@ export class QuantumResistantVault {
   /**
    * Reconstruct the secret from a set of shares via Lagrange interpolation.
    * Returns `null` when fewer than `threshold` shares are supplied.
+   *
+   * @returns The reconstructed secret as bigint, or null if insufficient shares.
+   *          In demo mode, also returns as number for backward compatibility.
    */
   reconstructSecret(
     shares: ThresholdShare[],
     threshold: number,
-  ): number | null {
+  ): number | bigint | null {
     if (shares.length < threshold) {
       return null;
     }
@@ -90,7 +147,37 @@ export class QuantumResistantVault {
       BigInt(s.value),
     ]);
 
-    return Number(this.lagrangeInterpolate(points));
+    const result = this.lagrangeInterpolate(points);
+
+    // Return number for backward compatibility in demo mode
+    if (
+      this.field.mode === "demo" &&
+      result <= BigInt(Number.MAX_SAFE_INTEGER)
+    ) {
+      return Number(result);
+    }
+
+    return result;
+  }
+
+  /**
+   * Reconstruct the secret and always return as bigint.
+   * Use this for production mode or when bigint precision is required.
+   */
+  reconstructSecretBigint(
+    shares: ThresholdShare[],
+    threshold: number,
+  ): bigint | null {
+    if (shares.length < threshold) {
+      return null;
+    }
+
+    const points: [bigint, bigint][] = shares.map((s) => [
+      BigInt(s.shareIndex + 1),
+      BigInt(s.value),
+    ]);
+
+    return this.lagrangeInterpolate(points);
   }
 
   /** Build a SHA-256 hash chain of `depth` iterations from a random seed. */
@@ -117,14 +204,14 @@ export class QuantumResistantVault {
     };
   }
 
-  // --- Shamir arithmetic over GF(PRIME) ---
+  // --- Shamir arithmetic using configurable field ---
 
   private evalPoly(coeffs: bigint[], x: bigint): bigint {
     let result = 0n;
     let power = 1n;
     for (const c of coeffs) {
-      result = this.mod(result + c * power);
-      power = this.mod(power * x);
+      result = this.field.add(result, this.field.mul(c, power));
+      power = this.field.mul(power, x);
     }
     return result;
   }
@@ -138,28 +225,14 @@ export class QuantumResistantVault {
       for (let j = 0; j < points.length; j++) {
         if (i === j) continue;
         const xj = points[j]![0];
-        num = this.mod(num * this.mod(-xj));
-        den = this.mod(den * this.mod(xi - xj));
+        num = this.field.mul(num, this.field.mod(-xj));
+        den = this.field.mul(den, this.field.sub(xi, xj));
       }
-      const inv = this.modPow(den, PRIME - 2n);
-      result = this.mod(result + this.mod(yi * this.mod(num * inv)));
-    }
-    return result;
-  }
-
-  private mod(a: bigint): bigint {
-    return ((a % PRIME) + PRIME) % PRIME;
-  }
-
-  private modPow(base: bigint, exp: bigint): bigint {
-    let result = 1n;
-    base = this.mod(base);
-    while (exp > 0n) {
-      if (exp & 1n) {
-        result = this.mod(result * base);
-      }
-      exp >>= 1n;
-      base = this.mod(base * base);
+      const inv = this.field.inverse(den);
+      result = this.field.add(
+        result,
+        this.field.mul(yi, this.field.mul(num, inv)),
+      );
     }
     return result;
   }
