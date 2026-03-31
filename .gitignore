@@ -38,3 +38,4 @@ coverage/
 
 # SBOM (generated on-demand)
 sbom.json
+.claude
