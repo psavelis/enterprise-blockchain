@@ -1,12 +1,33 @@
-version: "3.8"
-
-# Minimal local development stack for the enterprise-blockchain repository.
-# Start with: docker compose up -d
-# Stop with:  docker compose down -v
+# Production-reference local development stack for enterprise-blockchain.
+# Start with: docker compose up -d (or: make up)
+# Stop with:  docker compose down -v (or: make down)
+#
+# Security hardening applied per CIS Docker Benchmark:
+# - Resource limits prevent container resource exhaustion
+# - no-new-privileges blocks privilege escalation
+# - Restart policies ensure recovery from crashes
+# - Logging limits prevent disk exhaustion
+# - All ports bound to 127.0.0.1 (localhost only)
+#
+# Ref: https://www.cisecurity.org/benchmark/docker
+# Ref: https://docs.docker.com/compose/
 
 networks:
   enterprise-blockchain:
     name: enterprise-blockchain-net
+
+# Common configuration anchors for DRY compose files.
+# Ref: https://docs.docker.com/compose/compose-file/10-fragments/
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-security: &default-security
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
 
 services:
   # ── Besu dev-mode miner nodes ──────────────────────────────────────
@@ -45,6 +66,16 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
   besu-validator-1:
     image: hyperledger/besu:24.12.2
@@ -79,6 +110,16 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
   # ── Fabric test network (minimal) ──────────────────────────────────
   fabric-orderer:
@@ -99,6 +140,16 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
 
   fabric-peer-org1:
     image: hyperledger/fabric-peer:2.5
@@ -117,6 +168,16 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
 
   fabric-peer-org2:
     image: hyperledger/fabric-peer:2.5
@@ -135,6 +196,16 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
 
   # ── Corda nodes ────────────────────────────────────────────────────
   corda-notary:
@@ -152,6 +223,16 @@ services:
       timeout: 5s
       retries: 15
       start_period: 30s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
   corda-partya:
     image: corda/corda-zulu-java11-5.1:5.1
@@ -168,6 +249,16 @@ services:
       timeout: 5s
       retries: 15
       start_period: 30s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
   corda-partyb:
     image: corda/corda-zulu-java11-5.1:5.1
@@ -184,6 +275,16 @@ services:
       timeout: 5s
       retries: 15
       start_period: 30s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
   # ── Observability stack ─────────────────────────────────────────────
   # OpenTelemetry Collector receives OTLP traces/metrics and forwards to
@@ -212,6 +313,16 @@ services:
       start_period: 10s
     depends_on:
       - jaeger
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
 
   # Jaeger all-in-one for distributed tracing visualization.
   # UI available at http://localhost:16686
@@ -233,6 +344,16 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
 
   # Prometheus for metrics collection and alerting.
   # UI available at http://localhost:9090
@@ -256,3 +377,13 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
