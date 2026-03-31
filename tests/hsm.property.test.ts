@@ -24,14 +24,17 @@ test("envelope encryption: round-trip preserves plaintext", () => {
   hsm.generateSymmetricKey(kekLabel);
 
   fc.assert(
-    fc.property(fc.string({ minLength: 1, maxLength: 10000 }), (plaintext) => {
-      const { encryptedRecord, wrappedDek } = hsm.encryptWithEnvelope(
-        kekLabel,
-        plaintext,
-      );
-      const decrypted = hsm.decryptWithEnvelope(wrappedDek, encryptedRecord);
-      return decrypted === plaintext;
-    }),
+    fc.property(
+      fc.string({ minLength: 1, maxLength: 10000, unit: "binary-ascii" }),
+      (plaintext) => {
+        const { encryptedRecord, wrappedDek } = hsm.encryptWithEnvelope(
+          kekLabel,
+          plaintext,
+        );
+        const decrypted = hsm.decryptWithEnvelope(wrappedDek, encryptedRecord);
+        return decrypted === plaintext;
+      },
+    ),
     { numRuns: 100 },
   );
 });
@@ -43,8 +46,8 @@ test("envelope encryption: different plaintexts produce different ciphertexts", 
 
   fc.assert(
     fc.property(
-      fc.string({ minLength: 1, maxLength: 1000 }),
-      fc.string({ minLength: 1, maxLength: 1000 }),
+      fc.string({ minLength: 1, maxLength: 1000, unit: "binary-ascii" }),
+      fc.string({ minLength: 1, maxLength: 1000, unit: "binary-ascii" }),
       (plaintext1, plaintext2) => {
         if (plaintext1 === plaintext2) return true; // Skip identical inputs
 
@@ -68,30 +71,37 @@ test("envelope encryption: same plaintext with different DEKs produces different
   hsm.generateSymmetricKey(kekLabel);
 
   fc.assert(
-    fc.property(fc.string({ minLength: 1, maxLength: 1000 }), (plaintext) => {
-      const result1 = hsm.encryptWithEnvelope(kekLabel, plaintext);
-      const result2 = hsm.encryptWithEnvelope(kekLabel, plaintext);
+    fc.property(
+      fc.string({ minLength: 1, maxLength: 1000, unit: "binary-ascii" }),
+      (plaintext) => {
+        const result1 = hsm.encryptWithEnvelope(kekLabel, plaintext);
+        const result2 = hsm.encryptWithEnvelope(kekLabel, plaintext);
 
-      // IVs should be different (random)
-      assert.notEqual(result1.encryptedRecord.iv, result2.encryptedRecord.iv);
+        // IVs should be different (random)
+        if (result1.encryptedRecord.iv === result2.encryptedRecord.iv) {
+          return false;
+        }
 
-      // Ciphertexts should be different due to different DEKs
-      assert.notEqual(
-        result1.encryptedRecord.ciphertext,
-        result2.encryptedRecord.ciphertext,
-      );
+        // Ciphertexts should be different due to different DEKs
+        if (
+          result1.encryptedRecord.ciphertext ===
+          result2.encryptedRecord.ciphertext
+        ) {
+          return false;
+        }
 
-      // But both should decrypt to same plaintext
-      const decrypted1 = hsm.decryptWithEnvelope(
-        result1.wrappedDek,
-        result1.encryptedRecord,
-      );
-      const decrypted2 = hsm.decryptWithEnvelope(
-        result2.wrappedDek,
-        result2.encryptedRecord,
-      );
-      return decrypted1 === plaintext && decrypted2 === plaintext;
-    }),
+        // But both should decrypt to same plaintext
+        const decrypted1 = hsm.decryptWithEnvelope(
+          result1.wrappedDek,
+          result1.encryptedRecord,
+        );
+        const decrypted2 = hsm.decryptWithEnvelope(
+          result2.wrappedDek,
+          result2.encryptedRecord,
+        );
+        return decrypted1 === plaintext && decrypted2 === plaintext;
+      },
+    ),
     { numRuns: 50 },
   );
 });
