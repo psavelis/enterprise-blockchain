@@ -1,0 +1,78 @@
+name: Infrastructure Smoke Tests
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "docker-compose.yml"
+      - "scripts/smoke-test-local.sh"
+      - ".github/workflows/infra-smoke.yml"
+  pull_request:
+    paths:
+      - "docker-compose.yml"
+      - "scripts/smoke-test-local.sh"
+      - ".github/workflows/infra-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start all blockchain services
+        run: |
+          docker compose up -d
+          echo "Waiting for services to initialize..."
+
+      - name: Wait for Docker health checks
+        run: |
+          echo "Waiting for containers to become healthy..."
+          for i in {1..30}; do
+            HEALTHY=$(docker compose ps --format json | jq -r 'select(.Health == "healthy" or .Health == "") | .Name' | wc -l)
+            TOTAL=$(docker compose ps --format json | jq -r '.Name' | wc -l)
+            echo "Healthy/Ready: ${HEALTHY}/${TOTAL}"
+
+            # Check if critical services are ready
+            BESU0=$(docker inspect --format='{{.State.Health.Status}}' besu-validator-0 2>/dev/null || echo "starting")
+            BESU1=$(docker inspect --format='{{.State.Health.Status}}' besu-validator-1 2>/dev/null || echo "starting")
+
+            if [ "$BESU0" = "healthy" ] && [ "$BESU1" = "healthy" ]; then
+              echo "✓ Critical services are healthy"
+              break
+            fi
+
+            if [ $i -eq 30 ]; then
+              echo "⚠ Timeout waiting for services"
+            fi
+
+            sleep 5
+          done
+
+      - name: Run smoke tests
+        env:
+          SMOKE_TIMEOUT: 60
+        run: |
+          bash scripts/smoke-test-local.sh
+
+      - name: Show service status on failure
+        if: failure()
+        run: |
+          echo "=== Container Status ==="
+          docker compose ps -a
+          echo ""
+          echo "=== Besu validator-0 logs ==="
+          docker logs besu-validator-0 --tail 30 || true
+          echo ""
+          echo "=== Besu validator-1 logs ==="
+          docker logs besu-validator-1 --tail 30 || true
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
