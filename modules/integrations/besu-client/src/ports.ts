@@ -64,3 +64,15 @@ export interface IBesuTransactionSender {
     tx: TransactionRequest,
   ): Promise<string>;
 }
+
+export interface IBesuHealthChecker {
+  checkHealth(profile: BesuRpcProfile): Promise<BesuHealthStatus>;
+}
+
+export interface BesuHealthStatus {
+  healthy: boolean;
+  blockNumber?: bigint;
+  chainId?: number;
+  latencyMs: number;
+  error?: string;
+}
