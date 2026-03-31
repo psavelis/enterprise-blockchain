@@ -182,6 +182,87 @@ export class CircuitBreaker {
     this.consecutiveFailures = 0;
     this.lastFailureTime = 0;
   }
+
+  /** Get health status for Kubernetes probes or monitoring. */
+  getHealthStatus(): CircuitBreakerHealth {
+    const currentState = this.getState();
+    return {
+      state: currentState,
+      healthy: currentState === "closed",
+      consecutiveFailures: this.consecutiveFailures,
+      lastFailureTime:
+        this.lastFailureTime > 0
+          ? new Date(this.lastFailureTime).toISOString()
+          : null,
+      cooldownRemainingMs:
+        currentState === "open"
+          ? Math.max(
+              0,
+              this.options.cooldownMs - (Date.now() - this.lastFailureTime),
+            )
+          : 0,
+    };
+  }
+}
+
+// ── Health Check Types ───────────────────────────────────────────────
+
+export interface CircuitBreakerHealth {
+  state: CircuitState;
+  healthy: boolean;
+  consecutiveFailures: number;
+  lastFailureTime: string | null;
+  cooldownRemainingMs: number;
+}
+
+export interface IntegrationHealthStatus {
+  name: string;
+  healthy: boolean;
+  circuitBreaker: CircuitBreakerHealth;
+  lastCheckTime: string;
+  latencyMs?: number;
+  error?: string;
+}
+
+/**
+ * Health checker for integration clients.
+ * Combines circuit breaker state with active endpoint probing.
+ */
+export class IntegrationHealthChecker {
+  constructor(
+    private readonly name: string,
+    private readonly circuitBreaker: CircuitBreaker,
+    private readonly probe?: () => Promise<void>,
+  ) {}
+
+  async check(): Promise<IntegrationHealthStatus> {
+    const circuitHealth = this.circuitBreaker.getHealthStatus();
+    const status: IntegrationHealthStatus = {
+      name: this.name,
+      healthy: circuitHealth.healthy,
+      circuitBreaker: circuitHealth,
+      lastCheckTime: new Date().toISOString(),
+    };
+
+    // If circuit is open, don't probe (would fail anyway)
+    if (!circuitHealth.healthy || !this.probe) {
+      return status;
+    }
+
+    // Active probe to verify endpoint is reachable
+    const start = Date.now();
+    try {
+      await this.probe();
+      status.latencyMs = Date.now() - start;
+    } catch (err) {
+      status.healthy = false;
+      status.latencyMs = Date.now() - start;
+      status.error =
+        err instanceof Error ? err.message : "Unknown probe failure";
+    }
+
+    return status;
+  }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────

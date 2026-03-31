@@ -53,11 +53,155 @@ export type ComputationResult = SumResult | ThresholdResult;
 interface ComputationRound {
   expectedShareCount: number;
   shares: Map<string, SecretShare>;
+  createdAt: number;
+}
+
+// ── Resource Quota Management ────────────────────────────────────────
+
+export interface ResourceQuotaConfig {
+  /** Maximum active sessions per party. Default: 100 */
+  maxSessionsPerParty: number;
+  /** Maximum total active sessions. Default: 1000 */
+  maxTotalSessions: number;
+  /** Session TTL in milliseconds. Default: 5 minutes */
+  sessionTtlMs: number;
+  /** Maximum memory for shares in bytes. Default: 10MB */
+  maxMemoryBytes: number;
+}
+
+export const DEFAULT_QUOTA_CONFIG: ResourceQuotaConfig = {
+  maxSessionsPerParty: 100,
+  maxTotalSessions: 1000,
+  sessionTtlMs: 5 * 60 * 1000, // 5 minutes
+  maxMemoryBytes: 10 * 1024 * 1024, // 10MB
+};
+
+export interface ResourceQuotaManager {
+  checkSessionQuota(partyId: string): boolean;
+  checkTotalSessionQuota(): boolean;
+  checkMemoryQuota(additionalBytes: number): boolean;
+  recordSession(partyId: string, computationId: string): void;
+  releaseSession(computationId: string): void;
+  getUsage(): ResourceUsage;
+}
+
+export interface ResourceUsage {
+  totalSessions: number;
+  sessionsByParty: Map<string, number>;
+  estimatedMemoryBytes: number;
+  oldestSessionAgeMs: number;
+}
+
+export class InMemoryResourceQuotaManager implements ResourceQuotaManager {
+  private readonly config: ResourceQuotaConfig;
+  private readonly sessionsByParty = new Map<string, Set<string>>();
+  private readonly sessionCreatedAt = new Map<string, number>();
+  private estimatedMemoryBytes = 0;
+
+  constructor(config: Partial<ResourceQuotaConfig> = {}) {
+    this.config = { ...DEFAULT_QUOTA_CONFIG, ...config };
+  }
+
+  checkSessionQuota(partyId: string): boolean {
+    const partySessions = this.sessionsByParty.get(partyId);
+    if (!partySessions) return true;
+    return partySessions.size < this.config.maxSessionsPerParty;
+  }
+
+  checkTotalSessionQuota(): boolean {
+    let total = 0;
+    for (const sessions of this.sessionsByParty.values()) {
+      total += sessions.size;
+    }
+    return total < this.config.maxTotalSessions;
+  }
+
+  checkMemoryQuota(additionalBytes: number): boolean {
+    return (
+      this.estimatedMemoryBytes + additionalBytes <= this.config.maxMemoryBytes
+    );
+  }
+
+  recordSession(partyId: string, computationId: string): void {
+    let partySessions = this.sessionsByParty.get(partyId);
+    if (!partySessions) {
+      partySessions = new Set();
+      this.sessionsByParty.set(partyId, partySessions);
+    }
+    partySessions.add(computationId);
+    this.sessionCreatedAt.set(computationId, Date.now());
+    // Estimate ~200 bytes per share entry
+    this.estimatedMemoryBytes += 200;
+  }
+
+  releaseSession(computationId: string): void {
+    for (const [partyId, sessions] of this.sessionsByParty.entries()) {
+      if (sessions.delete(computationId)) {
+        if (sessions.size === 0) {
+          this.sessionsByParty.delete(partyId);
+        }
+        break;
+      }
+    }
+    this.sessionCreatedAt.delete(computationId);
+    this.estimatedMemoryBytes = Math.max(0, this.estimatedMemoryBytes - 200);
+  }
+
+  getUsage(): ResourceUsage {
+    const sessionsByParty = new Map<string, number>();
+    let totalSessions = 0;
+    let oldestAge = 0;
+    const now = Date.now();
+
+    for (const [partyId, sessions] of this.sessionsByParty.entries()) {
+      sessionsByParty.set(partyId, sessions.size);
+      totalSessions += sessions.size;
+    }
+
+    for (const createdAt of this.sessionCreatedAt.values()) {
+      const age = now - createdAt;
+      if (age > oldestAge) oldestAge = age;
+    }
+
+    return {
+      totalSessions,
+      sessionsByParty,
+      estimatedMemoryBytes: this.estimatedMemoryBytes,
+      oldestSessionAgeMs: oldestAge,
+    };
+  }
+
+  /** Expire sessions older than TTL. Returns number of expired sessions. */
+  expireOldSessions(): number {
+    const now = Date.now();
+    const expired: string[] = [];
+
+    for (const [computationId, createdAt] of this.sessionCreatedAt.entries()) {
+      if (now - createdAt > this.config.sessionTtlMs) {
+        expired.push(computationId);
+      }
+    }
+
+    for (const computationId of expired) {
+      this.releaseSession(computationId);
+    }
+
+    return expired.length;
+  }
+}
+
+export interface MPCEngineConfig {
+  quotaManager?: ResourceQuotaManager;
 }
 
 export class MPCEngine {
   private readonly parties = new Map<string, PartyConfig>();
   private readonly rounds = new Map<string, ComputationRound>();
+  private readonly quotaManager: ResourceQuotaManager | null;
+
+  constructor(config: MPCEngineConfig = {}) {
+    this.quotaManager = config.quotaManager ?? null;
+  }
 
   registerParty(party: PartyConfig): void {
     this.parties.set(party.id, party);
@@ -120,6 +264,28 @@ export class MPCEngine {
       throw new Error(`Unknown party ${share.partyId}`);
     }
 
+    // Check resource quotas before accepting new sessions
+    if (this.quotaManager) {
+      // For new sessions, verify quotas
+      if (!this.rounds.has(computationId)) {
+        if (!this.quotaManager.checkTotalSessionQuota()) {
+          throw new Error(
+            `Resource quota exceeded: maximum total sessions reached`,
+          );
+        }
+        if (!this.quotaManager.checkSessionQuota(share.partyId)) {
+          throw new Error(
+            `Resource quota exceeded: party ${share.partyId} has too many active sessions`,
+          );
+        }
+        if (!this.quotaManager.checkMemoryQuota(200 * share.shareCount)) {
+          throw new Error(
+            `Resource quota exceeded: memory limit would be exceeded`,
+          );
+        }
+      }
+    }
+
     // Verify commitment before accepting the share.
     // This prevents a malicious party from submitting a bogus value
     // with a valid-looking commitment, which would corrupt the result.
@@ -137,8 +303,17 @@ export class MPCEngine {
 
     let round = this.rounds.get(computationId);
     if (!round) {
-      round = { expectedShareCount: share.shareCount, shares: new Map() };
+      round = {
+        expectedShareCount: share.shareCount,
+        shares: new Map(),
+        createdAt: Date.now(),
+      };
       this.rounds.set(computationId, round);
+
+      // Record session for quota tracking
+      if (this.quotaManager) {
+        this.quotaManager.recordSession(share.partyId, computationId);
+      }
     }
 
     if (share.shareCount !== round.expectedShareCount) {
@@ -277,6 +452,52 @@ export class MPCEngine {
       if (expected !== share.commitment) return false;
     }
     return true;
+  }
+
+  /**
+   * Release a completed computation and free associated resources.
+   * Call this after compute() to prevent memory accumulation.
+   */
+  releaseComputation(computationId: string): void {
+    const round = this.rounds.get(computationId);
+    if (round) {
+      this.rounds.delete(computationId);
+      if (this.quotaManager) {
+        this.quotaManager.releaseSession(computationId);
+      }
+    }
+  }
+
+  /**
+   * Get current resource usage statistics.
+   * Returns null if no quota manager is configured.
+   */
+  getResourceUsage(): ResourceUsage | null {
+    return this.quotaManager?.getUsage() ?? null;
+  }
+
+  /**
+   * Expire stale sessions that have exceeded TTL.
+   * Returns number of expired sessions.
+   */
+  expireStaleSessionsessions(): number {
+    if (!this.quotaManager) return 0;
+
+    const manager = this.quotaManager as InMemoryResourceQuotaManager;
+    if (typeof manager.expireOldSessions !== "function") return 0;
+
+    const expiredCount = manager.expireOldSessions();
+
+    // Also clean up rounds map for expired sessions
+    const now = Date.now();
+    const config = DEFAULT_QUOTA_CONFIG;
+    for (const [computationId, round] of this.rounds.entries()) {
+      if (now - round.createdAt > config.sessionTtlMs) {
+        this.rounds.delete(computationId);
+      }
+    }
+
+    return expiredCount;
   }
 }
 

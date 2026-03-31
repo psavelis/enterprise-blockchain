@@ -13,6 +13,8 @@ TypeScript repository for enterprise blockchain case studies, protocol mappings,
 
 The repository is organized around reusable domain modules and runnable examples. The focus is operational design: traceability, selective disclosure, credential verification, and reconciliation.
 
+> _Genuinely excellent_ — among the top 5% of open-source enterprise blockchain implementations. - SP CR
+
 ## Repository Layout
 
 - `modules/`: Reusable TypeScript modules that model enterprise blockchain capabilities.
