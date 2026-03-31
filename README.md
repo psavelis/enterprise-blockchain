@@ -4,6 +4,7 @@
 
 # Enterprise Blockchain Case Studies
 
+[![Awesome](https://awesome.re/badge.svg)]()
 [![CI](https://github.com/psavelis/enterprise-blockchain/actions/workflows/ci.yml/badge.svg)](https://github.com/psavelis/enterprise-blockchain/actions/workflows/ci.yml)
 [![Known Vulnerabilities](https://snyk.io/test/github/psavelis/enterprise-blockchain/badge.svg)](https://snyk.io/test/github/psavelis/enterprise-blockchain)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -101,6 +102,61 @@ npm run example:kyber-kem
 npm run example:hybrid-kem
 npm run example:quantum-safe-payment
 ```
+
+## Infrastructure
+
+Local development uses Docker Compose to provision blockchain nodes and observability services.
+
+### Quick Start
+
+```bash
+# Start all services
+make up
+
+# Run smoke tests
+make smoke
+
+# View service status
+make ps
+
+# Stop services
+make down
+```
+
+### Service Endpoints
+
+| Service       | Port  | URL                    |
+| ------------- | ----- | ---------------------- |
+| Besu RPC      | 8545  | http://localhost:8545  |
+| Fabric Peer   | 7051  | localhost:7051         |
+| Corda RPC     | 10006 | localhost:10006        |
+| Jaeger UI     | 16686 | http://localhost:16686 |
+| Prometheus    | 9090  | http://localhost:9090  |
+| OTEL Receiver | 4318  | http://localhost:4318  |
+
+### Telemetry
+
+Run examples with distributed tracing enabled:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+export OTEL_SERVICE_NAME=my-service
+npm run example:food-recall
+```
+
+Traces appear in Jaeger at http://localhost:16686.
+
+### Available Make Targets
+
+| Target        | Description                   |
+| ------------- | ----------------------------- |
+| `make up`     | Start all blockchain services |
+| `make down`   | Stop and remove containers    |
+| `make smoke`  | Run smoke tests               |
+| `make verify` | Run full CI validation        |
+| `make logs`   | Tail logs from all services   |
+
+See [skills/infrastructure-reference.md](skills/infrastructure-reference.md) for container topology, security hardening, and observability architecture.
 
 ## Design Goals
 
