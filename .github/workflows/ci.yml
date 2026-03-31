@@ -101,7 +101,7 @@ jobs:
           path: ci-results
 
       - name: Publish PR report comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('node:fs');
