@@ -4,17 +4,18 @@ Structured knowledge files for AI coding agents. Each skill provides domain cont
 
 ## Quick Reference
 
-| Task                                         | Skill                                                 |
-| -------------------------------------------- | ----------------------------------------------------- |
-| Choose Besu vs Fabric vs Corda               | [platform-selection](platform-selection.md)           |
-| Add retry/circuit breaker to SDK client      | [integration-adapters](integration-adapters.md)       |
-| Deploy Solidity contract with access control | [smart-contract-patterns](smart-contract-patterns.md) |
-| Sign transactions with HSM                   | [hsm-key-management](hsm-key-management.md)           |
-| Implement sealed-bid auction                 | [mpc-secret-sharing](mpc-secret-sharing.md)           |
-| Add quantum-resistant anchoring              | [post-quantum-crypto](post-quantum-crypto.md)         |
-| Project order data per audience              | [selective-disclosure](selective-disclosure.md)       |
-| Track supply chain provenance                | [traceability-recall](traceability-recall.md)         |
-| Find example for use case                    | [examples-catalog](examples-catalog.md)               |
+| Task                                         | Skill                                                   |
+| -------------------------------------------- | ------------------------------------------------------- |
+| Choose Besu vs Fabric vs Corda               | [platform-selection](platform-selection.md)             |
+| Add retry/circuit breaker to SDK client      | [integration-adapters](integration-adapters.md)         |
+| Deploy Solidity contract with access control | [smart-contract-patterns](smart-contract-patterns.md)   |
+| Sign transactions with HSM                   | [hsm-key-management](hsm-key-management.md)             |
+| Implement sealed-bid auction                 | [mpc-secret-sharing](mpc-secret-sharing.md)             |
+| Add quantum-resistant anchoring              | [post-quantum-crypto](post-quantum-crypto.md)           |
+| Project order data per audience              | [selective-disclosure](selective-disclosure.md)         |
+| Track supply chain provenance                | [traceability-recall](traceability-recall.md)           |
+| Set up local dev infrastructure              | [infrastructure-reference](infrastructure-reference.md) |
+| Find example for use case                    | [examples-catalog](examples-catalog.md)                 |
 
 ## Skill Dependency Graph
 
