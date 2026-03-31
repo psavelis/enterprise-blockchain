@@ -26,15 +26,21 @@ import {
 } from "./error-mapper";
 import type {
   BesuPrivateTransactionRequest,
+  BesuHealthStatus,
   BesuRpcProfile,
   IBesuGasEstimator,
+  IBesuHealthChecker,
   IBesuProfileFactory,
   IBesuProviderFactory,
   IBesuTransactionBuilder,
   IBesuTransactionSender,
 } from "./ports";
 
-export type { BesuRpcProfile, BesuPrivateTransactionRequest } from "./ports";
+export type {
+  BesuRpcProfile,
+  BesuPrivateTransactionRequest,
+  BesuHealthStatus,
+} from "./ports";
 
 const consortiumInterface = new Interface(
   consortiumRegistryArtifact.abi as InterfaceAbi,
@@ -212,6 +218,33 @@ export class BesuTransactionSender implements IBesuTransactionSender {
   }
 }
 
+export class BesuHealthChecker implements IBesuHealthChecker {
+  constructor(private readonly providerFactory: IBesuProviderFactory) {}
+
+  async checkHealth(profile: BesuRpcProfile): Promise<BesuHealthStatus> {
+    const start = Date.now();
+    try {
+      const provider = this.providerFactory.createProvider(profile);
+      const [blockNumber, network] = await Promise.all([
+        provider.getBlockNumber(),
+        provider.getNetwork(),
+      ]);
+      return {
+        healthy: true,
+        blockNumber: BigInt(blockNumber),
+        chainId: Number(network.chainId),
+        latencyMs: Date.now() - start,
+      };
+    } catch (err) {
+      return {
+        healthy: false,
+        latencyMs: Date.now() - start,
+        error: extractErrorMessage(err),
+      };
+    }
+  }
+}
+
 /**
  * Facade for backward compatibility.
  * NOTE: sketch only — do not store key material as plain strings in production
@@ -222,12 +255,14 @@ export class BesuEthersClientSketch
     IBesuProviderFactory,
     IBesuGasEstimator,
     IBesuTransactionBuilder,
-    IBesuTransactionSender
+    IBesuTransactionSender,
+    IBesuHealthChecker
 {
   private readonly profileFactory = new BesuProfileFactory();
   private readonly providerFactory = new BesuProviderFactory();
   private readonly txBuilder = new BesuTransactionBuilder();
   private readonly txSender = new BesuTransactionSender();
+  private readonly healthChecker = new BesuHealthChecker(this.providerFactory);
 
   createProfileFromEnv(env?: NodeJS.ProcessEnv): BesuRpcProfile {
     return this.profileFactory.createProfileFromEnv(env);
@@ -302,5 +337,9 @@ export class BesuEthersClientSketch
     tx: TransactionRequest,
   ): Promise<string> {
     return this.txSender.sendTransaction(signer, tx);
+  }
+
+  checkHealth(profile: BesuRpcProfile): Promise<BesuHealthStatus> {
+    return this.healthChecker.checkHealth(profile);
   }
 }
