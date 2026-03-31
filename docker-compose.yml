@@ -152,7 +152,7 @@ services:
           memory: 128M
 
   fabric-peer-org1:
-    image: hyperledger/fabric-peer:2.5
+    image: hyperledger/fabric-peer:3.1
     container_name: fabric-peer-org1
     networks:
       - enterprise-blockchain
@@ -180,7 +180,7 @@ services:
           memory: 128M
 
   fabric-peer-org2:
-    image: hyperledger/fabric-peer:2.5
+    image: hyperledger/fabric-peer:3.1
     container_name: fabric-peer-org2
     networks:
       - enterprise-blockchain
