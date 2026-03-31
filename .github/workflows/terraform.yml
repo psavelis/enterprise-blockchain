@@ -1,0 +1,76 @@
+name: Terraform
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "infra/**/*.tf"
+      - ".github/workflows/terraform.yml"
+  pull_request:
+    paths:
+      - "infra/**/*.tf"
+      - ".github/workflows/terraform.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.0
+
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform -chdir=infra fmt -check -recursive
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: terraform -chdir=infra init -backend=false
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform -chdir=infra validate -no-color
+
+      - name: Post PR Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fmt = '${{ steps.fmt.outcome }}' === 'success' ? '✓' : '✗';
+            const init = '${{ steps.init.outcome }}' === 'success' ? '✓' : '✗';
+            const validate = '${{ steps.validate.outcome }}' === 'success' ? '✓' : '✗';
+
+            const body = `### Terraform Validation Results
+
+            | Check | Status |
+            | ----- | ------ |
+            | Format | ${fmt} |
+            | Init | ${init} |
+            | Validate | ${validate} |
+
+            *Pusher: @${{ github.actor }}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Fail if format check failed
+        if: steps.fmt.outcome == 'failure'
+        run: |
+          echo "Terraform files are not formatted. Run 'terraform fmt -recursive' in the infra/ directory."
+          exit 1

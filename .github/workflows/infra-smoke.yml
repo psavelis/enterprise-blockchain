@@ -1,0 +1,122 @@
+name: Infrastructure Smoke Tests
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "docker-compose.yml"
+      - "scripts/smoke-test-local.sh"
+      - ".github/workflows/infra-smoke.yml"
+  pull_request:
+    paths:
+      - "docker-compose.yml"
+      - "scripts/smoke-test-local.sh"
+      - ".github/workflows/infra-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start blockchain services (Besu + Observability)
+        run: |
+          # Start only services with public Docker images
+          # Corda images require R3 registry access (not available in public CI)
+          # Fabric peers require MSP/crypto configuration for full tests
+          docker compose up -d \
+            besu-validator-0 \
+            besu-validator-1 \
+            otel-collector \
+            jaeger \
+            prometheus
+          echo "Waiting for services to initialize..."
+
+      - name: Wait for Docker health checks
+        run: |
+          echo "Waiting for containers to become healthy..."
+          for i in {1..30}; do
+            HEALTHY=$(docker compose ps --format json | jq -r 'select(.Health == "healthy" or .Health == "") | .Name' | wc -l)
+            TOTAL=$(docker compose ps --format json | jq -r '.Name' | wc -l)
+            echo "Healthy/Ready: ${HEALTHY}/${TOTAL}"
+
+            # Check if critical services are ready
+            BESU0=$(docker inspect --format='{{.State.Health.Status}}' besu-validator-0 2>/dev/null || echo "starting")
+            BESU1=$(docker inspect --format='{{.State.Health.Status}}' besu-validator-1 2>/dev/null || echo "starting")
+
+            if [ "$BESU0" = "healthy" ] && [ "$BESU1" = "healthy" ]; then
+              echo "✓ Critical services are healthy"
+              break
+            fi
+
+            if [ $i -eq 30 ]; then
+              echo "⚠ Timeout waiting for services"
+            fi
+
+            sleep 5
+          done
+
+      - name: Run Besu smoke tests
+        run: |
+          echo "=== Besu Block Production Tests ==="
+          # Verify Besu RPC is responding
+          for validator in 8545 8546; do
+            RESPONSE=$(curl -sf -X POST "http://localhost:${validator}" \
+              -H "Content-Type: application/json" \
+              -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' || echo "")
+            if [ -n "$RESPONSE" ]; then
+              echo "✓ Besu validator on port ${validator} is responding"
+              echo "  Response: $RESPONSE"
+            else
+              echo "✗ Besu validator on port ${validator} is NOT responding"
+              exit 1
+            fi
+          done
+
+      - name: Verify observability stack
+        run: |
+          echo "=== Observability Stack Tests ==="
+          # Verify Jaeger UI
+          if curl -sf http://localhost:16686/ > /dev/null; then
+            echo "✓ Jaeger UI is accessible"
+          else
+            echo "✗ Jaeger UI is NOT accessible"
+            exit 1
+          fi
+          # Verify Prometheus
+          if curl -sf http://localhost:9090/-/healthy > /dev/null; then
+            echo "✓ Prometheus is healthy"
+          else
+            echo "✗ Prometheus is NOT healthy"
+            exit 1
+          fi
+          # Verify OTEL Collector
+          if curl -sf http://localhost:13133/ > /dev/null; then
+            echo "✓ OTEL Collector is healthy"
+          else
+            echo "✗ OTEL Collector is NOT healthy"
+            exit 1
+          fi
+
+      - name: Show service status on failure
+        if: failure()
+        run: |
+          echo "=== Container Status ==="
+          docker compose ps -a
+          echo ""
+          echo "=== Besu validator-0 logs ==="
+          docker logs besu-validator-0 --tail 30 || true
+          echo ""
+          echo "=== Besu validator-1 logs ==="
+          docker logs besu-validator-1 --tail 30 || true
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
