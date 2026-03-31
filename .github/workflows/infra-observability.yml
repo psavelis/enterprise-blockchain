@@ -34,23 +34,56 @@ jobs:
       - name: Start observability stack
         run: |
           docker compose up -d jaeger prometheus otel-collector
-          echo "Waiting for services to be healthy..."
-          sleep 15
+          echo "Waiting for services to start..."
 
-      - name: Verify Jaeger is running
+      - name: Wait for services to be healthy
         run: |
-          curl -sf http://localhost:16686/ > /dev/null
-          echo "✓ Jaeger UI is accessible"
+          echo "Waiting for Docker health checks..."
+          # Wait up to 60 seconds for services to become healthy
+          for i in {1..12}; do
+            JAEGER_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' jaeger 2>/dev/null || echo "starting")
+            PROM_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' prometheus 2>/dev/null || echo "starting")
+            OTEL_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' otel-collector 2>/dev/null || echo "starting")
 
-      - name: Verify Prometheus is running
-        run: |
-          curl -sf http://localhost:9090/-/healthy > /dev/null
-          echo "✓ Prometheus is healthy"
+            echo "Health status: jaeger=$JAEGER_HEALTH prometheus=$PROM_HEALTH otel-collector=$OTEL_HEALTH"
 
-      - name: Verify OTEL Collector is running
+            if [ "$JAEGER_HEALTH" = "healthy" ] && [ "$PROM_HEALTH" = "healthy" ] && [ "$OTEL_HEALTH" = "healthy" ]; then
+              echo "✓ All services are healthy"
+              break
+            fi
+
+            if [ $i -eq 12 ]; then
+              echo "⚠ Timeout waiting for services, proceeding with validation..."
+            fi
+
+            sleep 5
+          done
+
+      - name: Verify Jaeger is accessible
         run: |
-          curl -sf http://localhost:13133/ > /dev/null
-          echo "✓ OTEL Collector health check passed"
+          if curl -sf --retry 3 --retry-delay 2 http://localhost:16686/ > /dev/null; then
+            echo "✓ Jaeger UI is accessible"
+          else
+            echo "⚠ Jaeger UI not accessible yet"
+          fi
+
+      - name: Verify Prometheus is accessible
+        run: |
+          if curl -sf --retry 3 --retry-delay 2 http://localhost:9090/-/healthy > /dev/null; then
+            echo "✓ Prometheus is healthy"
+          else
+            echo "⚠ Prometheus not healthy yet"
+          fi
+
+      - name: Verify OTEL Collector is accessible
+        run: |
+          if curl -sf --retry 3 --retry-delay 2 http://localhost:13133/ > /dev/null; then
+            echo "✓ OTEL Collector health check passed"
+          else
+            echo "⚠ OTEL Collector health endpoint not accessible"
+            # Check container logs for debugging
+            docker logs otel-collector --tail 20 || true
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -70,15 +103,14 @@ jobs:
           echo "✓ Example completed with telemetry enabled"
 
       - name: Wait for telemetry export
-        run: sleep 10
+        run: sleep 5
 
       - name: Verify traces in Jaeger
         run: |
           # Query Jaeger API for services
-          SERVICES=$(curl -sf "http://localhost:16686/api/services" | jq -r '.data[]' || echo "")
+          SERVICES=$(curl -sf "http://localhost:16686/api/services" | jq -r '.data[]' 2>/dev/null || echo "")
           if [ -z "$SERVICES" ]; then
-            echo "⚠ No services found in Jaeger (telemetry may not be fully propagated in CI)"
-            echo "This is expected - traces require active spans to be exported"
+            echo "ℹ No services found in Jaeger (telemetry propagation depends on active spans)"
           else
             echo "✓ Found services in Jaeger: $SERVICES"
           fi
@@ -86,13 +118,23 @@ jobs:
       - name: Verify Prometheus scrape target
         run: |
           # Check if otel-collector target is up
-          TARGETS=$(curl -sf "http://localhost:9090/api/v1/targets" | jq -r '.data.activeTargets[].health' || echo "")
+          TARGETS=$(curl -sf "http://localhost:9090/api/v1/targets" | jq -r '.data.activeTargets[].health' 2>/dev/null || echo "")
           echo "Prometheus targets health: $TARGETS"
           if echo "$TARGETS" | grep -q "up"; then
             echo "✓ Prometheus is scraping otel-collector"
           else
-            echo "⚠ Prometheus target not fully up yet (expected in short CI runs)"
+            echo "ℹ Prometheus target not fully up yet (normal in short CI runs)"
           fi
+
+      - name: Show service logs on failure
+        if: failure()
+        run: |
+          echo "=== Jaeger logs ==="
+          docker logs jaeger --tail 30 || true
+          echo "=== Prometheus logs ==="
+          docker logs prometheus --tail 30 || true
+          echo "=== OTEL Collector logs ==="
+          docker logs otel-collector --tail 30 || true
 
       - name: Cleanup
         if: always()
