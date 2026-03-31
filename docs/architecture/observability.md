@@ -105,7 +105,40 @@ When `OTEL_EXPORTER_OTLP_ENDPOINT` is not set, telemetry is disabled (no-op mode
 
 ## Collector Setup
 
-### Local development with Jaeger
+### Docker Compose (Recommended)
+
+The repository includes a complete observability stack in `docker-compose.yml`:
+
+```bash
+# Start the full stack (blockchain nodes + observability)
+docker compose up -d
+
+# Or start only observability services
+docker compose up -d jaeger prometheus otel-collector
+```
+
+**Services:**
+
+| Service          | Port  | Description                     | URL                    |
+| ---------------- | ----- | ------------------------------- | ---------------------- |
+| `otel-collector` | 4318  | OTLP HTTP receiver              | http://localhost:4318  |
+| `otel-collector` | 4317  | OTLP gRPC receiver              | grpc://localhost:4317  |
+| `jaeger`         | 16686 | Jaeger UI (trace visualization) | http://localhost:16686 |
+| `prometheus`     | 9090  | Prometheus UI (metrics)         | http://localhost:9090  |
+
+**Run an example with telemetry:**
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+export OTEL_SERVICE_NAME=food-recall-example
+npm run example:food-recall
+```
+
+Then open http://localhost:16686 to view traces in Jaeger.
+
+### Standalone Jaeger (Simple)
+
+For quick testing without the full stack:
 
 ```bash
 docker run -d --name jaeger \
@@ -116,39 +149,29 @@ docker run -d --name jaeger \
 
 Access the Jaeger UI at http://localhost:16686
 
-### Production with OpenTelemetry Collector
+### Configuration Files
 
-Deploy the OpenTelemetry Collector with OTLP receivers:
+The observability stack configuration lives in `infra/`:
 
-```yaml
-# otel-collector-config.yaml
-receivers:
-  otlp:
-    protocols:
-      http:
-        endpoint: 0.0.0.0:4318
+- [`infra/otel-collector-config.yaml`](../../infra/otel-collector-config.yaml) — OpenTelemetry Collector pipelines
+- [`infra/prometheus.yaml`](../../infra/prometheus.yaml) — Prometheus scrape configuration
 
-processors:
-  batch:
+**Collector pipeline architecture:**
 
-exporters:
-  jaeger:
-    endpoint: jaeger:14250
-    tls:
-      insecure: true
-  prometheus:
-    endpoint: 0.0.0.0:9090
-
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [jaeger]
-    metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [prometheus]
+```
+Applications                    Collector                      Backends
+    │                              │                              │
+    │  OTLP/HTTP (4318)            │                              │
+    ├─────────────────────────────►│                              │
+    │  OTLP/gRPC (4317)            │                              │
+    ├─────────────────────────────►│                              │
+    │                              │                              │
+    │                              │  traces ──► Jaeger (14250)   │
+    │                              ├─────────────────────────────►│
+    │                              │                              │
+    │                              │  metrics ──► Prometheus (8889)
+    │                              ├─────────────────────────────►│
+    │                              │                              │
 ```
 
 ## Custom Instrumentation

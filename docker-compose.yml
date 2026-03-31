@@ -184,3 +184,74 @@ services:
       timeout: 5s
       retries: 15
       start_period: 30s
+
+  # ── Observability stack ─────────────────────────────────────────────
+  # OpenTelemetry Collector receives OTLP traces/metrics and forwards to
+  # Jaeger (traces) and Prometheus (metrics). Applications send telemetry
+  # to http://localhost:4318 (OTLP HTTP).
+  #
+  # Ref: https://opentelemetry.io/docs/collector/
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: otel-collector
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "127.0.0.1:4317:4317" # OTLP gRPC
+      - "127.0.0.1:4318:4318" # OTLP HTTP
+      - "127.0.0.1:8889:8889" # Prometheus metrics endpoint
+    volumes:
+      - ./infra/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      - jaeger
+
+  # Jaeger all-in-one for distributed tracing visualization.
+  # UI available at http://localhost:16686
+  #
+  # Ref: https://www.jaegertracing.io/docs/latest/getting-started/
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    container_name: jaeger
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "127.0.0.1:16686:16686" # Jaeger UI
+      - "127.0.0.1:14250:14250" # gRPC model.proto
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Prometheus for metrics collection and alerting.
+  # UI available at http://localhost:9090
+  #
+  # Ref: https://prometheus.io/docs/prometheus/latest/installation/
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: prometheus
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./infra/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-lifecycle"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
