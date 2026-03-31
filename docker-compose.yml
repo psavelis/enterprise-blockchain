@@ -123,7 +123,7 @@ services:
 
   # ── Fabric test network (minimal) ──────────────────────────────────
   fabric-orderer:
-    image: hyperledger/fabric-orderer:2.5
+    image: hyperledger/fabric-orderer:3.1
     container_name: fabric-orderer
     networks:
       - enterprise-blockchain
