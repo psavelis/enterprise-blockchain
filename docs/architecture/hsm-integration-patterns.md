@@ -115,6 +115,71 @@ Corda nodes hold a legal-identity key pair registered with the Network Map Servi
 
 The `getAuditLog()` method is the only operation safe to call before `initialize()` (it returns an empty array).
 
+## Audit Log Adapters
+
+The HSM module supports multiple audit log backends for compliance requirements:
+
+### In-Memory (default)
+
+```typescript
+import { InMemoryAuditLog } from "@enterprise-blockchain/hsm";
+const audit = new InMemoryAuditLog();
+```
+
+Suitable for development and testing. Lost on process restart.
+
+### File-based with cryptographic chaining
+
+```typescript
+import { FileAuditLog } from "@enterprise-blockchain/hsm";
+const audit = new FileAuditLog("/var/log/hsm-audit.ndjson");
+
+// Verify integrity of the audit chain
+const { valid, errors } = audit.verifyIntegrity();
+```
+
+Each entry includes:
+
+- SHA-256 hash of the previous entry (tamper-evidence)
+- Monotonic sequence number (gap detection)
+- Entry hash for integrity verification
+
+File format: NDJSON (newline-delimited JSON) for append-only writes.
+
+### Syslog for enterprise SIEM
+
+```typescript
+import { SyslogAuditLog } from "@enterprise-blockchain/hsm";
+const audit = new SyslogAuditLog({
+  host: "siem.corp.example.com",
+  port: 514,
+  facility: "auth",
+  appName: "hsm-audit",
+});
+```
+
+Sends RFC 5424 formatted messages to a syslog server. Includes structured data with operation details and entry hash for correlation.
+
+### Factory with environment configuration
+
+```typescript
+import { AuditLogFactory } from "@enterprise-blockchain/hsm";
+
+// Reads HSM_AUDIT_LOG_TYPE, HSM_AUDIT_LOG_PATH, HSM_SYSLOG_* from env
+const audit = AuditLogFactory.createFromEnv();
+```
+
+Environment variables:
+
+| Variable              | Values                     | Description          |
+| --------------------- | -------------------------- | -------------------- |
+| `HSM_AUDIT_LOG_TYPE`  | `memory`, `file`, `syslog` | Adapter type         |
+| `HSM_AUDIT_LOG_PATH`  | File path                  | For `file` type      |
+| `HSM_SYSLOG_HOST`     | Hostname or IP             | Syslog server        |
+| `HSM_SYSLOG_PORT`     | Port number                | Default: 514         |
+| `HSM_SYSLOG_FACILITY` | RFC 5424 facility name     | Default: `auth`      |
+| `HSM_SYSLOG_APP_NAME` | Application identifier     | Default: `hsm-audit` |
+
 ## When to use HSM vs. other key storage patterns
 
 | Pattern                 | Mechanism                                    | Best for                                                                      |
