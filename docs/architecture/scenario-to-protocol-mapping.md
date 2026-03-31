@@ -52,16 +52,52 @@ Why it fits:
 
 ## Aid Voucher Reconciliation
 
-- Scenario: [examples/aid-voucher-reconciliation/index.ts](examples/aid-voucher-reconciliation/index.ts)
-- Domain logic: [modules/aid-settlement/src/index.ts](modules/aid-settlement/src/index.ts)
-- Recommended protocol patterns: [modules/protocols/fabric/src/index.ts](modules/protocols/fabric/src/index.ts) and [modules/protocols/besu/src/index.ts](modules/protocols/besu/src/index.ts)
+- Scenario: [examples/aid-voucher-reconciliation/index.ts](../../examples/aid-voucher-reconciliation/index.ts)
+- Domain logic: [modules/aid-settlement/src/index.ts](../../modules/aid-settlement/src/index.ts)
+- Smart contract: [contracts/solidity/src/AidSettlement.sol](../../contracts/solidity/src/AidSettlement.sol)
+- Protocol adapters: [modules/protocols/fabric/](../../modules/protocols/fabric/) and [modules/protocols/besu/](../../modules/protocols/besu/)
 
-Typical mapping:
+### Domain Model
 
-1. Grants and claims are modeled as domain records first.
-2. A consortium may project them into Fabric when endorsement and private collections dominate, or into Besu when EVM contracts and privacy groups matter more.
-3. The reconciliation report becomes the operational output that downstream finance teams and auditors review.
+```typescript
+// Core entities from modules/aid-settlement/src/domain/entities.ts
+AidGrant     { grantId, beneficiaryId, program, issuedAt, expiresAt, approvedCategories, amountUsd }
+RedemptionClaim { claimId, grantId, merchantId, merchantCategory, invoiceReference, amountUsd, submittedAt }
+ReconciliationReport { settledClaims[], rejectedClaims[], summary }
+```
 
-Why it fits:
+### Besu Mapping (EVM Smart Contract)
 
-- This scenario is governance-heavy, so the right protocol depends on the operating model more than on any single data structure.
+The `AidSettlement.sol` contract mirrors the off-chain reconciliation rules:
+
+| Domain Operation     | Solidity Function                                                                                       | On-chain Effect                                                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `issueGrant(grant)`  | `registerGrant(grantId, beneficiaryId, program, issuedAt, expiresAt, approvedCategories, amountUsd100)` | Stores grant with budget cap and category allow-list                   |
+| `submitClaim(claim)` | `submitClaim(claimId, grantId, merchantId, merchantCategory, invoiceReference, amountUsd100)`           | Validates against grant rules, emits `ClaimSettled` or `ClaimRejected` |
+| `reconcile()`        | Query settled/rejected events                                                                           | Reconciliation report derived from event log                           |
+
+Validation rules enforced on-chain:
+
+- Budget cap: `consumedUsd + amountUsd <= grant.amountUsd`
+- Expiry: `block.timestamp < grant.expiresAt`
+- Category: `merchantCategory ∈ grant.approvedCategories`
+- Duplicate invoice: `!usedInvoices[grantId][invoiceReference]`
+
+### Fabric Mapping (Chaincode)
+
+For organizations preferring endorsement-based finality:
+
+| Domain Operation     | Chaincode Function             | Endorsement Policy |
+| -------------------- | ------------------------------ | ------------------ |
+| `issueGrant(grant)`  | `CreateGrant`                  | Agency + Auditor   |
+| `submitClaim(claim)` | `SubmitClaim`                  | Merchant + Agency  |
+| `reconcile()`        | `GenerateReconciliationReport` | Auditor required   |
+
+Private data collections separate merchant invoices from auditor-visible summaries.
+
+### Why Both Protocols Fit
+
+- **Besu**: Consortium networks where EVM contracts, gas metering, and privacy groups are established. Auditors verify settlement by replaying contract state.
+- **Fabric**: Organizations with existing Hyperledger infrastructure and endorsement-based governance. Private collections isolate sensitive financial data.
+
+The domain layer (`AidSettlementLedger`) remains protocol-agnostic. Teams choose the protocol adapter based on their operational model rather than data structure requirements.

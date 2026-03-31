@@ -35,6 +35,16 @@ These examples show the transaction shapes a team might hand to a real platform 
 | `hsm-key-ceremony`        | Root key ceremony combining HSM signing with 3-of-5 Shamir threshold custodianship |
 | `hsm-envelope-encryption` | DEK/KEK envelope encryption for sensitive trade documents                          |
 
+## Post-Quantum Cryptography
+
+NIST FIPS 203/204 compliant implementations demonstrating quantum-resistant patterns.
+
+| Example                  | Technique                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `kyber-kem-key-exchange` | ML-KEM-768 key encapsulation for quantum-resistant key establishment           |
+| `hybrid-kem-settlement`  | X25519 + ML-KEM-768 hybrid KEM for defense-in-depth key exchange               |
+| `quantum-safe-payment`   | End-to-end quantum-safe payment flow using hybrid KEM and ML-DSA-65 signatures |
+
 ## Integration Sketches
 
 | Example                             | SDK                                             |
@@ -51,13 +61,39 @@ Run all examples:
 npm run examples
 ```
 
-Run a single example:
+Run individual examples:
 
 ```bash
+# Business scenarios
 npm run example:food-recall
 npm run example:order-sharing
 npm run example:staffing-clearance
 npm run example:aid-reconciliation
+
+# Protocol projections
+npm run example:fabric-projection
+npm run example:besu-projection
+npm run example:corda-projection
+
+# MPC and threshold cryptography
+npm run example:mpc-auction
+npm run example:mpc-risk-analysis
+npm run example:quantum-key-sharing
+
+# HSM key management
+npm run example:hsm-tx-signing
+npm run example:hsm-key-ceremony
+npm run example:hsm-envelope-encryption
+
+# Post-quantum cryptography
+npm run example:kyber-kem
+npm run example:hybrid-kem
+npm run example:quantum-safe-payment
+
+# Integration sketches
+npm run example:fabric-gateway
+npm run example:besu-ethers
+npm run example:corda-rest
 ```
 
-Full list of commands in [package.json](../package.json).
+Full command list in [package.json](../package.json).
