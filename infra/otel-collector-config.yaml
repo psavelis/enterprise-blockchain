@@ -1,0 +1,63 @@
+# OpenTelemetry Collector configuration for enterprise-blockchain.
+#
+# Receives OTLP traces and metrics from applications, forwards to:
+# - Jaeger (traces)
+# - Prometheus (metrics via scrape endpoint)
+#
+# Ref: https://opentelemetry.io/docs/collector/configuration/
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # Batch telemetry to reduce export overhead
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+
+  # Add resource attributes for service identification
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: development
+        action: upsert
+
+exporters:
+  # Export traces to Jaeger
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  # Expose metrics for Prometheus scraping
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: enterprise_blockchain
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # Debug logging (disable in production)
+  debug:
+    verbosity: basic
+
+extensions:
+  # Health check endpoint for container healthcheck
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [otlp/jaeger, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [prometheus, debug]
