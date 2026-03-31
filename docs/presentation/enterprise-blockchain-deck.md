@@ -70,8 +70,9 @@ TypeScript repository demonstrating enterprise blockchain patterns.
 | `modules/`   | Domain logic, protocol adapters, integration clients      |
 | `examples/`  | 20 runnable scenarios                                     |
 | `contracts/` | Solidity (Foundry), Fabric chaincode (TS), Corda (Kotlin) |
-| `docs/`      | Architecture decisions, flow diagrams, this deck          |
+| `docs/`      | Architecture guides, ADRs, this deck                      |
 | `skills/`    | AI skill files for assisted development                   |
+| `tests/`     | Property-based tests (fast-check)                         |
 
 ---
 
@@ -373,11 +374,50 @@ TypeScript handles the integration boundary, not CorDapp runtime.
 ```bash
 npm install          # install dependencies
 npm run verify       # format + lint + typecheck + test + examples
-npm run demo:adapters       # protocol adapter projections
-npm run demo:integrations   # SDK integration sketches
+make up              # start Docker Compose stack
+make smoke           # run smoke tests
 ```
 
 All examples run offline with mocked SDK boundaries.
+
+---
+
+<!-- _class: compact -->
+
+# Infrastructure
+
+**Local Development Stack**
+
+| Service        | Port  | Purpose                |
+| -------------- | ----- | ---------------------- |
+| Besu validator | 8545  | JSON-RPC               |
+| Fabric peer    | 7051  | gRPC                   |
+| OTEL Collector | 4318  | Trace/metric ingestion |
+| Jaeger         | 16686 | Distributed trace UI   |
+| Prometheus     | 9090  | Metrics collection     |
+
+Security: CIS Docker Benchmark (resource limits, no-new-privileges)
+
+---
+
+<!-- _class: compact -->
+
+# Observability
+
+**OpenTelemetry Integration**
+
+```typescript
+import { withSpan, createMeter } from "@enterprise-blockchain/shared";
+
+const result = await withSpan("submitTransaction", async (span) => {
+  span.setAttribute("channel", "food-trace");
+  return gateway.submit(proposal);
+});
+```
+
+- Automatic context propagation across services
+- Traces exported to Jaeger, metrics to Prometheus
+- Circuit breaker and retry instrumented
 
 ---
 
@@ -396,6 +436,23 @@ All examples run offline with mocked SDK boundaries.
 
 ---
 
+# Property-Based Testing
+
+**fast-check for Cryptographic Invariants**
+
+| Module | Properties Tested                               |
+| ------ | ----------------------------------------------- |
+| HSM    | Envelope round-trip, ECDSA sign/verify          |
+| Kyber  | ML-KEM encapsulate/decapsulate, implicit reject |
+| MPC    | Field arithmetic, Shamir k-of-n reconstruction  |
+
+```bash
+npm test              # run all tests
+npm test -- tests/hsm.property.test.ts
+```
+
+---
+
 # Navigation
 
 | Goal                       | Start                   |
@@ -405,6 +462,7 @@ All examples run offline with mocked SDK boundaries.
 | See protocol shapes        | `modules/protocols/`    |
 | Study integration patterns | `modules/integrations/` |
 | Review architecture        | `docs/architecture/`    |
+| Run infrastructure         | `make up && make smoke` |
 
 ---
 
@@ -416,5 +474,7 @@ All examples run offline with mocked SDK boundaries.
 - **3** protocol adapters (Fabric, Besu, Corda)
 - **3** integration clients (Gateway, ethers, REST)
 - **9** cryptographic examples (3 MPC + 3 HSM + 3 PQC)
+- **OpenTelemetry** observability with Jaeger and Prometheus
+- **Property tests** for cryptographic correctness
 
 All pass `npm run verify` and run offline.
