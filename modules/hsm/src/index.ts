@@ -18,6 +18,25 @@ export { EnvelopeEncryptionService } from "./application/envelope-encryption-ser
 // Infrastructure
 export { InMemoryAuditLog } from "./infrastructure/audit-log";
 export { InMemoryKeyStore } from "./infrastructure/key-store";
+export { FileAuditLog } from "./infrastructure/file-audit-log";
+export type { ChainedAuditEntry } from "./infrastructure/file-audit-log";
+export {
+  SyslogAuditLog,
+  DEFAULT_SYSLOG_CONFIG,
+} from "./infrastructure/syslog-audit-log";
+export type {
+  SyslogConfig,
+  SyslogSeverity,
+  SyslogFacility,
+} from "./infrastructure/syslog-audit-log";
+export {
+  AuditLogFactory,
+  AUDIT_LOG_ENV,
+} from "./infrastructure/audit-log-factory";
+export type {
+  AuditLogType,
+  AuditLogFactoryConfig,
+} from "./infrastructure/audit-log-factory";
 
 // ---------------------------------------------------------------------------
 // Facade — preserves the original HsmClient API.
