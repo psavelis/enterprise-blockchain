@@ -305,7 +305,7 @@ services:
   #
   # Ref: https://www.jaegertracing.io/docs/latest/getting-started/
   jaeger:
-    image: jaegertracing/all-in-one:1.54
+    image: jaegertracing/all-in-one:1.76.0
     container_name: jaeger
     networks:
       - enterprise-blockchain
