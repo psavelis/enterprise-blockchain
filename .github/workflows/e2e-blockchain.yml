@@ -5,13 +5,13 @@ on:
     branches: [main, master]
     paths:
       - "modules/integrations/**"
-      - "tests/e2e-blockchain.test.ts"
+      - "tests/e2e-blockchain.e2e.ts"
       - "docker-compose.yml"
       - ".github/workflows/e2e-blockchain.yml"
   pull_request:
     paths:
       - "modules/integrations/**"
-      - "tests/e2e-blockchain.test.ts"
+      - "tests/e2e-blockchain.e2e.ts"
       - "docker-compose.yml"
       - ".github/workflows/e2e-blockchain.yml"
   workflow_dispatch:
@@ -101,7 +101,7 @@ jobs:
 
           # Run tests and capture output
           set +e
-          OUTPUT=$(node --import tsx --test --test-reporter spec tests/e2e-blockchain.test.ts 2>&1)
+          OUTPUT=$(npm run test:e2e 2>&1)
           EXIT_CODE=$?
           set -e
 
