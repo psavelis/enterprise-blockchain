@@ -1,6 +1,8 @@
-import { randomBytes, randomInt } from "node:crypto";
-
-import { commitShare, sha256hex, timingSafeCompare } from "./crypto";
+import type { RandomnessProvider, CommitmentProvider } from "./ports";
+import {
+  defaultRandomnessProvider,
+  defaultCommitmentProvider,
+} from "./adapters";
 
 /** Estimated bytes per share entry for memory quota tracking */
 const BYTES_PER_SHARE = 200;
@@ -197,15 +199,23 @@ export class InMemoryResourceQuotaManager implements ResourceQuotaManager {
 
 export interface MPCEngineConfig {
   quotaManager?: ResourceQuotaManager;
+  /** Optional randomness provider for dependency injection (testing). */
+  randomnessProvider?: RandomnessProvider;
+  /** Optional commitment provider for dependency injection (testing). */
+  commitmentProvider?: CommitmentProvider;
 }
 
 export class MPCEngine {
   private readonly parties = new Map<string, PartyConfig>();
   private readonly rounds = new Map<string, ComputationRound>();
   private readonly quotaManager: ResourceQuotaManager | null;
+  private readonly randomness: RandomnessProvider;
+  private readonly commitment: CommitmentProvider;
 
   constructor(config: MPCEngineConfig = {}) {
     this.quotaManager = config.quotaManager ?? null;
+    this.randomness = config.randomnessProvider ?? defaultRandomnessProvider;
+    this.commitment = config.commitmentProvider ?? defaultCommitmentProvider;
   }
 
   registerParty(party: PartyConfig): void {
@@ -232,27 +242,27 @@ export class MPCEngine {
     const hi = 2 ** 47;
 
     for (let i = 0; i < partyIds.length - 1; i++) {
-      const value = randomInt(lo, hi);
+      const value = this.randomness.randomInt(lo, hi);
       remaining -= value;
-      const nonce = randomBytes(16).toString("hex");
+      const nonce = this.randomness.randomBytes(16).toString("hex");
       shares.push({
         partyId: partyIds[i]!,
         shareIndex: i,
         shareCount: partyIds.length,
         value,
         nonce,
-        commitment: commitShare(partyIds[i]!, i, value, nonce),
+        commitment: this.commitment.commitShare(partyIds[i]!, i, value, nonce),
       });
     }
 
-    const lastNonce = randomBytes(16).toString("hex");
+    const lastNonce = this.randomness.randomBytes(16).toString("hex");
     shares.push({
       partyId: partyIds[partyIds.length - 1]!,
       shareIndex: partyIds.length - 1,
       shareCount: partyIds.length,
       value: remaining,
       nonce: lastNonce,
-      commitment: commitShare(
+      commitment: this.commitment.commitShare(
         partyIds[partyIds.length - 1]!,
         partyIds.length - 1,
         remaining,
@@ -300,13 +310,13 @@ export class MPCEngine {
     // with a valid-looking commitment, which would corrupt the result.
     // Uses timing-safe comparison to prevent timing attacks that could
     // leak information about valid commitment prefixes.
-    const expected = commitShare(
+    const expected = this.commitment.commitShare(
       share.partyId,
       share.shareIndex,
       share.value,
       share.nonce,
     );
-    if (!timingSafeCompare(expected, share.commitment)) {
+    if (!this.commitment.timingSafeCompare(expected, share.commitment)) {
       throw new Error(
         `Commitment verification failed for party ${share.partyId} in computation ${computationId}`,
       );
@@ -399,7 +409,7 @@ export class MPCEngine {
             operation: "additive-reconstruction",
             commitmentsVerified,
           },
-          integrityProof: sha256hex(
+          integrityProof: this.commitment.sha256hex(
             JSON.stringify({
               computationId,
               op: "sum",
@@ -435,7 +445,7 @@ export class MPCEngine {
             threshold: t,
             commitmentsVerified,
           },
-          integrityProof: sha256hex(
+          integrityProof: this.commitment.sha256hex(
             JSON.stringify({
               computationId,
               op: "threshold",
@@ -454,7 +464,7 @@ export class MPCEngine {
     if (!round) return false;
 
     for (const share of round.shares.values()) {
-      const expected = commitShare(
+      const expected = this.commitment.commitShare(
         share.partyId,
         share.shareIndex,
         share.value,
@@ -511,6 +521,15 @@ export class MPCEngine {
     return expiredCount;
   }
 }
+
+// Re-export ports and adapters for dependency injection
+export type { RandomnessProvider, CommitmentProvider } from "./ports";
+export {
+  NodeRandomnessProvider,
+  NodeCommitmentProvider,
+  defaultRandomnessProvider,
+  defaultCommitmentProvider,
+} from "./adapters";
 
 // Re-export ML-KEM and Hybrid KEM so consumers can reach them via the module
 // root without needing to know the internal file layout.

@@ -12,14 +12,44 @@
  * The interpreter returns a detailed audit trail for compliance.
  */
 
-import { sha256hex } from "../../shared/src/crypto";
-import { MlDsaSigner } from "../../mpc/src/dsa";
+import type { SignatureVerificationPort, HashingPort } from "./ports";
+import { defaultSignatureVerifier, defaultHasher } from "./adapters";
 import type {
   ScriptLeaf,
   SpendWitness,
   ScriptVerificationResult,
   VerificationStep,
 } from "./types";
+
+// Module-level default instances (can be overridden via createInterpreter)
+let signatureVerifier: SignatureVerificationPort = defaultSignatureVerifier;
+let hasher: HashingPort = defaultHasher;
+
+/**
+ * Configure the script interpreter with custom implementations.
+ * Primarily useful for testing with mock implementations.
+ *
+ * @param options Configuration options.
+ */
+export function configureInterpreter(options: {
+  signatureVerifier?: SignatureVerificationPort;
+  hasher?: HashingPort;
+}): void {
+  if (options.signatureVerifier) {
+    signatureVerifier = options.signatureVerifier;
+  }
+  if (options.hasher) {
+    hasher = options.hasher;
+  }
+}
+
+/**
+ * Reset interpreter to default implementations.
+ */
+export function resetInterpreter(): void {
+  signatureVerifier = defaultSignatureVerifier;
+  hasher = defaultHasher;
+}
 
 // ---------------------------------------------------------------------------
 // Script Interpreter
@@ -195,8 +225,7 @@ function interpretSingleSig(
   });
 
   // Verify ML-DSA-65 signature
-  const signer = new MlDsaSigner();
-  const signatureValid = signer.verify(
+  const signatureValid = signatureVerifier.verify(
     message,
     signature,
     publicKey,
@@ -339,8 +368,7 @@ function interpretTimelock(
   });
 
   // Verify signature
-  const signer = new MlDsaSigner();
-  const signatureValid = signer.verify(
+  const signatureValid = signatureVerifier.verify(
     message,
     signature,
     publicKey,
@@ -429,7 +457,6 @@ function interpretMultisig(
   const authorizedHashes = new Set(leaf.publicKeyHashes);
 
   // Verify each signature and count valid ones
-  const signer = new MlDsaSigner();
   let validCount = 0;
   const usedHashes = new Set<string>();
 
@@ -459,7 +486,7 @@ function interpretMultisig(
     }
 
     // Verify signature
-    const signatureValid = signer.verify(
+    const signatureValid = signatureVerifier.verify(
       message,
       signature,
       publicKey,
@@ -614,8 +641,7 @@ function interpretHsmAttested(
   });
 
   // Verify signature
-  const signer = new MlDsaSigner();
-  const signatureValid = signer.verify(
+  const signatureValid = signatureVerifier.verify(
     message,
     signature,
     publicKey,
@@ -667,5 +693,5 @@ function interpretHsmAttested(
  * This matches the format stored in ScriptLeaf.publicKeyHashes.
  */
 export function hashPublicKey(publicKey: Uint8Array): string {
-  return sha256hex(Buffer.from(publicKey).toString("hex"));
+  return hasher.sha256hex(Buffer.from(publicKey).toString("hex"));
 }

@@ -118,4 +118,26 @@ export type {
   InterpretScriptResult,
 } from "./script-interpreter";
 
-export { interpretScript, hashPublicKey } from "./script-interpreter";
+export {
+  interpretScript,
+  hashPublicKey,
+  configureInterpreter,
+  resetInterpreter,
+} from "./script-interpreter";
+
+// ---------------------------------------------------------------------------
+// Ports and Adapters (Hexagonal Architecture)
+// ---------------------------------------------------------------------------
+
+export type {
+  SignatureVerificationPort,
+  HashingPort,
+  SignatureAlgorithm,
+} from "./ports";
+
+export {
+  MlDsaSignatureVerifier,
+  Sha256Hasher,
+  defaultSignatureVerifier,
+  defaultHasher,
+} from "./adapters";
