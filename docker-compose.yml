@@ -336,7 +336,7 @@ services:
   #
   # Ref: https://prometheus.io/docs/prometheus/latest/installation/
   prometheus:
-    image: prom/prometheus:v2.50.1
+    image: prom/prometheus:v3.10.0
     container_name: prometheus
     networks:
       - enterprise-blockchain
