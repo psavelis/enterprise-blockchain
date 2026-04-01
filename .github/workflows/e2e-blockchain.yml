@@ -107,11 +107,14 @@ jobs:
 
           echo "$OUTPUT"
 
-          # Parse test results
-          TOTAL=$(echo "$OUTPUT" | grep -E "^# tests" | awk '{print $NF}' || echo "0")
-          PASS=$(echo "$OUTPUT" | grep -E "^# pass" | awk '{print $NF}' || echo "0")
-          FAIL=$(echo "$OUTPUT" | grep -E "^# fail" | awk '{print $NF}' || echo "0")
-          SKIP=$(echo "$OUTPUT" | grep -E "^# skipped" | awk '{print $NF}' || echo "0")
+          # Parse test results (handle whitespace and npm output prefixes)
+          TOTAL=$(echo "$OUTPUT" | grep -E "# tests [0-9]+" | tail -1 | awk '{print $NF}' || echo "0")
+          PASS=$(echo "$OUTPUT" | grep -E "# pass [0-9]+" | tail -1 | awk '{print $NF}' || echo "0")
+          FAIL=$(echo "$OUTPUT" | grep -E "# fail [0-9]+" | tail -1 | awk '{print $NF}' || echo "0")
+          SKIP=$(echo "$OUTPUT" | grep -E "# skipped [0-9]+" | tail -1 | awk '{print $NF}' || echo "0")
+
+          # Debug output
+          echo "Parsed results: total=$TOTAL pass=$PASS fail=$FAIL skip=$SKIP"
 
           # Save for summary
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
