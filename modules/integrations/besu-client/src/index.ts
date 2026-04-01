@@ -20,6 +20,11 @@ import {
   getRequiredEnv,
 } from "../../shared/src/env";
 import {
+  createTracer,
+  withSpan,
+  TelemetryAttributes,
+} from "../../../shared/src/telemetry";
+import {
   extractErrorMessage,
   isInsufficientFunds,
   isNonceTooLow,
@@ -35,6 +40,8 @@ import type {
   IBesuTransactionBuilder,
   IBesuTransactionSender,
 } from "./ports";
+
+const tracer = createTracer("besu-client");
 
 export type {
   BesuRpcProfile,
@@ -112,21 +119,35 @@ export class BesuGasEstimator implements IBesuGasEstimator {
     tx: TransactionRequest,
     gasLimitOverride?: bigint,
   ): Promise<bigint> {
-    if (gasLimitOverride !== undefined) {
-      return gasLimitOverride;
-    }
-    try {
-      return await this.providerFactory.createProvider(profile).estimateGas(tx);
-    } catch (err: unknown) {
-      const msg = extractErrorMessage(err);
-      if (isInsufficientFunds(err)) {
-        throw new Error(
-          `Besu gas estimation failed — sender account has insufficient funds: ${msg}`,
-          { cause: err },
+    return withSpan(tracer, "besu.estimateGas", async (span) => {
+      span.setAttribute(TelemetryAttributes.BLOCKCHAIN_PLATFORM, "besu");
+      span.setAttribute("besu.chain_id", profile.chainId);
+
+      if (gasLimitOverride !== undefined) {
+        span.setAttribute(
+          "besu.gas_limit_override",
+          gasLimitOverride.toString(),
         );
+        return gasLimitOverride;
       }
-      throw new Error(`Besu gas estimation failed: ${msg}`, { cause: err });
-    }
+      try {
+        const gasEstimate = await this.providerFactory
+          .createProvider(profile)
+          .estimateGas(tx);
+        span.setAttribute("besu.gas_estimate", gasEstimate.toString());
+        return gasEstimate;
+      } catch (err: unknown) {
+        const msg = extractErrorMessage(err);
+        span.setAttribute(TelemetryAttributes.ERROR_MESSAGE, msg);
+        if (isInsufficientFunds(err)) {
+          throw new Error(
+            `Besu gas estimation failed — sender account has insufficient funds: ${msg}`,
+            { cause: err },
+          );
+        }
+        throw new Error(`Besu gas estimation failed: ${msg}`, { cause: err });
+      }
+    });
   }
 }
 
@@ -195,26 +216,38 @@ export class BesuTransactionSender implements IBesuTransactionSender {
     signer: NonceManager,
     tx: TransactionRequest,
   ): Promise<string> {
-    try {
-      const response = await signer.sendTransaction(tx);
-      return response.hash;
-    } catch (err: unknown) {
-      if (isNonceTooLow(err)) {
-        throw new Error(
-          `Besu NONCE_TOO_LOW — another transaction from this account was mined first. ` +
-            `Retry with a fresh nonce or use createManagedSigner() for automatic sequencing.`,
-          { cause: err },
-        );
+    return withSpan(tracer, "besu.sendTransaction", async (span) => {
+      span.setAttribute(TelemetryAttributes.BLOCKCHAIN_PLATFORM, "besu");
+      if (tx.to && typeof tx.to === "string") {
+        span.setAttribute("besu.to", tx.to);
       }
-      if (isInsufficientFunds(err)) {
-        throw new Error(
-          `Besu INSUFFICIENT_FUNDS — the sender account cannot cover gas × gasPrice. ` +
-            `Fund the account or lower gasLimit.`,
-          { cause: err },
-        );
+      if (tx.chainId) span.setAttribute("besu.chain_id", Number(tx.chainId));
+
+      try {
+        const response = await signer.sendTransaction(tx);
+        span.setAttribute(TelemetryAttributes.BLOCKCHAIN_TX_ID, response.hash);
+        return response.hash;
+      } catch (err: unknown) {
+        const msg = extractErrorMessage(err);
+        span.setAttribute(TelemetryAttributes.ERROR_MESSAGE, msg);
+
+        if (isNonceTooLow(err)) {
+          throw new Error(
+            `Besu NONCE_TOO_LOW — another transaction from this account was mined first. ` +
+              `Retry with a fresh nonce or use createManagedSigner() for automatic sequencing.`,
+            { cause: err },
+          );
+        }
+        if (isInsufficientFunds(err)) {
+          throw new Error(
+            `Besu INSUFFICIENT_FUNDS — the sender account cannot cover gas × gasPrice. ` +
+              `Fund the account or lower gasLimit.`,
+            { cause: err },
+          );
+        }
+        throw err;
       }
-      throw err;
-    }
+    });
   }
 }
 
@@ -222,26 +255,44 @@ export class BesuHealthChecker implements IBesuHealthChecker {
   constructor(private readonly providerFactory: IBesuProviderFactory) {}
 
   async checkHealth(profile: BesuRpcProfile): Promise<BesuHealthStatus> {
-    const start = Date.now();
-    try {
-      const provider = this.providerFactory.createProvider(profile);
-      const [blockNumber, network] = await Promise.all([
-        provider.getBlockNumber(),
-        provider.getNetwork(),
-      ]);
-      return {
-        healthy: true,
-        blockNumber: BigInt(blockNumber),
-        chainId: Number(network.chainId),
-        latencyMs: Date.now() - start,
-      };
-    } catch (err) {
-      return {
-        healthy: false,
-        latencyMs: Date.now() - start,
-        error: extractErrorMessage(err),
-      };
-    }
+    return withSpan(tracer, "besu.checkHealth", async (span) => {
+      span.setAttribute(TelemetryAttributes.BLOCKCHAIN_PLATFORM, "besu");
+      span.setAttribute("besu.chain_id", profile.chainId);
+
+      const start = Date.now();
+      try {
+        const provider = this.providerFactory.createProvider(profile);
+        const [blockNumber, network] = await Promise.all([
+          provider.getBlockNumber(),
+          provider.getNetwork(),
+        ]);
+        const latencyMs = Date.now() - start;
+
+        span.setAttribute("besu.healthy", true);
+        span.setAttribute("besu.block_number", blockNumber.toString());
+        span.setAttribute("besu.latency_ms", latencyMs);
+
+        return {
+          healthy: true,
+          blockNumber: BigInt(blockNumber),
+          chainId: Number(network.chainId),
+          latencyMs,
+        };
+      } catch (err) {
+        const latencyMs = Date.now() - start;
+        const errorMsg = extractErrorMessage(err);
+
+        span.setAttribute("besu.healthy", false);
+        span.setAttribute("besu.latency_ms", latencyMs);
+        span.setAttribute(TelemetryAttributes.ERROR_MESSAGE, errorMsg);
+
+        return {
+          healthy: false,
+          latencyMs,
+          error: errorMsg,
+        };
+      }
+    });
   }
 }
 

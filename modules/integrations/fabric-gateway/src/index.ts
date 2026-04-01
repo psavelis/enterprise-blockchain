@@ -14,6 +14,11 @@ import {
 } from "@hyperledger/fabric-gateway";
 
 import { getOptionalEnv, getRequiredEnv } from "../../shared/src/env";
+import {
+  createTracer,
+  withSpan,
+  TelemetryAttributes,
+} from "../../../shared/src/telemetry";
 import type {
   FabricGatewayProfile,
   FabricProposalPlan,
@@ -22,6 +27,8 @@ import type {
   IFabricProfileFactory,
   IFabricProposalBuilder,
 } from "./ports";
+
+const tracer = createTracer("fabric-gateway");
 
 export type { FabricGatewayProfile, FabricProposalPlan } from "./ports";
 
@@ -59,30 +66,40 @@ export class FabricProfileFactory implements IFabricProfileFactory {
 
 export class FabricConnectionFactory implements IFabricConnectionFactory {
   async createGrpcClient(profile: FabricGatewayProfile): Promise<grpc.Client> {
-    const tlsRootCert = await readFile(profile.tlsCertPath);
-    const credentials = grpc.credentials.createSsl(tlsRootCert);
-    const options: grpc.ClientOptions = {};
+    return withSpan(tracer, "fabric.createGrpcClient", async (span) => {
+      span.setAttribute(TelemetryAttributes.BLOCKCHAIN_PLATFORM, "fabric");
+      span.setAttribute("fabric.peer_endpoint", profile.peerEndpoint);
 
-    if (profile.peerHostAlias) {
-      options["grpc.ssl_target_name_override"] = profile.peerHostAlias;
-      options["grpc.default_authority"] = profile.peerHostAlias;
-    }
+      const tlsRootCert = await readFile(profile.tlsCertPath);
+      const credentials = grpc.credentials.createSsl(tlsRootCert);
+      const options: grpc.ClientOptions = {};
 
-    return new grpc.Client(profile.peerEndpoint, credentials, options);
+      if (profile.peerHostAlias) {
+        options["grpc.ssl_target_name_override"] = profile.peerHostAlias;
+        options["grpc.default_authority"] = profile.peerHostAlias;
+        span.setAttribute("fabric.peer_host_alias", profile.peerHostAlias);
+      }
+
+      return new grpc.Client(profile.peerEndpoint, credentials, options);
+    });
   }
 
   async createIdentity(profile: FabricGatewayProfile): Promise<Identity> {
-    return {
-      mspId: profile.mspId,
-      credentials: await readFile(profile.identityCertPath),
-    };
+    return withSpan(tracer, "fabric.createIdentity", async (span) => {
+      span.setAttribute("fabric.msp_id", profile.mspId);
+      return {
+        mspId: profile.mspId,
+        credentials: await readFile(profile.identityCertPath),
+      };
+    });
   }
 
   async createSigner(profile: FabricGatewayProfile): Promise<Signer> {
-    const privateKeyPem = await readFile(profile.privateKeyPath);
-    const privateKey = createPrivateKey(privateKeyPem);
-
-    return signers.newPrivateKeySigner(privateKey);
+    return withSpan(tracer, "fabric.createSigner", async () => {
+      const privateKeyPem = await readFile(profile.privateKeyPath);
+      const privateKey = createPrivateKey(privateKeyPem);
+      return signers.newPrivateKeySigner(privateKey);
+    });
   }
 }
 
@@ -92,21 +109,33 @@ export class FabricGatewayFactory implements IFabricGatewayFactory {
   async createGateway(
     profile: FabricGatewayProfile,
   ): Promise<{ gateway: Gateway; client: grpc.Client }> {
-    const client = await this.connectionFactory.createGrpcClient(profile);
-    const identity = await this.connectionFactory.createIdentity(profile);
-    const signer = await this.connectionFactory.createSigner(profile);
+    return withSpan(tracer, "fabric.createGateway", async (span) => {
+      span.setAttribute(TelemetryAttributes.BLOCKCHAIN_PLATFORM, "fabric");
+      span.setAttribute(
+        TelemetryAttributes.BLOCKCHAIN_CHANNEL,
+        profile.channelName,
+      );
+      span.setAttribute(
+        TelemetryAttributes.BLOCKCHAIN_CHAINCODE,
+        profile.chaincodeName,
+      );
 
-    const options: ConnectOptions = {
-      client,
-      identity,
-      signer,
-      hash: hash.sha256,
-    };
+      const client = await this.connectionFactory.createGrpcClient(profile);
+      const identity = await this.connectionFactory.createIdentity(profile);
+      const signer = await this.connectionFactory.createSigner(profile);
 
-    return {
-      gateway: connect(options),
-      client,
-    };
+      const options: ConnectOptions = {
+        client,
+        identity,
+        signer,
+        hash: hash.sha256,
+      };
+
+      return {
+        gateway: connect(options),
+        client,
+      };
+    });
   }
 
   getContract(gateway: Gateway, profile: FabricGatewayProfile): Contract {

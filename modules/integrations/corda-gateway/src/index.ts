@@ -1,4 +1,9 @@
 import { getNumberEnv, getRequiredEnv } from "../../shared/src/env";
+import {
+  createTracer,
+  withSpan,
+  TelemetryAttributes,
+} from "../../../shared/src/telemetry";
 import type {
   CordaGatewayProfile,
   CordaGatewayRequest,
@@ -7,6 +12,8 @@ import type {
   ICordaRequestBuilder,
   ProviderClearancePayload,
 } from "./ports";
+
+const tracer = createTracer("corda-gateway");
 
 export type {
   CordaGatewayProfile,
@@ -98,21 +105,37 @@ function validateGatewayUrl(urlString: string): URL {
 
 export class CordaFlowInvoker implements ICordaFlowInvoker {
   async invokeFlow(request: CordaGatewayRequest): Promise<Response> {
-    // Validate URL before making the request (SSRF protection)
-    const validatedUrl = validateGatewayUrl(request.url);
+    return withSpan(tracer, "corda.invokeFlow", async (span) => {
+      span.setAttribute(TelemetryAttributes.BLOCKCHAIN_PLATFORM, "corda");
+      span.setAttribute("corda.method", request.method);
+      span.setAttribute("corda.timeout_ms", request.timeoutMs);
 
-    const response = await fetch(validatedUrl.toString(), {
-      method: request.method,
-      headers: request.headers,
-      body: request.body,
-      signal: AbortSignal.timeout(request.timeoutMs),
+      // Validate URL before making the request (SSRF protection)
+      const validatedUrl = validateGatewayUrl(request.url);
+
+      try {
+        const response = await fetch(validatedUrl.toString(), {
+          method: request.method,
+          headers: request.headers,
+          body: request.body,
+          signal: AbortSignal.timeout(request.timeoutMs),
+        });
+
+        span.setAttribute("corda.response_status", response.status);
+
+        if (!response.ok) {
+          const errorMsg = `Corda gateway error: ${response.status} ${response.statusText}`;
+          span.setAttribute(TelemetryAttributes.ERROR_MESSAGE, errorMsg);
+          throw new Error(errorMsg);
+        }
+        return response;
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          span.setAttribute(TelemetryAttributes.ERROR_MESSAGE, err.message);
+        }
+        throw err;
+      }
     });
-    if (!response.ok) {
-      throw new Error(
-        `Corda gateway error: ${response.status} ${response.statusText}`,
-      );
-    }
-    return response;
   }
 }
 
