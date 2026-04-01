@@ -22,11 +22,11 @@ make down
 
 The Docker Compose stack provisions three blockchain platforms plus observability:
 
-| Platform | Containers           | Ports       | Protocol           |
-| -------- | -------------------- | ----------- | ------------------ |
-| Besu     | 2 validator nodes    | 8545, 8546  | JSON-RPC over HTTP |
-| Fabric   | 1 orderer + 2 peers  | 7050-7052   | gRPC               |
-| Corda    | 1 notary + 2 parties | 10006-10008 | RPC                |
+| Platform | Containers           | Ports       | Protocol           | Setup Guide                    |
+| -------- | -------------------- | ----------- | ------------------ | ------------------------------ |
+| Besu     | 2 validator nodes    | 8545, 8546  | JSON-RPC over HTTP | [besu-setup.md](besu-setup.md) |
+| Fabric   | 1 orderer + 2 peers  | 7050-7052   | gRPC               | —                              |
+| Corda    | 1 notary + 2 parties | 10006-10008 | RPC                | —                              |
 
 ### Observability Stack
 
@@ -91,6 +91,7 @@ Traces appear in Jaeger at http://localhost:16686. See [observability.md](observ
 | Workflow                  | Trigger                | Validation                               |
 | ------------------------- | ---------------------- | ---------------------------------------- |
 | `ci.yml`                  | Push/PR to main        | Format, lint, typecheck, tests, examples |
+| `e2e-blockchain.yml`      | Integration changes    | Live Besu node E2E tests (15 tests)      |
 | `infra-smoke.yml`         | Docker Compose changes | Besu health, observability stack         |
 | `infra-observability.yml` | Telemetry changes      | OTEL export, Jaeger traces               |
 | `terraform.yml`           | Terraform changes      | Format, init, validate                   |
@@ -127,3 +128,8 @@ CORDA_RPC_ENDPOINT=localhost:10007
 - [infra/otel-collector-config.yaml](../../infra/otel-collector-config.yaml)
 - [infra/prometheus.yaml](../../infra/prometheus.yaml)
 - [skills/infrastructure-reference.md](../../skills/infrastructure-reference.md)
+
+### Platform-Specific Guides
+
+- [Besu Setup Guide](besu-setup.md) — Detailed Besu validator configuration
+- [Besu Order Sharing Flow](besu-order-sharing-flow.md) — Privacy group patterns

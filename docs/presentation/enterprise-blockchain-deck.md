@@ -339,6 +339,66 @@ Repository assets:
 
 <!-- _class: compact -->
 
+# Besu Dev Mode Configuration
+
+**Docker Compose Settings**
+
+| Setting          | Value                        |
+| ---------------- | ---------------------------- |
+| Image            | `hyperledger/besu:24.12.2`   |
+| Network mode     | `--network=dev` (PoA mining) |
+| Chain ID         | 1337                         |
+| Block time       | ~1 second (dev mode)         |
+| Validator-0 port | 8545                         |
+| Validator-1 port | 8546                         |
+
+Health check: TCP socket on RPC port (10s interval)
+
+---
+
+<!-- _class: compact -->
+
+# Besu Command-Line Arguments
+
+```yaml
+command:
+  - --network=dev # Dev mode with auto-mining
+  - --rpc-http-enabled # Enable JSON-RPC HTTP
+  - --rpc-http-host=0.0.0.0 # Bind to all interfaces
+  - --rpc-http-cors-origins=http://localhost
+  - --host-allowlist=localhost,127.0.0.1
+  - --miner-enabled # Enable block production
+  - --miner-coinbase=0x0000000000000000000000000000000000000000
+```
+
+Security: `no-new-privileges`, resource limits (1 CPU, 1GB)
+
+---
+
+<!-- _class: compact -->
+
+# Besu Quick Start
+
+```bash
+# Start Besu validators
+docker compose up -d besu-validator-0 besu-validator-1
+
+# Wait for health checks (~20s)
+docker compose ps
+
+# Verify JSON-RPC
+curl -X POST http://localhost:8545 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+
+# Run E2E tests (15 tests against live nodes)
+npm run test:e2e
+```
+
+---
+
+<!-- _class: compact -->
+
 ![bg right:50% fit](./diagrams/15-chaincode-walkthrough.png)
 
 # Fabric Integration
@@ -388,13 +448,14 @@ All examples run offline with mocked SDK boundaries.
 
 **Local Development Stack**
 
-| Service        | Port  | Purpose                |
-| -------------- | ----- | ---------------------- |
-| Besu validator | 8545  | JSON-RPC               |
-| Fabric peer    | 7051  | gRPC                   |
-| OTEL Collector | 4318  | Trace/metric ingestion |
-| Jaeger         | 16686 | Distributed trace UI   |
-| Prometheus     | 9090  | Metrics collection     |
+| Service          | Port  | Purpose                |
+| ---------------- | ----- | ---------------------- |
+| Besu validator-0 | 8545  | Primary JSON-RPC       |
+| Besu validator-1 | 8546  | Secondary validator    |
+| Fabric peer      | 7051  | gRPC                   |
+| OTEL Collector   | 4318  | Trace/metric ingestion |
+| Jaeger           | 16686 | Distributed trace UI   |
+| Prometheus       | 9090  | Metrics collection     |
 
 Security: CIS Docker Benchmark (resource limits, no-new-privileges)
 
@@ -455,14 +516,16 @@ npm test -- tests/hsm.property.test.ts
 
 # Navigation
 
-| Goal                       | Start                   |
-| -------------------------- | ----------------------- |
-| Run a scenario             | `examples/`             |
-| Read domain logic          | `modules/{domain}/src/` |
-| See protocol shapes        | `modules/protocols/`    |
-| Study integration patterns | `modules/integrations/` |
-| Review architecture        | `docs/architecture/`    |
-| Run infrastructure         | `make up && make smoke` |
+| Goal                       | Start                             |
+| -------------------------- | --------------------------------- |
+| Run a scenario             | `examples/`                       |
+| Read domain logic          | `modules/{domain}/src/`           |
+| See protocol shapes        | `modules/protocols/`              |
+| Study integration patterns | `modules/integrations/`           |
+| Review architecture        | `docs/architecture/`              |
+| Set up Besu locally        | `docs/architecture/besu-setup.md` |
+| Run infrastructure         | `make up && make smoke`           |
+| Run E2E tests              | `npm run test:e2e`                |
 
 ---
 
@@ -476,5 +539,6 @@ npm test -- tests/hsm.property.test.ts
 - **9** cryptographic examples (3 MPC + 3 HSM + 3 PQC)
 - **OpenTelemetry** observability with Jaeger and Prometheus
 - **Property tests** for cryptographic correctness
+- **E2E tests** with live Besu nodes (15 tests)
 
-All pass `npm run verify` and run offline.
+All pass `npm run verify` and run offline. E2E tests run with `npm run test:e2e`.
