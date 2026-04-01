@@ -82,22 +82,28 @@ jobs:
           if [ -f test-output.tap ]; then
             # Extract test names and results from TAP output
             # Format: ok N - test name OR not ok N - test name
-            PASSED=$(grep -E "^ok [0-9]+ - " test-output.tap | sed 's/^ok [0-9]* - //' | head -100)
-            FAILED=$(grep -E "^not ok [0-9]+ - " test-output.tap | sed 's/^not ok [0-9]* - //' | head -100)
-            TOTAL_PASSED=$(grep -cE "^ok [0-9]+ - " test-output.tap || echo "0")
-            TOTAL_FAILED=$(grep -cE "^not ok [0-9]+ - " test-output.tap || echo "0")
+            PASSED=$(grep -E "^ok [0-9]+ - " test-output.tap | sed 's/^ok [0-9]* - //' | head -100 || true)
+            FAILED=$(grep -E "^not ok [0-9]+ - " test-output.tap | sed 's/^not ok [0-9]* - //' | head -100 || true)
+
+            # Count matches (grep -c returns non-zero exit if no match, so capture separately)
+            TOTAL_PASSED=$(grep -cE "^ok [0-9]+ - " test-output.tap 2>/dev/null || true)
+            TOTAL_FAILED=$(grep -cE "^not ok [0-9]+ - " test-output.tap 2>/dev/null || true)
+
+            # Default to 0 if empty
+            TOTAL_PASSED=${TOTAL_PASSED:-0}
+            TOTAL_FAILED=${TOTAL_FAILED:-0}
 
             # Write to file for JSON inclusion (escape for JSON)
             echo "$PASSED" | jq -Rs '.' > passed-tests.txt
             echo "$FAILED" | jq -Rs '.' > failed-tests.txt
 
-            echo "total_passed=$TOTAL_PASSED" >> $GITHUB_OUTPUT
-            echo "total_failed=$TOTAL_FAILED" >> $GITHUB_OUTPUT
+            echo "total_passed=${TOTAL_PASSED}" >> "$GITHUB_OUTPUT"
+            echo "total_failed=${TOTAL_FAILED}" >> "$GITHUB_OUTPUT"
           else
             echo '""' > passed-tests.txt
             echo '""' > failed-tests.txt
-            echo "total_passed=0" >> $GITHUB_OUTPUT
-            echo "total_failed=0" >> $GITHUB_OUTPUT
+            echo "total_passed=0" >> "$GITHUB_OUTPUT"
+            echo "total_failed=0" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Write suite report
