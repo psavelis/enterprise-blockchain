@@ -11,6 +11,8 @@
  * - CircuitBreaker emits state transition metrics
  */
 
+import { randomBytes } from "node:crypto";
+
 import {
   createTracer,
   createMeter,
@@ -109,7 +111,10 @@ export function isRetryable(
 }
 
 export function computeDelay(attempt: number, policy: RetryPolicy): number {
-  const jitter = Math.random() * 0.3 + 0.85; // ±15%
+  // Use cryptographically secure randomness to prevent timing attacks
+  // that could exploit predictable backoff patterns
+  const randomByte = randomBytes(1)[0]!;
+  const jitter = (randomByte % 30) / 100 + 0.85; // ±15%
   const delay = Math.min(
     policy.baseDelayMs * Math.pow(2, attempt) * jitter,
     policy.maxDelayMs,

@@ -84,11 +84,36 @@ export class QuantumResistantVault {
     parties: string[],
     threshold: number,
   ): Map<string, ThresholdShare> {
+    // Input validation to prevent security issues
+    if (parties.length === 0) {
+      throw new Error("At least one party is required");
+    }
     if (threshold < 2) {
       throw new Error("Threshold must be at least 2");
     }
     if (threshold > parties.length) {
       throw new Error("Threshold cannot exceed party count");
+    }
+
+    // Validate party ID uniqueness - duplicate IDs would break t-of-n security
+    const uniqueParties = new Set(parties);
+    if (uniqueParties.size !== parties.length) {
+      throw new Error(
+        "Duplicate party IDs detected. Each party must have a unique identifier.",
+      );
+    }
+
+    // Validate party ID format - prevent injection and excessively long IDs
+    const MAX_PARTY_ID_LENGTH = 256;
+    for (const partyId of parties) {
+      if (!partyId || partyId.trim().length === 0) {
+        throw new Error("Party ID cannot be empty or whitespace-only");
+      }
+      if (partyId.length > MAX_PARTY_ID_LENGTH) {
+        throw new Error(
+          `Party ID exceeds maximum length of ${MAX_PARTY_ID_LENGTH} characters`,
+        );
+      }
     }
 
     const secretBigint = BigInt(secret);
