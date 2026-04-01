@@ -41,6 +41,7 @@
     "example:kyber-kem": "tsx examples/kyber-kem-key-exchange/index.ts",
     "example:hybrid-kem": "tsx examples/hybrid-kem-settlement/index.ts",
     "example:quantum-safe-payment": "tsx examples/quantum-safe-payment/index.ts",
+    "example:quantum-safe-merkle-root-payment": "tsx examples/quantum-safe-merkle-root-payment/index.ts",
     "sbom": "cyclonedx-npm --output-file sbom.json --output-format JSON",
     "prepare": "husky"
   },
