@@ -1,6 +1,9 @@
 import { randomBytes, randomInt } from "node:crypto";
 
-import { commitShare, sha256hex } from "./crypto";
+import { commitShare, sha256hex, timingSafeCompare } from "./crypto";
+
+/** Estimated bytes per share entry for memory quota tracking */
+const BYTES_PER_SHARE = 200;
 
 // Re-export field arithmetic for advanced use cases
 export {
@@ -130,8 +133,7 @@ export class InMemoryResourceQuotaManager implements ResourceQuotaManager {
     }
     partySessions.add(computationId);
     this.sessionCreatedAt.set(computationId, Date.now());
-    // Estimate ~200 bytes per share entry
-    this.estimatedMemoryBytes += 200;
+    this.estimatedMemoryBytes += BYTES_PER_SHARE;
   }
 
   releaseSession(computationId: string): void {
@@ -144,7 +146,10 @@ export class InMemoryResourceQuotaManager implements ResourceQuotaManager {
       }
     }
     this.sessionCreatedAt.delete(computationId);
-    this.estimatedMemoryBytes = Math.max(0, this.estimatedMemoryBytes - 200);
+    this.estimatedMemoryBytes = Math.max(
+      0,
+      this.estimatedMemoryBytes - BYTES_PER_SHARE,
+    );
   }
 
   getUsage(): ResourceUsage {
@@ -278,7 +283,11 @@ export class MPCEngine {
             `Resource quota exceeded: party ${share.partyId} has too many active sessions`,
           );
         }
-        if (!this.quotaManager.checkMemoryQuota(200 * share.shareCount)) {
+        if (
+          !this.quotaManager.checkMemoryQuota(
+            BYTES_PER_SHARE * share.shareCount,
+          )
+        ) {
           throw new Error(
             `Resource quota exceeded: memory limit would be exceeded`,
           );
@@ -289,13 +298,15 @@ export class MPCEngine {
     // Verify commitment before accepting the share.
     // This prevents a malicious party from submitting a bogus value
     // with a valid-looking commitment, which would corrupt the result.
+    // Uses timing-safe comparison to prevent timing attacks that could
+    // leak information about valid commitment prefixes.
     const expected = commitShare(
       share.partyId,
       share.shareIndex,
       share.value,
       share.nonce,
     );
-    if (expected !== share.commitment) {
+    if (!timingSafeCompare(expected, share.commitment)) {
       throw new Error(
         `Commitment verification failed for party ${share.partyId} in computation ${computationId}`,
       );
@@ -480,7 +491,7 @@ export class MPCEngine {
    * Expire stale sessions that have exceeded TTL.
    * Returns number of expired sessions.
    */
-  expireStaleSessionsessions(): number {
+  expireStaleSessions(): number {
     if (!this.quotaManager) return 0;
 
     const manager = this.quotaManager as InMemoryResourceQuotaManager;
