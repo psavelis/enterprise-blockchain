@@ -48,6 +48,10 @@ export interface FieldConfig {
  *
  * Environment variable: MPC_FIELD_MODE ("demo" | "production")
  * Default: "demo" for backward compatibility
+ *
+ * SECURITY WARNING: Using demo mode in production is insecure!
+ * The 31-bit field can be brute-forced in seconds.
+ * Set MPC_FIELD_MODE=production for cryptographic security.
  */
 export function getFieldConfig(mode?: FieldMode): FieldConfig {
   const envMode = process.env.MPC_FIELD_MODE;
@@ -61,6 +65,20 @@ export function getFieldConfig(mode?: FieldMode): FieldConfig {
   }
 
   const effectiveMode: FieldMode = rawMode;
+
+  // SECURITY: Fail hard if demo mode is used in production environment
+  // This prevents accidental deployment with insecure field size
+  if (
+    effectiveMode === "demo" &&
+    process.env.NODE_ENV === "production" &&
+    !process.env.MPC_ALLOW_INSECURE_DEMO
+  ) {
+    throw new Error(
+      "SECURITY ERROR: Demo field mode is not allowed in production. " +
+        "Set MPC_FIELD_MODE=production for 256-bit cryptographic security, " +
+        "or set MPC_ALLOW_INSECURE_DEMO=1 to override (not recommended).",
+    );
+  }
 
   return {
     mode: effectiveMode,

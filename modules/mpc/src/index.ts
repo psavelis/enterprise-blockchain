@@ -1,6 +1,11 @@
-import { randomBytes, randomInt } from "node:crypto";
+import type { RandomnessProvider, CommitmentProvider } from "./ports";
+import {
+  defaultRandomnessProvider,
+  defaultCommitmentProvider,
+} from "./adapters";
 
-import { commitShare, sha256hex } from "./crypto";
+/** Estimated bytes per share entry for memory quota tracking */
+const BYTES_PER_SHARE = 200;
 
 // Re-export field arithmetic for advanced use cases
 export {
@@ -130,8 +135,7 @@ export class InMemoryResourceQuotaManager implements ResourceQuotaManager {
     }
     partySessions.add(computationId);
     this.sessionCreatedAt.set(computationId, Date.now());
-    // Estimate ~200 bytes per share entry
-    this.estimatedMemoryBytes += 200;
+    this.estimatedMemoryBytes += BYTES_PER_SHARE;
   }
 
   releaseSession(computationId: string): void {
@@ -144,7 +148,10 @@ export class InMemoryResourceQuotaManager implements ResourceQuotaManager {
       }
     }
     this.sessionCreatedAt.delete(computationId);
-    this.estimatedMemoryBytes = Math.max(0, this.estimatedMemoryBytes - 200);
+    this.estimatedMemoryBytes = Math.max(
+      0,
+      this.estimatedMemoryBytes - BYTES_PER_SHARE,
+    );
   }
 
   getUsage(): ResourceUsage {
@@ -192,15 +199,23 @@ export class InMemoryResourceQuotaManager implements ResourceQuotaManager {
 
 export interface MPCEngineConfig {
   quotaManager?: ResourceQuotaManager;
+  /** Optional randomness provider for dependency injection (testing). */
+  randomnessProvider?: RandomnessProvider;
+  /** Optional commitment provider for dependency injection (testing). */
+  commitmentProvider?: CommitmentProvider;
 }
 
 export class MPCEngine {
   private readonly parties = new Map<string, PartyConfig>();
   private readonly rounds = new Map<string, ComputationRound>();
   private readonly quotaManager: ResourceQuotaManager | null;
+  private readonly randomness: RandomnessProvider;
+  private readonly commitment: CommitmentProvider;
 
   constructor(config: MPCEngineConfig = {}) {
     this.quotaManager = config.quotaManager ?? null;
+    this.randomness = config.randomnessProvider ?? defaultRandomnessProvider;
+    this.commitment = config.commitmentProvider ?? defaultCommitmentProvider;
   }
 
   registerParty(party: PartyConfig): void {
@@ -227,27 +242,27 @@ export class MPCEngine {
     const hi = 2 ** 47;
 
     for (let i = 0; i < partyIds.length - 1; i++) {
-      const value = randomInt(lo, hi);
+      const value = this.randomness.randomInt(lo, hi);
       remaining -= value;
-      const nonce = randomBytes(16).toString("hex");
+      const nonce = this.randomness.randomBytes(16).toString("hex");
       shares.push({
         partyId: partyIds[i]!,
         shareIndex: i,
         shareCount: partyIds.length,
         value,
         nonce,
-        commitment: commitShare(partyIds[i]!, i, value, nonce),
+        commitment: this.commitment.commitShare(partyIds[i]!, i, value, nonce),
       });
     }
 
-    const lastNonce = randomBytes(16).toString("hex");
+    const lastNonce = this.randomness.randomBytes(16).toString("hex");
     shares.push({
       partyId: partyIds[partyIds.length - 1]!,
       shareIndex: partyIds.length - 1,
       shareCount: partyIds.length,
       value: remaining,
       nonce: lastNonce,
-      commitment: commitShare(
+      commitment: this.commitment.commitShare(
         partyIds[partyIds.length - 1]!,
         partyIds.length - 1,
         remaining,
@@ -278,7 +293,11 @@ export class MPCEngine {
             `Resource quota exceeded: party ${share.partyId} has too many active sessions`,
           );
         }
-        if (!this.quotaManager.checkMemoryQuota(200 * share.shareCount)) {
+        if (
+          !this.quotaManager.checkMemoryQuota(
+            BYTES_PER_SHARE * share.shareCount,
+          )
+        ) {
           throw new Error(
             `Resource quota exceeded: memory limit would be exceeded`,
           );
@@ -289,13 +308,15 @@ export class MPCEngine {
     // Verify commitment before accepting the share.
     // This prevents a malicious party from submitting a bogus value
     // with a valid-looking commitment, which would corrupt the result.
-    const expected = commitShare(
+    // Uses timing-safe comparison to prevent timing attacks that could
+    // leak information about valid commitment prefixes.
+    const expected = this.commitment.commitShare(
       share.partyId,
       share.shareIndex,
       share.value,
       share.nonce,
     );
-    if (expected !== share.commitment) {
+    if (!this.commitment.timingSafeCompare(expected, share.commitment)) {
       throw new Error(
         `Commitment verification failed for party ${share.partyId} in computation ${computationId}`,
       );
@@ -388,7 +409,7 @@ export class MPCEngine {
             operation: "additive-reconstruction",
             commitmentsVerified,
           },
-          integrityProof: sha256hex(
+          integrityProof: this.commitment.sha256hex(
             JSON.stringify({
               computationId,
               op: "sum",
@@ -424,7 +445,7 @@ export class MPCEngine {
             threshold: t,
             commitmentsVerified,
           },
-          integrityProof: sha256hex(
+          integrityProof: this.commitment.sha256hex(
             JSON.stringify({
               computationId,
               op: "threshold",
@@ -443,7 +464,7 @@ export class MPCEngine {
     if (!round) return false;
 
     for (const share of round.shares.values()) {
-      const expected = commitShare(
+      const expected = this.commitment.commitShare(
         share.partyId,
         share.shareIndex,
         share.value,
@@ -480,7 +501,7 @@ export class MPCEngine {
    * Expire stale sessions that have exceeded TTL.
    * Returns number of expired sessions.
    */
-  expireStaleSessionsessions(): number {
+  expireStaleSessions(): number {
     if (!this.quotaManager) return 0;
 
     const manager = this.quotaManager as InMemoryResourceQuotaManager;
@@ -500,6 +521,15 @@ export class MPCEngine {
     return expiredCount;
   }
 }
+
+// Re-export ports and adapters for dependency injection
+export type { RandomnessProvider, CommitmentProvider } from "./ports";
+export {
+  NodeRandomnessProvider,
+  NodeCommitmentProvider,
+  defaultRandomnessProvider,
+  defaultCommitmentProvider,
+} from "./adapters";
 
 // Re-export ML-KEM and Hybrid KEM so consumers can reach them via the module
 // root without needing to know the internal file layout.

@@ -1,9 +1,10 @@
 import {
+  createPrivateKey,
+  createPublicKey,
   createSign,
   createVerify,
   generateKeyPairSync,
   randomBytes,
-  type KeyObject,
 } from "node:crypto";
 
 import { sha256hex } from "../../../shared/src/crypto";
@@ -19,6 +20,9 @@ import type { AuditLog, KeyStore } from "../domain/ports";
  *
  * Mirrors a PKCS#11 CKM_ECDSA / CKM_EC_KEY_PAIR_GEN subset.
  * Ref: PKCS#11 v3.1, §2.3.6 — https://docs.oasis-open.org/pkcs11/pkcs11-curr/v3.1/pkcs11-curr-v3.1.html
+ *
+ * Note: Domain entities store keys as PEM strings (infrastructure-agnostic).
+ * This service converts to/from KeyObject for cryptographic operations.
  */
 export class AsymmetricKeyService {
   constructor(
@@ -37,11 +41,26 @@ export class AsymmetricKeyService {
     const createdAt = new Date().toISOString();
     const handle = `hsm:${this.slotId}:${keyLabel}:${randomBytes(8).toString("hex")}`;
 
+    // Export to PEM for storage (domain stays infrastructure-agnostic)
+    const privateKeyPem = privateKey.export({
+      type: "pkcs8",
+      format: "pem",
+    });
+    const publicKeyPem = publicKey.export({
+      type: "spki",
+      format: "pem",
+    });
+
+    // Type guard: PEM format always returns string
+    if (typeof privateKeyPem !== "string" || typeof publicKeyPem !== "string") {
+      throw new Error("HSM: unexpected binary output from PEM export");
+    }
+
     this.keyStore.set(keyLabel, {
       kind: "asymmetric",
       keyLabel,
-      privateKey,
-      publicKey,
+      privateKeyPem,
+      publicKeyPem,
       namedCurve: "P-256",
       createdAt,
     });
@@ -52,7 +71,7 @@ export class AsymmetricKeyService {
       keyLabel,
       keyType: "EC",
       namedCurve: "P-256",
-      publicKeyPem: pemExport(publicKey),
+      publicKeyPem,
       privateKeyHandle: handle,
       createdAt,
     };
@@ -62,10 +81,13 @@ export class AsymmetricKeyService {
     const entry = this.requireAsymmetric(keyLabel);
     const timestamp = new Date().toISOString();
 
+    // Convert PEM back to KeyObject for signing
+    const privateKey = createPrivateKey(entry.privateKeyPem);
+
     const signer = createSign("SHA256");
     signer.update(data);
     signer.end();
-    const signature = signer.sign(entry.privateKey).toString("hex");
+    const signature = signer.sign(privateKey).toString("hex");
 
     const hsmAttestation = sha256hex(
       `${this.slotId}:${keyLabel}:${timestamp}:${signature}`,
@@ -77,7 +99,7 @@ export class AsymmetricKeyService {
       keyLabel,
       algorithm: "ecdsa-sha256",
       signature,
-      publicKeyPem: pemExport(entry.publicKey),
+      publicKeyPem: entry.publicKeyPem,
       timestamp,
       hsmAttestation,
     };
@@ -86,13 +108,13 @@ export class AsymmetricKeyService {
   verify(keyLabel: string, data: string, signature: string): boolean {
     const entry = this.requireAsymmetric(keyLabel);
 
+    // Convert PEM back to KeyObject for verification
+    const publicKey = createPublicKey(entry.publicKeyPem);
+
     const verifier = createVerify("SHA256");
     verifier.update(data);
     verifier.end();
-    const valid = verifier.verify(
-      entry.publicKey,
-      Buffer.from(signature, "hex"),
-    );
+    const valid = verifier.verify(publicKey, Buffer.from(signature, "hex"));
 
     this.audit.record(
       "verify",
@@ -106,7 +128,7 @@ export class AsymmetricKeyService {
   exportPublicKey(keyLabel: string): string {
     const entry = this.requireAsymmetric(keyLabel);
     this.audit.record("exportPublicKey", keyLabel, "success");
-    return pemExport(entry.publicKey);
+    return entry.publicKeyPem;
   }
 
   private requireAsymmetric(keyLabel: string): AsymmetricKeyEntry {
@@ -121,12 +143,4 @@ export class AsymmetricKeyService {
     }
     return entry;
   }
-}
-
-function pemExport(key: KeyObject): string {
-  const pem = key.export({ type: "spki", format: "pem" });
-  if (typeof pem !== "string") {
-    throw new Error("HSM: unexpected binary output from PEM export");
-  }
-  return pem;
 }

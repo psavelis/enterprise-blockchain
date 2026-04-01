@@ -6,9 +6,9 @@ import type { AuditLog, KeyStore } from "../domain/ports";
 /**
  * AES-256-GCM symmetric operations — key generation, wrapping, unwrapping.
  *
- * The raw key buffer is held in process memory for the lifetime of the
- * service. In a production HSM the key never leaves hardware-protected
- * storage. Do not persist or log the buffer.
+ * The raw key is stored as base64 in the domain entity (infrastructure-agnostic).
+ * In a production HSM the key never leaves hardware-protected storage.
+ * Do not persist or log the decoded buffer.
  */
 export class SymmetricKeyService {
   constructor(
@@ -23,7 +23,7 @@ export class SymmetricKeyService {
     this.keyStore.set(keyLabel, {
       kind: "symmetric",
       keyLabel,
-      key: randomBytes(32),
+      keyBase64: randomBytes(32).toString("base64"),
       createdAt: new Date().toISOString(),
     });
     this.audit.record("generateSymmetricKey", keyLabel, "success");
@@ -31,8 +31,9 @@ export class SymmetricKeyService {
 
   wrapKey(plaintextDek: Buffer, kekLabel: string): WrappedKey {
     const kek = this.requireSymmetric(kekLabel);
+    const kekBuffer = Buffer.from(kek.keyBase64, "base64");
     const iv = randomBytes(12);
-    const cipher = createCipheriv("aes-256-gcm", kek.key, iv);
+    const cipher = createCipheriv("aes-256-gcm", kekBuffer, iv);
     const wrappedDek = Buffer.concat([
       cipher.update(plaintextDek),
       cipher.final(),
@@ -53,12 +54,13 @@ export class SymmetricKeyService {
 
   unwrapKey(wrapped: WrappedKey): Buffer {
     const kek = this.requireSymmetric(wrapped.kekLabel);
+    const kekBuffer = Buffer.from(kek.keyBase64, "base64");
     const iv = Buffer.from(wrapped.iv, "hex");
     const authTag = Buffer.from(wrapped.authTag, "hex");
     const wrappedBuf = Buffer.from(wrapped.wrappedDek, "hex");
 
     try {
-      const decipher = createDecipheriv("aes-256-gcm", kek.key, iv);
+      const decipher = createDecipheriv("aes-256-gcm", kekBuffer, iv);
       decipher.setAuthTag(authTag);
       const plaintext = Buffer.concat([
         decipher.update(wrappedBuf),
