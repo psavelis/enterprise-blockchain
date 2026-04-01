@@ -1,10 +1,21 @@
 name: Release
 
+# DISABLED: Branch protection rules require changes through PRs.
+# semantic-release cannot push directly to main with current ruleset.
+# Re-enable when branch protection is configured to allow GitHub Actions.
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch:
+
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (no actual release)"
+        required: false
+        default: "true"
 
 permissions:
   contents: write
