@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # smoke-test-local.sh — Verify the local multi-platform stack is healthy.
 # Usage: bash scripts/smoke-test-local.sh
+#        SMOKE_MODE=besu-only bash scripts/smoke-test-local.sh  # Only test Besu + observability
 # Requires: docker compose, curl, nc (netcat)
 # Works on macOS (Docker Desktop) and Linux.
 
@@ -15,6 +16,9 @@ FABRIC_PEER_ORG2_PORT=7052
 CORDA_NOTARY_PORT=10006
 CORDA_PARTYA_PORT=10007
 CORDA_PARTYB_PORT=10008
+
+# SMOKE_MODE: "full" (default) tests all platforms, "besu-only" tests only Besu + observability
+SMOKE_MODE="${SMOKE_MODE:-full}"
 
 TIMEOUT_SECONDS="${SMOKE_TIMEOUT:-120}"
 POLL_INTERVAL=3
@@ -90,25 +94,30 @@ for pair in "besu-validator-0:Besu validator-0" "besu-validator-1:Besu validator
 done
 
 # Fabric and Corda images lack healthchecks — fall back to TCP.
-for svc_label_port in \
-  "Fabric orderer:127.0.0.1:${FABRIC_ORDERER_PORT}" \
-  "Fabric peer-org1:127.0.0.1:${FABRIC_PEER_ORG1_PORT}" \
-  "Fabric peer-org2:127.0.0.1:${FABRIC_PEER_ORG2_PORT}" \
-  "Corda notary:127.0.0.1:${CORDA_NOTARY_PORT}" \
-  "Corda partyA:127.0.0.1:${CORDA_PARTYA_PORT}" \
-  "Corda partyB:127.0.0.1:${CORDA_PARTYB_PORT}"; do
+# Skip these if SMOKE_MODE=besu-only (useful when Fabric/Corda images aren't available)
+if [[ "$SMOKE_MODE" != "besu-only" ]]; then
+  for svc_label_port in \
+    "Fabric orderer:127.0.0.1:${FABRIC_ORDERER_PORT}" \
+    "Fabric peer-org1:127.0.0.1:${FABRIC_PEER_ORG1_PORT}" \
+    "Fabric peer-org2:127.0.0.1:${FABRIC_PEER_ORG2_PORT}" \
+    "Corda notary:127.0.0.1:${CORDA_NOTARY_PORT}" \
+    "Corda partyA:127.0.0.1:${CORDA_PARTYA_PORT}" \
+    "Corda partyB:127.0.0.1:${CORDA_PARTYB_PORT}"; do
 
-  label="${svc_label_port%%:*}"
-  hostport="${svc_label_port#*:}"
-  host="${hostport%%:*}"
-  port="${hostport##*:}"
+    label="${svc_label_port%%:*}"
+    hostport="${svc_label_port#*:}"
+    host="${hostport%%:*}"
+    port="${hostport##*:}"
 
-  if wait_for_tcp "$host" "$port" "$label"; then
-    log_ok "${label} is accepting connections on port ${port}"
-  else
-    log_fail "${label} did not become ready within ${TIMEOUT_SECONDS}s on port ${port}"
-  fi
-done
+    if wait_for_tcp "$host" "$port" "$label"; then
+      log_ok "${label} is accepting connections on port ${port}"
+    else
+      log_fail "${label} did not become ready within ${TIMEOUT_SECONDS}s on port ${port}"
+    fi
+  done
+else
+  log_info "Skipping Fabric/Corda checks (SMOKE_MODE=besu-only)"
+fi
 
 # ── Step 2: Besu — verify blocks are advancing ──────────────────────
 
@@ -157,48 +166,52 @@ check_besu_blocks "$BESU_RPC_1" "besu-validator-1"
 #   docker exec fabric-peer-org1 peer channel list
 # This requires a fully configured Fabric network with channels created.
 
-log_info "=== Step 3: Fabric peer connectivity ==="
+if [[ "$SMOKE_MODE" != "besu-only" ]]; then
+  log_info "=== Step 3: Fabric peer connectivity ==="
 
-for pair in \
-  "fabric-orderer:127.0.0.1:${FABRIC_ORDERER_PORT}" \
-  "fabric-peer-org1:127.0.0.1:${FABRIC_PEER_ORG1_PORT}" \
-  "fabric-peer-org2:127.0.0.1:${FABRIC_PEER_ORG2_PORT}"; do
+  for pair in \
+    "fabric-orderer:127.0.0.1:${FABRIC_ORDERER_PORT}" \
+    "fabric-peer-org1:127.0.0.1:${FABRIC_PEER_ORG1_PORT}" \
+    "fabric-peer-org2:127.0.0.1:${FABRIC_PEER_ORG2_PORT}"; do
 
-  label="${pair%%:*}"
-  hostport="${pair#*:}"
-  host="${hostport%%:*}"
-  port="${hostport##*:}"
+    label="${pair%%:*}"
+    hostport="${pair#*:}"
+    host="${hostport%%:*}"
+    port="${hostport##*:}"
 
-  if nc -z "$host" "$port" 2>/dev/null; then
-    log_ok "${label}: gRPC port ${port} is reachable"
-  else
-    log_fail "${label}: gRPC port ${port} is NOT reachable"
-  fi
-done
+    if nc -z "$host" "$port" 2>/dev/null; then
+      log_ok "${label}: gRPC port ${port} is reachable"
+    else
+      log_fail "${label}: gRPC port ${port} is NOT reachable"
+    fi
+  done
 
-# ── Step 4: Corda — verify node connectivity ────────────────────────
-# NOTE: For application-layer health, hit the node-info endpoint:
-#   curl -sf http://127.0.0.1:10007/api/status
-# This requires a Corda node with the webserver module enabled.
+  # ── Step 4: Corda — verify node connectivity ────────────────────────
+  # NOTE: For application-layer health, hit the node-info endpoint:
+  #   curl -sf http://127.0.0.1:10007/api/status
+  # This requires a Corda node with the webserver module enabled.
 
-log_info "=== Step 4: Corda node connectivity ==="
+  log_info "=== Step 4: Corda node connectivity ==="
 
-for pair in \
-  "corda-notary:127.0.0.1:${CORDA_NOTARY_PORT}" \
-  "corda-partya:127.0.0.1:${CORDA_PARTYA_PORT}" \
-  "corda-partyb:127.0.0.1:${CORDA_PARTYB_PORT}"; do
+  for pair in \
+    "corda-notary:127.0.0.1:${CORDA_NOTARY_PORT}" \
+    "corda-partya:127.0.0.1:${CORDA_PARTYA_PORT}" \
+    "corda-partyb:127.0.0.1:${CORDA_PARTYB_PORT}"; do
 
-  label="${pair%%:*}"
-  hostport="${pair#*:}"
-  host="${hostport%%:*}"
-  port="${hostport##*:}"
+    label="${pair%%:*}"
+    hostport="${pair#*:}"
+    host="${hostport%%:*}"
+    port="${hostport##*:}"
 
-  if nc -z "$host" "$port" 2>/dev/null; then
-    log_ok "${label}: P2P port ${port} is reachable"
-  else
-    log_fail "${label}: P2P port ${port} is NOT reachable"
-  fi
-done
+    if nc -z "$host" "$port" 2>/dev/null; then
+      log_ok "${label}: P2P port ${port} is reachable"
+    else
+      log_fail "${label}: P2P port ${port} is NOT reachable"
+    fi
+  done
+else
+  log_info "Skipping Fabric and Corda connectivity tests (SMOKE_MODE=besu-only)"
+fi
 
 # ── Summary ──────────────────────────────────────────────────────────
 

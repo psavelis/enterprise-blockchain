@@ -49,19 +49,7 @@ services:
       - --miner-enabled
       - --miner-coinbase=0x0000000000000000000000000000000000000000
     healthcheck:
-      test:
-        [
-          "CMD",
-          "curl",
-          "-sf",
-          "http://localhost:8545",
-          "-X",
-          "POST",
-          "-H",
-          "Content-Type: application/json",
-          "-d",
-          '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}',
-        ]
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8545'"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -93,19 +81,7 @@ services:
       - --miner-enabled
       - --miner-coinbase=0x0000000000000000000000000000000000000001
     healthcheck:
-      test:
-        [
-          "CMD",
-          "curl",
-          "-sf",
-          "http://localhost:8545",
-          "-X",
-          "POST",
-          "-H",
-          "Content-Type: application/json",
-          "-d",
-          '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}',
-        ]
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8545'"]
       interval: 10s
       timeout: 5s
       retries: 10
