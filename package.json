@@ -13,6 +13,7 @@
     "lint": "eslint modules examples scripts tests --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/**/*.test.ts",
+    "test:e2e": "node --import tsx --test tests/**/*.e2e.ts",
     "examples": "tsx scripts/run-all-examples.ts",
     "demo:adapters": "tsx scripts/adapter-projections-demo.ts",
     "demo:integrations": "tsx scripts/integration-clients-demo.ts",

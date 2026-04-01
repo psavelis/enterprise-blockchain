@@ -1,0 +1,239 @@
+name: E2E Blockchain Tests
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "modules/integrations/**"
+      - "tests/e2e-blockchain.e2e.ts"
+      - "docker-compose.yml"
+      - ".github/workflows/e2e-blockchain.yml"
+  pull_request:
+    paths:
+      - "modules/integrations/**"
+      - "tests/e2e-blockchain.e2e.ts"
+      - "docker-compose.yml"
+      - ".github/workflows/e2e-blockchain.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  NODE_VERSION: "22.14.0"
+
+jobs:
+  e2e-blockchain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start Besu validators
+        run: |
+          echo "Starting Besu blockchain nodes..."
+          docker compose up -d besu-validator-0 besu-validator-1
+          echo "Waiting for services to initialize..."
+
+      - name: Wait for Besu health checks
+        run: |
+          echo "Waiting for Besu nodes to become healthy..."
+          for i in {1..60}; do
+            BESU0=$(docker inspect --format='{{.State.Health.Status}}' besu-validator-0 2>/dev/null || echo "starting")
+            BESU1=$(docker inspect --format='{{.State.Health.Status}}' besu-validator-1 2>/dev/null || echo "starting")
+
+            echo "Health status: besu-validator-0=$BESU0 besu-validator-1=$BESU1"
+
+            if [ "$BESU0" = "healthy" ] && [ "$BESU1" = "healthy" ]; then
+              echo "✓ Both Besu validators are healthy"
+              break
+            fi
+
+            if [ $i -eq 60 ]; then
+              echo "✗ Timeout waiting for Besu nodes"
+              docker compose logs besu-validator-0 --tail 50
+              docker compose logs besu-validator-1 --tail 50
+              exit 1
+            fi
+
+            sleep 3
+          done
+
+      - name: Verify Besu RPC endpoints
+        run: |
+          echo "Verifying Besu RPC endpoints..."
+
+          # Test validator-0
+          RESPONSE0=$(curl -sf -X POST "http://localhost:8545" \
+            -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}')
+          echo "Validator-0 response: $RESPONSE0"
+
+          # Test validator-1
+          RESPONSE1=$(curl -sf -X POST "http://localhost:8546" \
+            -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}')
+          echo "Validator-1 response: $RESPONSE1"
+
+          # Extract block numbers
+          BLOCK0=$(echo "$RESPONSE0" | grep -o '"result":"[^"]*"' | head -1 | cut -d'"' -f4)
+          BLOCK1=$(echo "$RESPONSE1" | grep -o '"result":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+          echo "Validator-0 block: $BLOCK0"
+          echo "Validator-1 block: $BLOCK1"
+
+      - name: Run E2E blockchain tests
+        id: e2e_tests
+        run: |
+          echo "Running E2E blockchain tests..."
+
+          # Run tests and capture output
+          set +e
+          OUTPUT=$(npm run test:e2e 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          echo "$OUTPUT"
+
+          # Parse test results
+          TOTAL=$(echo "$OUTPUT" | grep -E "^# tests" | awk '{print $NF}' || echo "0")
+          PASS=$(echo "$OUTPUT" | grep -E "^# pass" | awk '{print $NF}' || echo "0")
+          FAIL=$(echo "$OUTPUT" | grep -E "^# fail" | awk '{print $NF}' || echo "0")
+          SKIP=$(echo "$OUTPUT" | grep -E "^# skipped" | awk '{print $NF}' || echo "0")
+
+          # Save for summary
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          echo "pass=$PASS" >> $GITHUB_OUTPUT
+          echo "fail=$FAIL" >> $GITHUB_OUTPUT
+          echo "skip=$SKIP" >> $GITHUB_OUTPUT
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+
+          # Check for failures
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "::error::E2E tests failed"
+            exit $EXIT_CODE
+          fi
+
+      - name: Collect test artifacts
+        if: always()
+        run: |
+          mkdir -p e2e-report
+
+          # Get block info from both validators
+          curl -sf -X POST "http://localhost:8545" \
+            -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+            > e2e-report/validator-0-block.json || echo '{"error":"unavailable"}' > e2e-report/validator-0-block.json
+
+          curl -sf -X POST "http://localhost:8546" \
+            -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+            > e2e-report/validator-1-block.json || echo '{"error":"unavailable"}' > e2e-report/validator-1-block.json
+
+          # Get chain ID
+          curl -sf -X POST "http://localhost:8545" \
+            -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+            > e2e-report/chain-id.json || echo '{"error":"unavailable"}' > e2e-report/chain-id.json
+
+          # Container status
+          docker compose ps --format json > e2e-report/container-status.json 2>/dev/null || echo '[]' > e2e-report/container-status.json
+
+          # Create summary report
+          cat > e2e-report/summary.md << 'EOF'
+          # E2E Blockchain Test Report
+
+          ## Test Results
+          - **Total Tests**: ${{ steps.e2e_tests.outputs.total || 'N/A' }}
+          - **Passed**: ${{ steps.e2e_tests.outputs.pass || 'N/A' }}
+          - **Failed**: ${{ steps.e2e_tests.outputs.fail || 'N/A' }}
+          - **Skipped**: ${{ steps.e2e_tests.outputs.skip || 'N/A' }}
+
+          ## Blockchain Status
+          EOF
+
+          echo "### Validator-0 (port 8545)" >> e2e-report/summary.md
+          cat e2e-report/validator-0-block.json >> e2e-report/summary.md
+          echo "" >> e2e-report/summary.md
+
+          echo "### Validator-1 (port 8546)" >> e2e-report/summary.md
+          cat e2e-report/validator-1-block.json >> e2e-report/summary.md
+          echo "" >> e2e-report/summary.md
+
+      - name: Upload E2E report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-blockchain-report
+          path: e2e-report/
+          retention-days: 30
+
+      - name: Post PR comment with results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const total = '${{ steps.e2e_tests.outputs.total }}' || '0';
+            const pass = '${{ steps.e2e_tests.outputs.pass }}' || '0';
+            const fail = '${{ steps.e2e_tests.outputs.fail }}' || '0';
+            const skip = '${{ steps.e2e_tests.outputs.skip }}' || '0';
+            const exitCode = '${{ steps.e2e_tests.outputs.exit_code }}' || '1';
+
+            const status = exitCode === '0' ? '✅ Passed' : '❌ Failed';
+            const emoji = exitCode === '0' ? '🎉' : '⚠️';
+
+            const body = `## ${emoji} E2E Blockchain Test Results
+
+            | Metric | Value |
+            |--------|-------|
+            | Status | ${status} |
+            | Total Tests | ${total} |
+            | Passed | ${pass} |
+            | Failed | ${fail} |
+            | Skipped | ${skip} |
+
+            ### Infrastructure
+            - **Besu Validators**: 2 nodes (ports 8545, 8546)
+            - **Chain ID**: 1337 (dev mode)
+            - **Consensus**: PoA (dev mode mining)
+
+            <details>
+            <summary>View full report</summary>
+
+            Download the \`e2e-blockchain-report\` artifact for detailed results.
+            </details>
+
+            ---
+            *Generated by E2E Blockchain Tests workflow*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Besu Validator-0 Logs ==="
+          docker logs besu-validator-0 --tail 50 || true
+          echo ""
+          echo "=== Besu Validator-1 Logs ==="
+          docker logs besu-validator-1 --tail 50 || true
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
