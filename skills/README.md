@@ -12,6 +12,7 @@ Structured knowledge files for AI coding agents. Each skill provides domain cont
 | Sign transactions with HSM                   | [hsm-key-management](hsm-key-management.md)             |
 | Implement sealed-bid auction                 | [mpc-secret-sharing](mpc-secret-sharing.md)             |
 | Add quantum-resistant anchoring              | [post-quantum-crypto](post-quantum-crypto.md)           |
+| Create quantum-safe outputs (BIP-360 style)  | [p2mr-quantum-safe](p2mr-quantum-safe.md)               |
 | Project order data per audience              | [selective-disclosure](selective-disclosure.md)         |
 | Track supply chain provenance                | [traceability-recall](traceability-recall.md)           |
 | Set up local dev infrastructure              | [infrastructure-reference](infrastructure-reference.md) |
@@ -37,6 +38,9 @@ Structured knowledge files for AI coding agents. Each skill provides domain cont
               ┌────────────┼────────────┐
               ▼            │            ▼
       hsm-key-management   │    post-quantum-crypto
+                           │            │
+                           │            ▼
+                           │    p2mr-quantum-safe
                            │
                            ▼
                    examples-catalog
@@ -69,9 +73,10 @@ Infrastructure    → SDK clients, database adapters, protocol adapters
 | [hsm-key-management](hsm-key-management.md)           | Hardware key storage, envelope encryption | `modules/hsm/*`              |
 | [mpc-secret-sharing](mpc-secret-sharing.md)           | Additive shares, Shamir SSS               | `modules/mpc/*`              |
 | [post-quantum-crypto](post-quantum-crypto.md)         | ML-KEM, ML-DSA, hash ladders              | `modules/mpc/src/quantum.ts` |
+| [p2mr-quantum-safe](p2mr-quantum-safe.md)             | BIP-360 Merkle root outputs, ML-DSA-65    | `modules/p2mr/*`             |
 | [selective-disclosure](selective-disclosure.md)       | Audience projection, audit proofs         | `modules/privacy/*`          |
 | [traceability-recall](traceability-recall.md)         | Lot anchoring, recall assessment          | `modules/traceability/*`     |
-| [examples-catalog](examples-catalog.md)               | 19 runnable examples                      | `examples/*`                 |
+| [examples-catalog](examples-catalog.md)               | 20 runnable examples                      | `examples/*`                 |
 
 ## Skill Structure
 

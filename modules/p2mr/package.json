@@ -1,0 +1,22 @@
+{
+  "name": "@enterprise-blockchain/p2mr",
+  "version": "1.0.0",
+  "description": "BIP-360-inspired Pay-to-Merkle-Root quantum-safe outputs",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "p2mr",
+    "merkle-root",
+    "quantum-safe",
+    "post-quantum",
+    "ml-dsa-65",
+    "bip-360"
+  ],
+  "license": "Apache-2.0"
+}
