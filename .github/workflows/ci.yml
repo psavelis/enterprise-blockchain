@@ -59,13 +59,92 @@ jobs:
       - name: Run suite
         id: run_suite
         continue-on-error: true
-        run: ${{ matrix.suite.command }}
+        run: |
+          if [ "${{ matrix.suite.id }}" = "core" ]; then
+            # Run format check, lint, typecheck separately
+            npm run format:check
+            npm run lint
+            npm run typecheck
+            # Run tests with TAP reporter to capture individual test names
+            node --import tsx --test tests/**/*.test.ts --test-reporter tap 2>&1 | tee test-output.tap
+            TEST_EXIT=${PIPESTATUS[0]}
+            # Also capture test summary from spec reporter for accurate counts
+            node --import tsx --test tests/**/*.test.ts 2>&1 | tee test-output.spec || true
+            # Run examples
+            npm run examples
+            exit $TEST_EXIT
+          else
+            ${{ matrix.suite.command }}
+          fi
+
+      - name: Parse test results
+        if: always() && matrix.suite.id == 'core'
+        id: parse_tests
+        run: |
+          if [ -f test-output.tap ]; then
+            # Extract test names from TAP output (top-level tests)
+            PASSED=$(grep -E "^ok [0-9]+ - " test-output.tap | sed 's/^ok [0-9]* - //' | head -100 || true)
+            FAILED=$(grep -E "^not ok [0-9]+ - " test-output.tap | sed 's/^not ok [0-9]* - //' | head -100 || true)
+
+            # Get accurate counts from spec reporter output (includes nested tests)
+            if [ -f test-output.spec ]; then
+              TOTAL_PASSED=$(grep -E "^# pass [0-9]+" test-output.spec | awk '{print $3}' || true)
+              TOTAL_FAILED=$(grep -E "^# fail [0-9]+" test-output.spec | awk '{print $3}' || true)
+              TOTAL_TESTS=$(grep -E "^# tests [0-9]+" test-output.spec | awk '{print $3}' || true)
+            fi
+
+            # Fallback to TAP counts if spec not available
+            if [ -z "$TOTAL_PASSED" ]; then
+              TOTAL_PASSED=$(grep -cE "^ok [0-9]+ - " test-output.tap 2>/dev/null || true)
+            fi
+            if [ -z "$TOTAL_FAILED" ]; then
+              TOTAL_FAILED=$(grep -cE "^not ok [0-9]+ - " test-output.tap 2>/dev/null || true)
+            fi
+
+            # Default to 0 if empty
+            TOTAL_PASSED=${TOTAL_PASSED:-0}
+            TOTAL_FAILED=${TOTAL_FAILED:-0}
+
+            # Write to file for JSON inclusion (escape for JSON)
+            echo "$PASSED" | jq -Rs '.' > passed-tests.txt
+            echo "$FAILED" | jq -Rs '.' > failed-tests.txt
+
+            echo "total_passed=${TOTAL_PASSED}" >> "$GITHUB_OUTPUT"
+            echo "total_failed=${TOTAL_FAILED}" >> "$GITHUB_OUTPUT"
+          else
+            echo '""' > passed-tests.txt
+            echo '""' > failed-tests.txt
+            echo "total_passed=0" >> "$GITHUB_OUTPUT"
+            echo "total_failed=0" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Write suite report
         if: always()
         run: |
           mkdir -p ci-results
-          cat <<EOF > ci-results/${{ matrix.suite.id }}.json
+          if [ "${{ matrix.suite.id }}" = "core" ] && [ -f passed-tests.txt ]; then
+            PASSED_TESTS=$(cat passed-tests.txt)
+            FAILED_TESTS=$(cat failed-tests.txt)
+            TOTAL_PASSED=${{ steps.parse_tests.outputs.total_passed || '0' }}
+            TOTAL_FAILED=${{ steps.parse_tests.outputs.total_failed || '0' }}
+            cat <<EOF > ci-results/${{ matrix.suite.id }}.json
+          {
+            "id": "${{ matrix.suite.id }}",
+            "order": ${{ matrix.suite.order }},
+            "name": "${{ matrix.suite.name }}",
+            "command": "${{ matrix.suite.command }}",
+            "covers": "${{ matrix.suite.covers }}",
+            "outcome": "${{ steps.run_suite.outcome }}",
+            "tests": {
+              "passed": $PASSED_TESTS,
+              "failed": $FAILED_TESTS,
+              "totalPassed": $TOTAL_PASSED,
+              "totalFailed": $TOTAL_FAILED
+            }
+          }
+          EOF
+          else
+            cat <<EOF > ci-results/${{ matrix.suite.id }}.json
           {
             "id": "${{ matrix.suite.id }}",
             "order": ${{ matrix.suite.order }},
@@ -75,6 +154,7 @@ jobs:
             "outcome": "${{ steps.run_suite.outcome }}"
           }
           EOF
+          fi
 
       - name: Upload suite report
         if: always()
@@ -128,6 +208,76 @@ jobs:
               return `| ${report.name} | \`${report.command}\` | ${report.covers} | ${result} |`;
             }).join('\n');
 
+            // Build test details section for core suite
+            let testDetails = '';
+            const coreReport = reports.find((r) => r.id === 'core');
+            if (coreReport?.tests) {
+              const { totalPassed, totalFailed, passed: passedTests, failed: failedTests } = coreReport.tests;
+              const totalTests = totalPassed + totalFailed;
+              const testStatus = totalFailed === 0 ? '✅' : '❌';
+
+              // Parse test names from the escaped strings
+              const passedList = passedTests ? passedTests.trim().split('\n').filter(Boolean) : [];
+              const failedList = failedTests ? failedTests.trim().split('\n').filter(Boolean) : [];
+
+              let testTable = '';
+              if (failedList.length > 0) {
+                testTable += '\n**Failed Tests:**\n';
+                failedList.slice(0, 20).forEach((t) => {
+                  testTable += `- ❌ ${t}\n`;
+                });
+                if (failedList.length > 20) {
+                  testTable += `- ... and ${failedList.length - 20} more\n`;
+                }
+              }
+
+              if (passedList.length > 0) {
+                testTable += '\n**Passed Tests:**\n';
+                passedList.slice(0, 50).forEach((t) => {
+                  testTable += `- ✅ ${t}\n`;
+                });
+                if (passedList.length > 50) {
+                  testTable += `- ... and ${passedList.length - 50} more\n`;
+                }
+              }
+
+              testDetails = [
+                '',
+                '<details>',
+                `<summary>${testStatus} <strong>Unit Tests: ${totalPassed}/${totalTests} passed</strong></summary>`,
+                '',
+                '| Metric | Value |',
+                '|--------|-------|',
+                `| Total Tests | ${totalTests} |`,
+                `| Passed | ${totalPassed} |`,
+                `| Failed | ${totalFailed} |`,
+                testTable,
+                '</details>',
+              ].join('\n');
+            }
+
+            // Build integration suites summary
+            const integrationSuites = reports.filter((r) => r.id !== 'core');
+            if (integrationSuites.length > 0) {
+              const integrationPassed = integrationSuites.filter((r) => r.outcome === 'success').length;
+              const integrationStatus = integrationPassed === integrationSuites.length ? '✅' : '❌';
+
+              let integrationList = '';
+              integrationSuites.forEach((suite) => {
+                const status = suite.outcome === 'success' ? '✅' : '❌';
+                integrationList += `- ${status} ${suite.name}\n`;
+              });
+
+              testDetails += [
+                '',
+                '<details>',
+                `<summary>${integrationStatus} <strong>Integration Suites: ${integrationPassed}/${integrationSuites.length} passed</strong></summary>`,
+                '',
+                integrationList,
+                '</details>',
+              ].join('\n');
+            }
+
             const body = [
               marker,
               '## CI Report',
@@ -137,6 +287,7 @@ jobs:
               '| Suite | Command | Coverage | Result |',
               '|---|---|---|---|',
               rows,
+              testDetails,
               '',
               '**Repository coverage**',
               '',
@@ -149,7 +300,7 @@ jobs:
               '',
               `- Passed suites: ${passed}`,
               `- Failed suites: ${failed}`,
-              '- Node runtime: 22.13.0',
+              '- Node runtime: 22.14.0',
             ].join('\n');
 
             const { owner, repo } = context.repo;
