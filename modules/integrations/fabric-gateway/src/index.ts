@@ -15,6 +15,12 @@ import {
 
 import { getOptionalEnv, getRequiredEnv } from "../../shared/src/env";
 import {
+  CircuitBreaker,
+  FABRIC_RETRY_POLICY,
+  withRetry,
+  type CircuitBreakerOptions,
+} from "../../shared/src/retry";
+import {
   createTracer,
   withSpan,
   TelemetryAttributes,
@@ -194,7 +200,10 @@ export class FabricProposalBuilder implements IFabricProposalBuilder {
 }
 
 /**
- * Facade for backward compatibility.
+ * Resilient Fabric gateway client with circuit breaker and retry support.
+ *
+ * Circuit breaker prevents cascading failures when Fabric peer is unavailable.
+ * Retry policy handles transient gRPC errors (UNAVAILABLE, DEADLINE_EXCEEDED).
  */
 export class FabricGatewayClientSketch
   implements
@@ -209,6 +218,14 @@ export class FabricGatewayClientSketch
     this.connectionFactory,
   );
   private readonly proposalBuilder = new FabricProposalBuilder();
+  private readonly circuitBreaker: CircuitBreaker;
+
+  constructor(circuitBreakerOptions?: Partial<CircuitBreakerOptions>) {
+    this.circuitBreaker = new CircuitBreaker(
+      circuitBreakerOptions,
+      "fabric-gateway",
+    );
+  }
 
   createProfileFromEnv(env?: NodeJS.ProcessEnv): FabricGatewayProfile {
     return this.profileFactory.createProfileFromEnv(env);
@@ -233,7 +250,15 @@ export class FabricGatewayClientSketch
   createGateway(
     profile: FabricGatewayProfile,
   ): Promise<{ gateway: Gateway; client: grpc.Client }> {
-    return this.gatewayFactory.createGateway(profile);
+    return this.circuitBreaker.execute(() =>
+      withRetry(
+        () => this.gatewayFactory.createGateway(profile),
+        FABRIC_RETRY_POLICY,
+        [],
+        extractGrpcErrorCode,
+        "fabric.createGateway",
+      ),
+    );
   }
 
   getContract(gateway: Gateway, profile: FabricGatewayProfile): Contract {
@@ -257,4 +282,50 @@ export class FabricGatewayClientSketch
   }): FabricProposalPlan {
     return this.proposalBuilder.buildEvaluateRecallRequest(input);
   }
+
+  /** Get circuit breaker state for monitoring dashboards. */
+  getCircuitBreakerHealth() {
+    return this.circuitBreaker.getHealthStatus();
+  }
+
+  /** Reset circuit breaker (use after resolving underlying issues). */
+  resetCircuitBreaker(): void {
+    this.circuitBreaker.reset();
+  }
+}
+
+/**
+ * Extract gRPC error codes for retry policy decisions.
+ * Maps gRPC status codes to string names.
+ */
+function extractGrpcErrorCode(err: unknown): string {
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    // gRPC-js ServiceError has numeric code
+    if (typeof e.code === "number") {
+      // Map gRPC status codes: https://grpc.io/docs/guides/status-codes/
+      const grpcCodeMap: Record<number, string> = {
+        0: "OK",
+        1: "CANCELLED",
+        2: "UNKNOWN",
+        3: "INVALID_ARGUMENT",
+        4: "DEADLINE_EXCEEDED",
+        5: "NOT_FOUND",
+        6: "ALREADY_EXISTS",
+        7: "PERMISSION_DENIED",
+        8: "RESOURCE_EXHAUSTED",
+        9: "FAILED_PRECONDITION",
+        10: "ABORTED",
+        11: "OUT_OF_RANGE",
+        12: "UNIMPLEMENTED",
+        13: "INTERNAL",
+        14: "UNAVAILABLE",
+        15: "DATA_LOSS",
+        16: "UNAUTHENTICATED",
+      };
+      return grpcCodeMap[e.code] ?? "UNKNOWN";
+    }
+    if (typeof e.code === "string") return e.code.toUpperCase();
+  }
+  return "UNKNOWN";
 }

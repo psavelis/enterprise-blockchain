@@ -20,12 +20,20 @@ import {
   getRequiredEnv,
 } from "../../shared/src/env";
 import {
+  CircuitBreaker,
+  BESU_RETRY_POLICY,
+  BESU_NON_RETRYABLE,
+  withRetry,
+  type CircuitBreakerOptions,
+} from "../../shared/src/retry";
+import {
   createTracer,
   withSpan,
   TelemetryAttributes,
 } from "../../../shared/src/telemetry";
 import {
   extractErrorMessage,
+  extractErrorCode,
   isInsufficientFunds,
   isNonceTooLow,
 } from "./error-mapper";
@@ -297,7 +305,11 @@ export class BesuHealthChecker implements IBesuHealthChecker {
 }
 
 /**
- * Facade for backward compatibility.
+ * Resilient Besu client with circuit breaker and retry support.
+ *
+ * Circuit breaker prevents cascading failures when Besu RPC is unavailable.
+ * Retry policy handles transient errors (SERVER_ERROR, TIMEOUT) with backoff.
+ *
  * NOTE: sketch only — do not store key material as plain strings in production
  */
 export class BesuEthersClientSketch
@@ -314,6 +326,11 @@ export class BesuEthersClientSketch
   private readonly txBuilder = new BesuTransactionBuilder();
   private readonly txSender = new BesuTransactionSender();
   private readonly healthChecker = new BesuHealthChecker(this.providerFactory);
+  private readonly circuitBreaker: CircuitBreaker;
+
+  constructor(circuitBreakerOptions?: Partial<CircuitBreakerOptions>) {
+    this.circuitBreaker = new CircuitBreaker(circuitBreakerOptions, "besu-rpc");
+  }
 
   createProfileFromEnv(env?: NodeJS.ProcessEnv): BesuRpcProfile {
     return this.profileFactory.createProfileFromEnv(env);
@@ -347,18 +364,31 @@ export class BesuEthersClientSketch
     if (gasLimitOverride !== undefined) {
       return gasLimitOverride;
     }
-    try {
-      return await this.createProvider(profile).estimateGas(tx);
-    } catch (err: unknown) {
-      const msg = extractErrorMessage(err);
-      if (isInsufficientFunds(err)) {
-        throw new Error(
-          `Besu gas estimation failed — sender account has insufficient funds: ${msg}`,
-          { cause: err },
-        );
-      }
-      throw new Error(`Besu gas estimation failed: ${msg}`, { cause: err });
-    }
+
+    return this.circuitBreaker.execute(() =>
+      withRetry(
+        async () => {
+          try {
+            return await this.createProvider(profile).estimateGas(tx);
+          } catch (err: unknown) {
+            const msg = extractErrorMessage(err);
+            if (isInsufficientFunds(err)) {
+              throw new Error(
+                `Besu gas estimation failed — sender account has insufficient funds: ${msg}`,
+                { cause: err },
+              );
+            }
+            throw new Error(`Besu gas estimation failed: ${msg}`, {
+              cause: err,
+            });
+          }
+        },
+        BESU_RETRY_POLICY,
+        BESU_NON_RETRYABLE,
+        extractErrorCode,
+        "besu.estimateGas",
+      ),
+    );
   }
 
   buildAnchorOrderTransaction(
@@ -390,7 +420,18 @@ export class BesuEthersClientSketch
     return this.txSender.sendTransaction(signer, tx);
   }
 
-  checkHealth(profile: BesuRpcProfile): Promise<BesuHealthStatus> {
+  async checkHealth(profile: BesuRpcProfile): Promise<BesuHealthStatus> {
+    // Health checks bypass circuit breaker to allow probing during recovery
     return this.healthChecker.checkHealth(profile);
+  }
+
+  /** Get circuit breaker state for monitoring dashboards. */
+  getCircuitBreakerHealth() {
+    return this.circuitBreaker.getHealthStatus();
+  }
+
+  /** Reset circuit breaker (use after resolving underlying issues). */
+  resetCircuitBreaker(): void {
+    this.circuitBreaker.reset();
   }
 }
