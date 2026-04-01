@@ -68,6 +68,8 @@ jobs:
             # Run tests with TAP reporter to capture individual test names
             node --import tsx --test tests/**/*.test.ts --test-reporter tap 2>&1 | tee test-output.tap
             TEST_EXIT=${PIPESTATUS[0]}
+            # Also capture test summary from spec reporter for accurate counts
+            node --import tsx --test tests/**/*.test.ts 2>&1 | tee test-output.spec || true
             # Run examples
             npm run examples
             exit $TEST_EXIT
@@ -80,14 +82,24 @@ jobs:
         id: parse_tests
         run: |
           if [ -f test-output.tap ]; then
-            # Extract test names and results from TAP output
-            # Format: ok N - test name OR not ok N - test name
+            # Extract test names from TAP output (top-level tests)
             PASSED=$(grep -E "^ok [0-9]+ - " test-output.tap | sed 's/^ok [0-9]* - //' | head -100 || true)
             FAILED=$(grep -E "^not ok [0-9]+ - " test-output.tap | sed 's/^not ok [0-9]* - //' | head -100 || true)
 
-            # Count matches (grep -c returns non-zero exit if no match, so capture separately)
-            TOTAL_PASSED=$(grep -cE "^ok [0-9]+ - " test-output.tap 2>/dev/null || true)
-            TOTAL_FAILED=$(grep -cE "^not ok [0-9]+ - " test-output.tap 2>/dev/null || true)
+            # Get accurate counts from spec reporter output (includes nested tests)
+            if [ -f test-output.spec ]; then
+              TOTAL_PASSED=$(grep -E "^# pass [0-9]+" test-output.spec | awk '{print $3}' || true)
+              TOTAL_FAILED=$(grep -E "^# fail [0-9]+" test-output.spec | awk '{print $3}' || true)
+              TOTAL_TESTS=$(grep -E "^# tests [0-9]+" test-output.spec | awk '{print $3}' || true)
+            fi
+
+            # Fallback to TAP counts if spec not available
+            if [ -z "$TOTAL_PASSED" ]; then
+              TOTAL_PASSED=$(grep -cE "^ok [0-9]+ - " test-output.tap 2>/dev/null || true)
+            fi
+            if [ -z "$TOTAL_FAILED" ]; then
+              TOTAL_FAILED=$(grep -cE "^not ok [0-9]+ - " test-output.tap 2>/dev/null || true)
+            fi
 
             # Default to 0 if empty
             TOTAL_PASSED=${TOTAL_PASSED:-0}
@@ -240,6 +252,28 @@ jobs:
                 `| Passed | ${totalPassed} |`,
                 `| Failed | ${totalFailed} |`,
                 testTable,
+                '</details>',
+              ].join('\n');
+            }
+
+            // Build integration suites summary
+            const integrationSuites = reports.filter((r) => r.id !== 'core');
+            if (integrationSuites.length > 0) {
+              const integrationPassed = integrationSuites.filter((r) => r.outcome === 'success').length;
+              const integrationStatus = integrationPassed === integrationSuites.length ? '✅' : '❌';
+
+              let integrationList = '';
+              integrationSuites.forEach((suite) => {
+                const status = suite.outcome === 'success' ? '✅' : '❌';
+                integrationList += `- ${status} ${suite.name}\n`;
+              });
+
+              testDetails += [
+                '',
+                '<details>',
+                `<summary>${integrationStatus} <strong>Integration Suites: ${integrationPassed}/${integrationSuites.length} passed</strong></summary>`,
+                '',
+                integrationList,
                 '</details>',
               ].join('\n');
             }
