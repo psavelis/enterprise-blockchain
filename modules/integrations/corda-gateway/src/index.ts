@@ -1,5 +1,12 @@
 import { getNumberEnv, getRequiredEnv } from "../../shared/src/env";
 import {
+  CircuitBreaker,
+  CORDA_RETRY_POLICY,
+  CORDA_NON_RETRYABLE,
+  withRetry,
+  type CircuitBreakerOptions,
+} from "../../shared/src/retry";
+import {
   createTracer,
   withSpan,
   TelemetryAttributes,
@@ -140,7 +147,11 @@ export class CordaFlowInvoker implements ICordaFlowInvoker {
 }
 
 /**
- * Facade for backward compatibility.
+ * Resilient Corda gateway client with circuit breaker and retry support.
+ *
+ * Circuit breaker prevents cascading failures when Corda REST API is unavailable.
+ * Retry policy handles transient HTTP errors (502, 503, 504, TIMEOUT).
+ *
  * NOTE: sketch only — use a secrets manager or token provider in production
  */
 export class CordaGatewayClientSketch
@@ -149,6 +160,14 @@ export class CordaGatewayClientSketch
   private readonly profileFactory = new CordaProfileFactory();
   private readonly requestBuilder = new CordaRequestBuilder();
   private readonly flowInvoker = new CordaFlowInvoker();
+  private readonly circuitBreaker: CircuitBreaker;
+
+  constructor(circuitBreakerOptions?: Partial<CircuitBreakerOptions>) {
+    this.circuitBreaker = new CircuitBreaker(
+      circuitBreakerOptions,
+      "corda-gateway",
+    );
+  }
 
   createProfileFromEnv(env?: NodeJS.ProcessEnv): CordaGatewayProfile {
     return this.profileFactory.createProfileFromEnv(env);
@@ -166,6 +185,47 @@ export class CordaGatewayClientSketch
   }
 
   invokeFlow(request: CordaGatewayRequest): Promise<Response> {
-    return this.flowInvoker.invokeFlow(request);
+    return this.circuitBreaker.execute(() =>
+      withRetry(
+        () => this.flowInvoker.invokeFlow(request),
+        CORDA_RETRY_POLICY,
+        CORDA_NON_RETRYABLE,
+        extractHttpErrorCode,
+        "corda.invokeFlow",
+      ),
+    );
   }
+
+  /** Get circuit breaker state for monitoring dashboards. */
+  getCircuitBreakerHealth() {
+    return this.circuitBreaker.getHealthStatus();
+  }
+
+  /** Reset circuit breaker (use after resolving underlying issues). */
+  resetCircuitBreaker(): void {
+    this.circuitBreaker.reset();
+  }
+}
+
+/**
+ * Extract HTTP error codes for retry policy decisions.
+ */
+function extractHttpErrorCode(err: unknown): string {
+  if (err instanceof Error) {
+    // Check for timeout errors
+    if (err.name === "TimeoutError" || err.message.includes("timeout")) {
+      return "TIMEOUT";
+    }
+    // Extract HTTP status from error message (e.g., "Corda gateway error: 502 Bad Gateway")
+    const statusMatch = err.message.match(/(\d{3})/);
+    if (statusMatch?.[1]) {
+      return statusMatch[1];
+    }
+  }
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    if (typeof e.status === "number") return String(e.status);
+    if (typeof e.statusCode === "number") return String(e.statusCode);
+  }
+  return "UNKNOWN";
 }
