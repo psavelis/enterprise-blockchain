@@ -65,7 +65,7 @@ test("envelope encryption: different plaintexts produce different ciphertexts", 
   );
 });
 
-test("envelope encryption: same plaintext with different DEKs produces different ciphertexts", () => {
+test("envelope encryption: same plaintext with different DEKs produces different IVs and wrapped keys", () => {
   const hsm = createHsm("iv-slot");
   const kekLabel = "test-iv-kek";
   hsm.generateSymmetricKey(kekLabel);
@@ -77,20 +77,22 @@ test("envelope encryption: same plaintext with different DEKs produces different
         const result1 = hsm.encryptWithEnvelope(kekLabel, plaintext);
         const result2 = hsm.encryptWithEnvelope(kekLabel, plaintext);
 
-        // IVs should be different (random)
+        // IVs should be different (12 bytes random)
         if (result1.encryptedRecord.iv === result2.encryptedRecord.iv) {
           return false;
         }
 
-        // Ciphertexts should be different due to different DEKs
-        if (
-          result1.encryptedRecord.ciphertext ===
-          result2.encryptedRecord.ciphertext
-        ) {
+        // Wrapped DEKs should be different (different DEK each time)
+        if (result1.wrappedDek.wrappedDek === result2.wrappedDek.wrappedDek) {
           return false;
         }
 
-        // But both should decrypt to same plaintext
+        // Note: We do NOT check ciphertext uniqueness because for short plaintexts
+        // (e.g., 1 byte), the ciphertext has limited entropy (only 256 possible values),
+        // making collisions statistically likely by the birthday paradox.
+        // The security guarantee is that different IVs prevent key-stream reuse.
+
+        // Both should decrypt to same plaintext
         const decrypted1 = hsm.decryptWithEnvelope(
           result1.wrappedDek,
           result1.encryptedRecord,
