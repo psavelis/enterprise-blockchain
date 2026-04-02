@@ -125,31 +125,44 @@ export class QuantumResistantVault {
     }
 
     // Random polynomial of degree (threshold − 1) with secret as constant term.
+    // SECURITY: Store coefficients and zeroize after use to prevent memory disclosure.
     const coeffs: bigint[] = [secretBigint];
     for (let i = 1; i < threshold; i++) {
       coeffs.push(this.field.random());
     }
 
     const shares = new Map<string, ThresholdShare>();
-    for (let i = 0; i < parties.length; i++) {
-      const x = BigInt(i + 1);
-      const y = this.evalPoly(coeffs, x);
-      const nonce = randomBytes(16).toString("hex");
+    try {
+      for (let i = 0; i < parties.length; i++) {
+        const x = BigInt(i + 1);
+        const y = this.evalPoly(coeffs, x);
+        const nonce = randomBytes(16).toString("hex");
 
-      // For commitment, use number if in demo mode for backward compatibility
-      const commitValue = this.field.mode === "demo" ? Number(y) : y;
+        // For commitment, use number if in demo mode for backward compatibility
+        const commitValue = this.field.mode === "demo" ? Number(y) : y;
 
-      shares.set(parties[i]!, {
-        partyId: parties[i]!,
-        shareIndex: i,
-        value: y,
-        valueNumber: this.field.mode === "demo" ? Number(y) : undefined,
-        nonce,
-        commitment: commitShare(parties[i]!, i, commitValue, nonce),
-      });
+        shares.set(parties[i]!, {
+          partyId: parties[i]!,
+          shareIndex: i,
+          value: y,
+          valueNumber: this.field.mode === "demo" ? Number(y) : undefined,
+          nonce,
+          commitment: commitShare(parties[i]!, i, commitValue, nonce),
+        });
+      }
+
+      return shares;
+    } finally {
+      // SECURITY: Zeroize secret polynomial coefficients.
+      // While JavaScript BigInt can't be directly overwritten in memory,
+      // we clear the array references to enable garbage collection and
+      // reduce the window of exposure. For true memory zeroization in
+      // production, consider using WebAssembly with explicit memory control.
+      for (let i = 0; i < coeffs.length; i++) {
+        coeffs[i] = 0n;
+      }
+      coeffs.length = 0;
     }
-
-    return shares;
   }
 
   /**

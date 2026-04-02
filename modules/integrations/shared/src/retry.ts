@@ -110,11 +110,26 @@ export function isRetryable(
   return policy.retryableErrors.includes(errorCode);
 }
 
+/**
+ * Jitter configuration for exponential backoff.
+ *
+ * JITTER_RANGE_PERCENT (30%): Random variation range to spread retry timing.
+ * JITTER_BASE (0.85): Minimum jitter multiplier, resulting in 0.85x to 1.15x range.
+ *
+ * This prevents "thundering herd" when many clients retry simultaneously,
+ * spreading retries across a ±15% window around the nominal delay.
+ *
+ * Example: With baseDelay=1000ms and attempt=2, nominal delay = 4000ms.
+ * Actual delay will be between 3400ms (0.85×4000) and 4600ms (1.15×4000).
+ */
+const JITTER_RANGE_PERCENT = 30;
+const JITTER_BASE = 0.85;
+
 export function computeDelay(attempt: number, policy: RetryPolicy): number {
   // Use cryptographically secure randomness to prevent timing attacks
   // that could exploit predictable backoff patterns
   const randomByte = randomBytes(1)[0]!;
-  const jitter = (randomByte % 30) / 100 + 0.85; // ±15%
+  const jitter = (randomByte % JITTER_RANGE_PERCENT) / 100 + JITTER_BASE;
   const delay = Math.min(
     policy.baseDelayMs * Math.pow(2, attempt) * jitter,
     policy.maxDelayMs,

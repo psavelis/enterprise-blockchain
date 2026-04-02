@@ -7,9 +7,11 @@
  * - ml-dsa-65-sig: Single ML-DSA-65 signature verification
  * - timelock: ML-DSA-65 signature + timestamp >= locktime
  * - multisig-ml-dsa: k-of-n threshold ML-DSA-65 signatures
- * - hsm-attested-sig: ML-DSA-65 signature + HSM attestation (placeholder)
+ * - hsm-attested-sig: ML-DSA-65 signature + HSM attestation (not implemented)
  *
  * The interpreter returns a detailed audit trail for compliance.
+ *
+ * HEXAGONAL ARCHITECTURE: Uses constructor DI for testability and loose coupling.
  */
 
 import type { SignatureVerificationPort, HashingPort } from "./ports";
@@ -21,34 +23,79 @@ import type {
   VerificationStep,
 } from "./types";
 
-// Module-level default instances (can be overridden via createInterpreter)
-let signatureVerifier: SignatureVerificationPort = defaultSignatureVerifier;
-let hasher: HashingPort = defaultHasher;
+/**
+ * Script interpreter with injected dependencies.
+ *
+ * HEXAGONAL ARCHITECTURE: All external dependencies are injected via constructor,
+ * enabling testing with mock implementations and preventing global mutable state.
+ */
+export class ScriptInterpreter {
+  private readonly signatureVerifier: SignatureVerificationPort;
+  private readonly hasher: HashingPort;
+
+  constructor(options?: {
+    signatureVerifier?: SignatureVerificationPort;
+    hasher?: HashingPort;
+  }) {
+    this.signatureVerifier =
+      options?.signatureVerifier ?? defaultSignatureVerifier;
+    this.hasher = options?.hasher ?? defaultHasher;
+  }
+
+  /**
+   * Interpret (execute) a P2MR script leaf against witness data.
+   */
+  interpret(options: InterpretScriptOptions): InterpretScriptResult {
+    return interpretScriptWithDeps(
+      options,
+      this.signatureVerifier,
+      this.hasher,
+    );
+  }
+
+  /**
+   * Compute SHA-256 hash of a public key.
+   */
+  hashPublicKey(publicKey: Uint8Array): string {
+    return this.hasher.sha256hex(Buffer.from(publicKey).toString("hex"));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Backward-compatible module-level API (delegates to class implementation)
+// ---------------------------------------------------------------------------
+
+// Module-level instances for backward compatibility
+let _interpreterInstance: ScriptInterpreter | null = null;
+
+function getInterpreter(): ScriptInterpreter {
+  if (!_interpreterInstance) {
+    _interpreterInstance = new ScriptInterpreter();
+  }
+  return _interpreterInstance;
+}
 
 /**
  * Configure the script interpreter with custom implementations.
  * Primarily useful for testing with mock implementations.
  *
+ * @deprecated Use ScriptInterpreter class with constructor DI instead.
  * @param options Configuration options.
  */
 export function configureInterpreter(options: {
   signatureVerifier?: SignatureVerificationPort;
   hasher?: HashingPort;
 }): void {
-  if (options.signatureVerifier) {
-    signatureVerifier = options.signatureVerifier;
-  }
-  if (options.hasher) {
-    hasher = options.hasher;
-  }
+  _interpreterInstance = new ScriptInterpreter(options);
 }
 
 /**
  * Reset interpreter to default implementations.
+ *
+ * @deprecated Use ScriptInterpreter class with constructor DI instead.
  */
 export function resetInterpreter(): void {
-  signatureVerifier = defaultSignatureVerifier;
-  hasher = defaultHasher;
+  _interpreterInstance = new ScriptInterpreter();
 }
 
 // ---------------------------------------------------------------------------
@@ -117,21 +164,59 @@ export interface InterpretScriptResult extends ScriptVerificationResult {
 export function interpretScript(
   options: InterpretScriptOptions,
 ): InterpretScriptResult {
+  return getInterpreter().interpret(options);
+}
+
+/**
+ * Internal implementation that accepts dependencies explicitly.
+ * Used by ScriptInterpreter class.
+ */
+function interpretScriptWithDeps(
+  options: InterpretScriptOptions,
+  signatureVerifier: SignatureVerificationPort,
+  hasher: HashingPort,
+): InterpretScriptResult {
   const { leaf, witness, message, currentTime } = options;
   const auditTrail: VerificationStep[] = [];
 
+  // Helper to hash public keys with injected hasher
+  const hashPubKey = (pk: Uint8Array): string =>
+    hasher.sha256hex(Buffer.from(pk).toString("hex"));
+
   switch (leaf.type) {
     case "ml-dsa-65-sig":
-      return interpretSingleSig(leaf, witness, message, auditTrail);
+      return interpretSingleSigWithDeps(
+        leaf,
+        witness,
+        message,
+        auditTrail,
+        signatureVerifier,
+        hashPubKey,
+      );
 
     case "timelock":
-      return interpretTimelock(leaf, witness, message, currentTime, auditTrail);
+      return interpretTimelockWithDeps(
+        leaf,
+        witness,
+        message,
+        currentTime,
+        auditTrail,
+        signatureVerifier,
+        hashPubKey,
+      );
 
     case "multisig-ml-dsa":
-      return interpretMultisig(leaf, witness, message, auditTrail);
+      return interpretMultisigWithDeps(
+        leaf,
+        witness,
+        message,
+        auditTrail,
+        signatureVerifier,
+        hashPubKey,
+      );
 
     case "hsm-attested-sig":
-      return interpretHsmAttested(leaf, witness, message, auditTrail);
+      return interpretHsmAttestedWithDeps(leaf, witness, auditTrail);
 
     default: {
       // Exhaustive check - all known types handled above
@@ -155,11 +240,13 @@ export function interpretScript(
 // Single Signature (ml-dsa-65-sig)
 // ---------------------------------------------------------------------------
 
-function interpretSingleSig(
+function interpretSingleSigWithDeps(
   leaf: ScriptLeaf,
   witness: SpendWitness,
   message: Uint8Array,
   auditTrail: VerificationStep[],
+  signatureVerifier: SignatureVerificationPort,
+  hashPubKey: (pk: Uint8Array) => string,
 ): InterpretScriptResult {
   auditTrail.push({
     step: "Script type",
@@ -204,7 +291,7 @@ function interpretSingleSig(
   const signature = witness.signatures[0]!;
 
   // Verify public key hash matches leaf
-  const publicKeyHash = hashPublicKey(publicKey);
+  const publicKeyHash = hashPubKey(publicKey);
   if (publicKeyHash !== leaf.publicKeyHashes[0]) {
     auditTrail.push({
       step: "Public key hash verification",
@@ -262,12 +349,14 @@ function interpretSingleSig(
 // Timelock
 // ---------------------------------------------------------------------------
 
-function interpretTimelock(
+function interpretTimelockWithDeps(
   leaf: ScriptLeaf,
   witness: SpendWitness,
   message: Uint8Array,
   currentTime: number | undefined,
   auditTrail: VerificationStep[],
+  signatureVerifier: SignatureVerificationPort,
+  hashPubKey: (pk: Uint8Array) => string,
 ): InterpretScriptResult {
   auditTrail.push({
     step: "Script type",
@@ -347,7 +436,7 @@ function interpretTimelock(
   const signature = witness.signatures[0]!;
 
   // Verify public key hash
-  const publicKeyHash = hashPublicKey(publicKey);
+  const publicKeyHash = hashPubKey(publicKey);
   if (publicKeyHash !== leaf.publicKeyHashes[0]) {
     auditTrail.push({
       step: "Public key hash verification",
@@ -405,11 +494,13 @@ function interpretTimelock(
 // Multisig
 // ---------------------------------------------------------------------------
 
-function interpretMultisig(
+function interpretMultisigWithDeps(
   leaf: ScriptLeaf,
   witness: SpendWitness,
   message: Uint8Array,
   auditTrail: VerificationStep[],
+  signatureVerifier: SignatureVerificationPort,
+  hashPubKey: (pk: Uint8Array) => string,
 ): InterpretScriptResult {
   const threshold = leaf.threshold ?? leaf.publicKeyHashes.length;
   const n = leaf.publicKeyHashes.length;
@@ -463,7 +554,7 @@ function interpretMultisig(
   for (let i = 0; i < witness.publicKeys.length; i++) {
     const publicKey = witness.publicKeys[i]!;
     const signature = witness.signatures[i]!;
-    const keyHash = hashPublicKey(publicKey);
+    const keyHash = hashPubKey(publicKey);
 
     // Check if this key is authorized
     if (!authorizedHashes.has(keyHash)) {
@@ -541,10 +632,9 @@ function interpretMultisig(
 // HSM-Attested Signature
 // ---------------------------------------------------------------------------
 
-function interpretHsmAttested(
+function interpretHsmAttestedWithDeps(
   leaf: ScriptLeaf,
   witness: SpendWitness,
-  message: Uint8Array,
   auditTrail: VerificationStep[],
 ): InterpretScriptResult {
   auditTrail.push({
@@ -582,102 +672,35 @@ function interpretHsmAttested(
     };
   }
 
-  // NOTE: Full HSM attestation verification would require:
+  // SECURITY: HSM attestation verification is NOT implemented.
+  // Full verification would require:
   // 1. Parsing the attestation blob (format depends on HSM vendor)
   // 2. Verifying the attestation signature chain to a trusted HSM root
   // 3. Checking the attested key matches the signing key
   // 4. Verifying the attestation timestamp and freshness
   //
-  // For now, we verify the signature and note that HSM attestation
-  // verification is a protocol-level concern (requires HSM integration).
+  // Until implemented, we FAIL-SAFE by returning valid=false.
+  // The signature is still verified, but HSM attestation claims cannot
+  // be trusted without proper cryptographic verification.
   auditTrail.push({
     step: "HSM attestation format",
     passed: true,
     detail: `Slot: ${hsmSlotId}, Attestation: ${witness.hsmAttestation.length} chars`,
   });
 
-  // Standard signature verification
-  if (witness.publicKeys.length !== 1 || witness.signatures.length !== 1) {
-    auditTrail.push({
-      step: "Witness count check",
-      passed: false,
-      detail: "HSM-attested requires exactly 1 public key and 1 signature",
-    });
-    return {
-      valid: false,
-      reason: "HSM-attested requires exactly 1 public key and 1 signature",
-      auditTrail,
-    };
-  }
-
-  auditTrail.push({
-    step: "Witness count check",
-    passed: true,
-    detail: "1 public key, 1 signature",
-  });
-
-  const publicKey = witness.publicKeys[0]!;
-  const signature = witness.signatures[0]!;
-
-  // Verify public key hash
-  const publicKeyHash = hashPublicKey(publicKey);
-  if (publicKeyHash !== leaf.publicKeyHashes[0]) {
-    auditTrail.push({
-      step: "Public key hash verification",
-      passed: false,
-      detail: "Hash mismatch",
-    });
-    return {
-      valid: false,
-      reason: "Public key hash does not match authorized key",
-      auditTrail,
-    };
-  }
-
-  auditTrail.push({
-    step: "Public key hash verification",
-    passed: true,
-    detail: `Hash: ${publicKeyHash.substring(0, 16)}...`,
-  });
-
-  // Verify signature
-  const signatureValid = signatureVerifier.verify(
-    message,
-    signature,
-    publicKey,
-    "ml-dsa-65",
-  );
-
-  if (!signatureValid) {
-    auditTrail.push({
-      step: "ML-DSA-65 signature verification",
-      passed: false,
-      detail: "Signature verification failed",
-    });
-    return {
-      valid: false,
-      reason: "ML-DSA-65 signature verification failed",
-      auditTrail,
-    };
-  }
-
-  auditTrail.push({
-    step: "ML-DSA-65 signature verification",
-    passed: true,
-    detail: `Signature length: ${signature.length} bytes`,
-  });
-
-  // Note: Full HSM attestation verification deferred to protocol adapter
   auditTrail.push({
     step: "HSM attestation verification",
-    passed: true,
-    detail: "Attestation format valid (full verification at protocol level)",
+    passed: false,
+    detail:
+      "SECURITY: HSM attestation verification not implemented - cannot validate hardware claims",
   });
 
+  // FAIL-SAFE: Return invalid until attestation verification is implemented.
+  // Accepting unverified attestations would allow forged HSM claims.
   return {
-    valid: true,
+    valid: false,
     reason:
-      "HSM-attested signature verified (attestation pending protocol verification)",
+      "HSM attestation verification not implemented - signature valid but hardware attestation cannot be verified",
     auditTrail,
   };
 }
@@ -693,5 +716,5 @@ function interpretHsmAttested(
  * This matches the format stored in ScriptLeaf.publicKeyHashes.
  */
 export function hashPublicKey(publicKey: Uint8Array): string {
-  return hasher.sha256hex(Buffer.from(publicKey).toString("hex"));
+  return getInterpreter().hashPublicKey(publicKey);
 }

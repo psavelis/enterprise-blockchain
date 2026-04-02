@@ -5,6 +5,14 @@
  * Cryptographic implementations require property-based testing because
  * off-by-one errors in field arithmetic cause silent security failures.
  *
+ * NOTE: Numeric comparisons (===) on integers are safe in tests.
+ * Timing-safe comparison is only required for:
+ * - String comparisons of cryptographic values (hashes, HMACs, signatures)
+ * - Comparisons where timing could leak information to an attacker
+ *
+ * Test environments have no timing oracle, and integer comparison
+ * on modern CPUs is constant-time for equal-length operands.
+ *
  * @see https://github.com/dubzzz/fast-check
  */
 import test from "node:test";

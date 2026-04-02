@@ -21,7 +21,10 @@ const examples = [
 
 for (const [label, path] of examples) {
   console.log(`\n=== ${label.toUpperCase()} ===`);
-  const result = spawnSync("npx", ["tsx", path], { stdio: "inherit" });
+  const result = spawnSync("npx", ["tsx", path], {
+    stdio: "inherit",
+    env: { ...process.env, NODE_ENV: process.env.NODE_ENV ?? "development" },
+  });
 
   if (result.status !== 0) {
     process.exit(result.status ?? 1);

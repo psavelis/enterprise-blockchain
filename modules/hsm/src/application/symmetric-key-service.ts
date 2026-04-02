@@ -33,25 +33,54 @@ export class SymmetricKeyService {
     const kek = this.requireSymmetric(kekLabel);
     const kekBuffer = Buffer.from(kek.keyBase64, "base64");
     const iv = randomBytes(12);
-    const cipher = createCipheriv("aes-256-gcm", kekBuffer, iv);
-    const wrappedDek = Buffer.concat([
-      cipher.update(plaintextDek),
-      cipher.final(),
-    ]);
-    const authTag = cipher.getAuthTag();
 
-    this.audit.record("wrapKey", kekLabel, "success");
+    try {
+      const cipher = createCipheriv("aes-256-gcm", kekBuffer, iv);
+      const wrappedDek = Buffer.concat([
+        cipher.update(plaintextDek),
+        cipher.final(),
+      ]);
+      const authTag = cipher.getAuthTag();
 
-    return {
-      algorithm: "aes-256-gcm",
-      wrappedDek: wrappedDek.toString("hex"),
-      iv: iv.toString("hex"),
-      authTag: authTag.toString("hex"),
-      kekLabel,
-      wrappedAt: new Date().toISOString(),
-    };
+      this.audit.record("wrapKey", kekLabel, "success");
+
+      return {
+        algorithm: "aes-256-gcm",
+        wrappedDek: wrappedDek.toString("hex"),
+        iv: iv.toString("hex"),
+        authTag: authTag.toString("hex"),
+        kekLabel,
+        wrappedAt: new Date().toISOString(),
+      };
+    } finally {
+      // Zeroize intermediate key material
+      kekBuffer.fill(0);
+    }
   }
 
+  /**
+   * Unwrap a DEK using the specified KEK.
+   *
+   * **SECURITY: CALLER MUST ZEROIZE THE RETURNED BUFFER**
+   *
+   * The returned plaintext DEK is sensitive key material. Callers are responsible
+   * for zeroizing the buffer after use to prevent memory disclosure attacks:
+   *
+   * ```typescript
+   * const dek = service.unwrapKey(wrapped);
+   * try {
+   *   // use dek for decryption
+   * } finally {
+   *   dek.fill(0); // Zeroize DEK after use
+   * }
+   * ```
+   *
+   * In production HSM deployments, the DEK never leaves hardware-protected memory.
+   * This software implementation requires manual zeroization as a compensating control.
+   *
+   * @param wrapped - The wrapped DEK structure
+   * @returns Plaintext DEK buffer (MUST be zeroized by caller after use)
+   */
   unwrapKey(wrapped: WrappedKey): Buffer {
     const kek = this.requireSymmetric(wrapped.kekLabel);
     const kekBuffer = Buffer.from(kek.keyBase64, "base64");
@@ -67,8 +96,15 @@ export class SymmetricKeyService {
         decipher.final(),
       ]);
       this.audit.record("unwrapKey", wrapped.kekLabel, "success");
+
+      // Zeroize intermediate key material
+      kekBuffer.fill(0);
+
       return plaintext;
     } catch {
+      // Zeroize intermediate key material even on failure
+      kekBuffer.fill(0);
+
       this.audit.record(
         "unwrapKey",
         wrapped.kekLabel,
