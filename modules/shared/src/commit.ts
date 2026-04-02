@@ -28,15 +28,36 @@ export function commitShare(
  * Prevents timing attacks by ensuring constant-time comparison
  * regardless of where the first difference occurs.
  *
+ * The comparison decodes hex to bytes before comparing, ensuring
+ * the function behavior matches its documented contract.
+ *
  * IMPORTANT: Both strings must be the same length (e.g., SHA-256 hashes).
- * For strings of different lengths, returns false immediately
- * (length comparison is not constant-time but reveals no secret data).
+ * Malformed hex inputs (odd length, non-hex characters) return false.
  */
 export function timingSafeCompare(a: string, b: string): boolean {
+  // Length check is not constant-time but reveals no secret data
   if (a.length !== b.length) {
     return false;
   }
-  const bufA = Buffer.from(a, "utf8");
-  const bufB = Buffer.from(b, "utf8");
+
+  // Hex strings must have even length
+  if (a.length % 2 !== 0) {
+    return false;
+  }
+
+  // Validate hex format before decoding
+  const hexRegex = /^[0-9a-fA-F]*$/;
+  if (!hexRegex.test(a) || !hexRegex.test(b)) {
+    return false;
+  }
+
+  const bufA = Buffer.from(a, "hex");
+  const bufB = Buffer.from(b, "hex");
+
+  // Defensive check (should always be true given the above validation)
+  if (bufA.length !== bufB.length) {
+    return false;
+  }
+
   return timingSafeEqual(bufA, bufB);
 }

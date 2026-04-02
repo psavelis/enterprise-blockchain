@@ -6,9 +6,12 @@ import type { AuditLog, KeyStore } from "../domain/ports";
 /**
  * AES-256-GCM symmetric operations — key generation, wrapping, unwrapping.
  *
- * The raw key is stored as base64 in the domain entity (infrastructure-agnostic).
- * In a production HSM the key never leaves hardware-protected storage.
- * Do not persist or log the decoded buffer.
+ * The raw key is stored as Uint8Array in the domain entity to enable
+ * explicit zeroization. In a production HSM the key never leaves
+ * hardware-protected storage. Do not persist or log the key bytes.
+ *
+ * SECURITY: Intermediate key buffers are zeroized after use to minimize
+ * key material exposure in memory.
  */
 export class SymmetricKeyService {
   constructor(
@@ -23,38 +26,56 @@ export class SymmetricKeyService {
     this.keyStore.set(keyLabel, {
       kind: "symmetric",
       keyLabel,
-      keyBase64: randomBytes(32).toString("base64"),
+      keyBytes: new Uint8Array(randomBytes(32)),
       createdAt: new Date().toISOString(),
     });
     this.audit.record("generateSymmetricKey", keyLabel, "success");
   }
 
+  /**
+   * Wrap a DEK (data encryption key) using the KEK (key encryption key).
+   *
+   * SECURITY: The kekBuffer is zeroized after use.
+   */
   wrapKey(plaintextDek: Buffer, kekLabel: string): WrappedKey {
     const kek = this.requireSymmetric(kekLabel);
-    const kekBuffer = Buffer.from(kek.keyBase64, "base64");
+    const kekBuffer = Buffer.from(kek.keyBytes);
     const iv = randomBytes(12);
-    const cipher = createCipheriv("aes-256-gcm", kekBuffer, iv);
-    const wrappedDek = Buffer.concat([
-      cipher.update(plaintextDek),
-      cipher.final(),
-    ]);
-    const authTag = cipher.getAuthTag();
 
-    this.audit.record("wrapKey", kekLabel, "success");
+    try {
+      const cipher = createCipheriv("aes-256-gcm", kekBuffer, iv);
+      const wrappedDek = Buffer.concat([
+        cipher.update(plaintextDek),
+        cipher.final(),
+      ]);
+      const authTag = cipher.getAuthTag();
 
-    return {
-      algorithm: "aes-256-gcm",
-      wrappedDek: wrappedDek.toString("hex"),
-      iv: iv.toString("hex"),
-      authTag: authTag.toString("hex"),
-      kekLabel,
-      wrappedAt: new Date().toISOString(),
-    };
+      this.audit.record("wrapKey", kekLabel, "success");
+
+      return {
+        algorithm: "aes-256-gcm",
+        wrappedDek: wrappedDek.toString("hex"),
+        iv: iv.toString("hex"),
+        authTag: authTag.toString("hex"),
+        kekLabel,
+        wrappedAt: new Date().toISOString(),
+      };
+    } finally {
+      // Zeroize intermediate key material
+      kekBuffer.fill(0);
+    }
   }
 
+  /**
+   * Unwrap a DEK using the KEK.
+   *
+   * SECURITY: The kekBuffer is zeroized after use.
+   * CALLER RESPONSIBILITY: The returned DEK buffer MUST be zeroized
+   * after use via `dekBuffer.fill(0)`.
+   */
   unwrapKey(wrapped: WrappedKey): Buffer {
     const kek = this.requireSymmetric(wrapped.kekLabel);
-    const kekBuffer = Buffer.from(kek.keyBase64, "base64");
+    const kekBuffer = Buffer.from(kek.keyBytes);
     const iv = Buffer.from(wrapped.iv, "hex");
     const authTag = Buffer.from(wrapped.authTag, "hex");
     const wrappedBuf = Buffer.from(wrapped.wrappedDek, "hex");
@@ -76,6 +97,9 @@ export class SymmetricKeyService {
         "GCM authentication failed",
       );
       throw new Error("HSM unwrapKey: GCM authentication failed");
+    } finally {
+      // Zeroize intermediate key material
+      kekBuffer.fill(0);
     }
   }
 

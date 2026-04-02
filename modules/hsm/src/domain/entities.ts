@@ -95,8 +95,15 @@ export interface AsymmetricKeyEntry {
 export interface SymmetricKeyEntry {
   kind: "symmetric";
   keyLabel: string;
-  /** Base64-encoded key material */
-  keyBase64: string;
+  /**
+   * Raw key material as a zeroizable byte array.
+   *
+   * Using Uint8Array instead of base64 string enables explicit zeroization
+   * after use. The infrastructure layer handles encoding/decoding at boundaries.
+   *
+   * SECURITY: Callers MUST zeroize this buffer after use via keyBytes.fill(0).
+   */
+  keyBytes: Uint8Array;
   createdAt: string;
 }
 
