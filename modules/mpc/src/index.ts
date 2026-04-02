@@ -59,6 +59,8 @@ interface ComputationRound {
   expectedShareCount: number;
   shares: Map<string, SecretShare>;
   createdAt: number;
+  /** Track submitted nonces to prevent replay attacks */
+  usedNonces: Set<string>;
 }
 
 // ── Resource Quota Management ────────────────────────────────────────
@@ -328,6 +330,7 @@ export class MPCEngine {
         expectedShareCount: share.shareCount,
         shares: new Map(),
         createdAt: Date.now(),
+        usedNonces: new Set(),
       };
       this.rounds.set(computationId, round);
 
@@ -348,6 +351,19 @@ export class MPCEngine {
         `Party ${share.partyId} already submitted a share for ${computationId}`,
       );
     }
+
+    // SECURITY: Prevent replay attacks within the same computation.
+    // Nonces must be unique per computation to prevent an attacker from
+    // submitting the same share twice (e.g., to corrupt the aggregate).
+    // Note: Cross-computation replay is prevented by commitment binding
+    // (partyId + shareIndex + value + nonce) which makes replayed shares
+    // fail commitment verification in a different computation context.
+    if (round.usedNonces.has(share.nonce)) {
+      throw new Error(
+        `Replay attack detected: nonce already used in computation ${computationId}`,
+      );
+    }
+    round.usedNonces.add(share.nonce);
 
     // Store a defensive copy to prevent callers from mutating the share
     // after submission, which could corrupt the computation result.
@@ -470,7 +486,11 @@ export class MPCEngine {
         share.value,
         share.nonce,
       );
-      if (expected !== share.commitment) return false;
+      // SECURITY: Use timing-safe comparison to prevent timing attacks
+      // that could leak information about valid commitment prefixes.
+      if (!this.commitment.timingSafeCompare(expected, share.commitment)) {
+        return false;
+      }
     }
     return true;
   }

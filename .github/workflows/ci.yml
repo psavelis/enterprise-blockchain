@@ -59,6 +59,8 @@ jobs:
       - name: Run suite
         id: run_suite
         continue-on-error: true
+        env:
+          NODE_ENV: test
         run: |
           if [ "${{ matrix.suite.id }}" = "core" ]; then
             # Run format check, lint, typecheck separately

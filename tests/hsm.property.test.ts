@@ -5,6 +5,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import fc from "fast-check";
 
 import { HsmClient } from "../modules/hsm/src/index";
@@ -188,9 +189,7 @@ test("key generation: each KEK produces usable envelope encryption", () => {
         { minLength: 1, maxLength: 5 },
       ),
       (labels) => {
-        const hsm = createHsm(
-          "keygen-slot-" + Math.random().toString(36).slice(2),
-        );
+        const hsm = createHsm(`keygen-slot-${randomUUID()}`);
         const uniqueLabels = [...new Set(labels)];
 
         for (const label of uniqueLabels) {
