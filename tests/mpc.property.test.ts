@@ -315,3 +315,140 @@ test("production field: inverse works for large numbers", () => {
     assert.equal(product, 1n, `inverse failed for ${v}`);
   }
 });
+
+// ── Replay Prevention Tests ──────────────────────────────────────────────────
+
+test("MPC: rejects duplicate party submission (replay of same share)", () => {
+  const engine = new MPCEngine();
+  engine.registerParty({ id: "p1", name: "Party 1", endpoint: "http://p1" });
+  engine.registerParty({ id: "p2", name: "Party 2", endpoint: "http://p2" });
+
+  const shares = engine.splitSecret(100, ["p1", "p2"]);
+  const computationId = "replay-test-1";
+
+  // Submit first share from p1
+  engine.submitShare(computationId, shares[0]!);
+
+  // Attempt to replay the exact same share (same party, same nonce)
+  // This is caught by the "party already submitted" check
+  assert.throws(
+    () => engine.submitShare(computationId, shares[0]!),
+    /Party p1 already submitted a share/,
+  );
+});
+
+test("MPC: rejects share with tampered nonce (commitment mismatch)", () => {
+  const engine = new MPCEngine();
+  engine.registerParty({ id: "p1", name: "Party 1", endpoint: "http://p1" });
+  engine.registerParty({ id: "p2", name: "Party 2", endpoint: "http://p2" });
+
+  const shares = engine.splitSecret(100, ["p1", "p2"]);
+  const computationId = "replay-test-2";
+
+  // Submit first share from p1
+  engine.submitShare(computationId, shares[0]!);
+
+  // Attacker tries to submit p2's share with p1's nonce
+  // This fails commitment verification (defense-in-depth before nonce check)
+  const tamperedShare = {
+    ...shares[1]!,
+    nonce: shares[0]!.nonce,
+  };
+
+  assert.throws(
+    () => engine.submitShare(computationId, tamperedShare),
+    /Commitment verification failed/,
+  );
+});
+
+test("MPC: allows same nonce in different computations", () => {
+  const engine = new MPCEngine();
+  engine.registerParty({ id: "p1", name: "Party 1", endpoint: "http://p1" });
+  engine.registerParty({ id: "p2", name: "Party 2", endpoint: "http://p2" });
+
+  const shares = engine.splitSecret(100, ["p1", "p2"]);
+
+  // Submit to first computation
+  engine.submitShare("comp-1", shares[0]!);
+
+  // Same share can be submitted to different computation (different context)
+  // This tests that nonce tracking is per-computation, not global
+  engine.submitShare("comp-2", shares[0]!);
+});
+
+// ── NODE_ENV Security Enforcement Tests ──────────────────────────────────────
+// Note: These tests use the already-imported getFieldConfig since ESM modules
+// are cached. The function reads process.env.NODE_ENV at runtime, so we can
+// test different NODE_ENV values by modifying process.env before calling it.
+
+import { getFieldConfig } from "../modules/mpc/src/field";
+
+test("getFieldConfig: rejects demo mode when NODE_ENV is production", () => {
+  const originalEnv = process.env.NODE_ENV;
+  try {
+    process.env.NODE_ENV = "production";
+    assert.throws(
+      () => getFieldConfig("demo"),
+      /SECURITY ERROR: Demo field mode is only allowed/,
+    );
+  } finally {
+    process.env.NODE_ENV = originalEnv;
+  }
+});
+
+test("getFieldConfig: rejects demo mode when NODE_ENV is staging", () => {
+  const originalEnv = process.env.NODE_ENV;
+  try {
+    process.env.NODE_ENV = "staging";
+    assert.throws(
+      () => getFieldConfig("demo"),
+      /SECURITY ERROR: Demo field mode is only allowed/,
+    );
+  } finally {
+    process.env.NODE_ENV = originalEnv;
+  }
+});
+
+test("getFieldConfig: rejects demo mode when NODE_ENV is unset", () => {
+  const originalEnv = process.env.NODE_ENV;
+  try {
+    delete process.env.NODE_ENV;
+    assert.throws(
+      () => getFieldConfig("demo"),
+      /SECURITY ERROR: Demo field mode is only allowed/,
+    );
+  } finally {
+    process.env.NODE_ENV = originalEnv;
+  }
+});
+
+test("getFieldConfig: allows demo mode when NODE_ENV is development", () => {
+  const originalEnv = process.env.NODE_ENV;
+  try {
+    process.env.NODE_ENV = "development";
+    const config = getFieldConfig("demo");
+    assert.equal(config.mode, "demo");
+  } finally {
+    process.env.NODE_ENV = originalEnv;
+  }
+});
+
+test("getFieldConfig: allows demo mode when NODE_ENV is test", () => {
+  // This test runs in NODE_ENV=test, so just verify it works
+  const config = getFieldConfig("demo");
+  assert.equal(config.mode, "demo");
+});
+
+test("getFieldConfig: allows production mode regardless of NODE_ENV", () => {
+  const originalEnv = process.env.NODE_ENV;
+  try {
+    // Production mode should work in any environment
+    for (const env of ["production", "staging", "development", "test"]) {
+      process.env.NODE_ENV = env;
+      const config = getFieldConfig("production");
+      assert.equal(config.mode, "production");
+    }
+  } finally {
+    process.env.NODE_ENV = originalEnv;
+  }
+});

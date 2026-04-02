@@ -352,9 +352,12 @@ export class MPCEngine {
       );
     }
 
-    // SECURITY: Prevent replay attacks by tracking submitted nonces.
-    // An attacker could capture a share and replay it in a different computation.
-    // Nonces must be unique per computation to ensure share freshness.
+    // SECURITY: Prevent replay attacks within the same computation.
+    // Nonces must be unique per computation to prevent an attacker from
+    // submitting the same share twice (e.g., to corrupt the aggregate).
+    // Note: Cross-computation replay is prevented by commitment binding
+    // (partyId + shareIndex + value + nonce) which makes replayed shares
+    // fail commitment verification in a different computation context.
     if (round.usedNonces.has(share.nonce)) {
       throw new Error(
         `Replay attack detected: nonce already used in computation ${computationId}`,

@@ -96,12 +96,16 @@ export interface SymmetricKeyEntry {
   kind: "symmetric";
   keyLabel: string;
   /**
-   * Raw key material as a zeroizable byte array.
+   * Raw key material as a byte array.
    *
-   * Using Uint8Array instead of base64 string enables explicit zeroization
-   * after use. The infrastructure layer handles encoding/decoding at boundaries.
+   * Using Uint8Array instead of a base64 string enables explicit zeroization
+   * of in-memory key material. The infrastructure layer handles encoding/decoding
+   * at boundaries.
    *
-   * SECURITY: Callers MUST zeroize this buffer after use via keyBytes.fill(0).
+   * SECURITY: This field represents the long-lived stored key material managed
+   * by the key store. Callers MUST NOT mutate or zeroize this buffer directly.
+   * Instead, create an ephemeral copy (e.g. `const key = Buffer.from(entry.keyBytes);`)
+   * for cryptographic operations, and securely zeroize that ephemeral copy after use.
    */
   keyBytes: Uint8Array;
   createdAt: string;

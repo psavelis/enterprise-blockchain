@@ -66,33 +66,18 @@ export function getFieldConfig(mode?: FieldMode): FieldConfig {
 
   const effectiveMode: FieldMode = rawMode;
 
-  // SECURITY: Fail hard if demo mode is used in production environment.
-  // This prevents accidental deployment with insecure field size.
-  //
-  // The MPC_ALLOW_INSECURE_DEMO override is only allowed in development/test
-  // environments. In production (NODE_ENV=production), there is NO override.
   const nodeEnv = process.env.NODE_ENV;
-  const isProduction = nodeEnv === "production";
   const isDevelopment = nodeEnv === "development" || nodeEnv === "test";
 
-  if (effectiveMode === "demo") {
-    if (isProduction) {
-      // CRITICAL: No override allowed in production. Period.
-      throw new Error(
-        "SECURITY ERROR: Demo field mode is NEVER allowed in production. " +
-          "Set MPC_FIELD_MODE=production for 256-bit cryptographic security. " +
-          "There is NO override for production environments.",
-      );
-    }
-
-    if (!isDevelopment && !process.env.MPC_ALLOW_INSECURE_DEMO) {
-      // For unset NODE_ENV, require explicit acknowledgment
-      throw new Error(
-        "SECURITY ERROR: Demo field mode requires explicit acknowledgment. " +
-          "Set NODE_ENV=development or NODE_ENV=test for local development, " +
-          "or set MPC_FIELD_MODE=production for cryptographic security.",
-      );
-    }
+  // SECURITY: Demo mode is ONLY allowed when NODE_ENV is explicitly
+  // set to "development" or "test". No bypass or override is permitted.
+  // This prevents accidental deployment with insecure field size.
+  if (effectiveMode === "demo" && !isDevelopment) {
+    throw new Error(
+      "SECURITY ERROR: Demo field mode is only allowed when NODE_ENV is " +
+        "'development' or 'test'. Set NODE_ENV appropriately for local " +
+        "development, or set MPC_FIELD_MODE=production for cryptographic security.",
+    );
   }
 
   return {

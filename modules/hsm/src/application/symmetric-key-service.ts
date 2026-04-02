@@ -26,7 +26,8 @@ export class SymmetricKeyService {
     this.keyStore.set(keyLabel, {
       kind: "symmetric",
       keyLabel,
-      keyBytes: new Uint8Array(randomBytes(32)),
+      // Buffer is a Uint8Array subclass; no copy needed
+      keyBytes: randomBytes(32),
       createdAt: new Date().toISOString(),
     });
     this.audit.record("generateSymmetricKey", keyLabel, "success");
