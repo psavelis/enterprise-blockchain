@@ -14,17 +14,6 @@ import {
 } from "@hyperledger/fabric-gateway";
 
 import { getOptionalEnv, getRequiredEnv } from "../../shared/src/env";
-import {
-  CircuitBreaker,
-  FABRIC_RETRY_POLICY,
-  withRetry,
-  type CircuitBreakerOptions,
-} from "../../shared/src/retry";
-import {
-  createTracer,
-  withSpan,
-  TelemetryAttributes,
-} from "../../../shared/src/telemetry";
 import type {
   FabricGatewayProfile,
   FabricProposalPlan,
@@ -33,8 +22,6 @@ import type {
   IFabricProfileFactory,
   IFabricProposalBuilder,
 } from "./ports";
-
-const tracer = createTracer("fabric-gateway");
 
 export type { FabricGatewayProfile, FabricProposalPlan } from "./ports";
 
@@ -72,40 +59,30 @@ export class FabricProfileFactory implements IFabricProfileFactory {
 
 export class FabricConnectionFactory implements IFabricConnectionFactory {
   async createGrpcClient(profile: FabricGatewayProfile): Promise<grpc.Client> {
-    return withSpan(tracer, "fabric.createGrpcClient", async (span) => {
-      span.setAttribute(TelemetryAttributes.BLOCKCHAIN_PLATFORM, "fabric");
-      span.setAttribute("fabric.peer_endpoint", profile.peerEndpoint);
+    const tlsRootCert = await readFile(profile.tlsCertPath);
+    const credentials = grpc.credentials.createSsl(tlsRootCert);
+    const options: grpc.ClientOptions = {};
 
-      const tlsRootCert = await readFile(profile.tlsCertPath);
-      const credentials = grpc.credentials.createSsl(tlsRootCert);
-      const options: grpc.ClientOptions = {};
+    if (profile.peerHostAlias) {
+      options["grpc.ssl_target_name_override"] = profile.peerHostAlias;
+      options["grpc.default_authority"] = profile.peerHostAlias;
+    }
 
-      if (profile.peerHostAlias) {
-        options["grpc.ssl_target_name_override"] = profile.peerHostAlias;
-        options["grpc.default_authority"] = profile.peerHostAlias;
-        span.setAttribute("fabric.peer_host_alias", profile.peerHostAlias);
-      }
-
-      return new grpc.Client(profile.peerEndpoint, credentials, options);
-    });
+    return new grpc.Client(profile.peerEndpoint, credentials, options);
   }
 
   async createIdentity(profile: FabricGatewayProfile): Promise<Identity> {
-    return withSpan(tracer, "fabric.createIdentity", async (span) => {
-      span.setAttribute("fabric.msp_id", profile.mspId);
-      return {
-        mspId: profile.mspId,
-        credentials: await readFile(profile.identityCertPath),
-      };
-    });
+    return {
+      mspId: profile.mspId,
+      credentials: await readFile(profile.identityCertPath),
+    };
   }
 
   async createSigner(profile: FabricGatewayProfile): Promise<Signer> {
-    return withSpan(tracer, "fabric.createSigner", async () => {
-      const privateKeyPem = await readFile(profile.privateKeyPath);
-      const privateKey = createPrivateKey(privateKeyPem);
-      return signers.newPrivateKeySigner(privateKey);
-    });
+    const privateKeyPem = await readFile(profile.privateKeyPath);
+    const privateKey = createPrivateKey(privateKeyPem);
+
+    return signers.newPrivateKeySigner(privateKey);
   }
 }
 
@@ -115,33 +92,21 @@ export class FabricGatewayFactory implements IFabricGatewayFactory {
   async createGateway(
     profile: FabricGatewayProfile,
   ): Promise<{ gateway: Gateway; client: grpc.Client }> {
-    return withSpan(tracer, "fabric.createGateway", async (span) => {
-      span.setAttribute(TelemetryAttributes.BLOCKCHAIN_PLATFORM, "fabric");
-      span.setAttribute(
-        TelemetryAttributes.BLOCKCHAIN_CHANNEL,
-        profile.channelName,
-      );
-      span.setAttribute(
-        TelemetryAttributes.BLOCKCHAIN_CHAINCODE,
-        profile.chaincodeName,
-      );
+    const client = await this.connectionFactory.createGrpcClient(profile);
+    const identity = await this.connectionFactory.createIdentity(profile);
+    const signer = await this.connectionFactory.createSigner(profile);
 
-      const client = await this.connectionFactory.createGrpcClient(profile);
-      const identity = await this.connectionFactory.createIdentity(profile);
-      const signer = await this.connectionFactory.createSigner(profile);
+    const options: ConnectOptions = {
+      client,
+      identity,
+      signer,
+      hash: hash.sha256,
+    };
 
-      const options: ConnectOptions = {
-        client,
-        identity,
-        signer,
-        hash: hash.sha256,
-      };
-
-      return {
-        gateway: connect(options),
-        client,
-      };
-    });
+    return {
+      gateway: connect(options),
+      client,
+    };
   }
 
   getContract(gateway: Gateway, profile: FabricGatewayProfile): Contract {
@@ -200,10 +165,7 @@ export class FabricProposalBuilder implements IFabricProposalBuilder {
 }
 
 /**
- * Resilient Fabric gateway client with circuit breaker and retry support.
- *
- * Circuit breaker prevents cascading failures when Fabric peer is unavailable.
- * Retry policy handles transient gRPC errors (UNAVAILABLE, DEADLINE_EXCEEDED).
+ * Facade for backward compatibility.
  */
 export class FabricGatewayClientSketch
   implements
@@ -218,14 +180,6 @@ export class FabricGatewayClientSketch
     this.connectionFactory,
   );
   private readonly proposalBuilder = new FabricProposalBuilder();
-  private readonly circuitBreaker: CircuitBreaker;
-
-  constructor(circuitBreakerOptions?: Partial<CircuitBreakerOptions>) {
-    this.circuitBreaker = new CircuitBreaker(
-      circuitBreakerOptions,
-      "fabric-gateway",
-    );
-  }
 
   createProfileFromEnv(env?: NodeJS.ProcessEnv): FabricGatewayProfile {
     return this.profileFactory.createProfileFromEnv(env);
@@ -250,15 +204,7 @@ export class FabricGatewayClientSketch
   createGateway(
     profile: FabricGatewayProfile,
   ): Promise<{ gateway: Gateway; client: grpc.Client }> {
-    return this.circuitBreaker.execute(() =>
-      withRetry(
-        () => this.gatewayFactory.createGateway(profile),
-        FABRIC_RETRY_POLICY,
-        [],
-        extractGrpcErrorCode,
-        "fabric.createGateway",
-      ),
-    );
+    return this.gatewayFactory.createGateway(profile);
   }
 
   getContract(gateway: Gateway, profile: FabricGatewayProfile): Contract {
@@ -282,50 +228,4 @@ export class FabricGatewayClientSketch
   }): FabricProposalPlan {
     return this.proposalBuilder.buildEvaluateRecallRequest(input);
   }
-
-  /** Get circuit breaker state for monitoring dashboards. */
-  getCircuitBreakerHealth() {
-    return this.circuitBreaker.getHealthStatus();
-  }
-
-  /** Reset circuit breaker (use after resolving underlying issues). */
-  resetCircuitBreaker(): void {
-    this.circuitBreaker.reset();
-  }
-}
-
-/**
- * Extract gRPC error codes for retry policy decisions.
- * Maps gRPC status codes to string names.
- */
-function extractGrpcErrorCode(err: unknown): string {
-  if (err && typeof err === "object") {
-    const e = err as Record<string, unknown>;
-    // gRPC-js ServiceError has numeric code
-    if (typeof e.code === "number") {
-      // Map gRPC status codes: https://grpc.io/docs/guides/status-codes/
-      const grpcCodeMap: Record<number, string> = {
-        0: "OK",
-        1: "CANCELLED",
-        2: "UNKNOWN",
-        3: "INVALID_ARGUMENT",
-        4: "DEADLINE_EXCEEDED",
-        5: "NOT_FOUND",
-        6: "ALREADY_EXISTS",
-        7: "PERMISSION_DENIED",
-        8: "RESOURCE_EXHAUSTED",
-        9: "FAILED_PRECONDITION",
-        10: "ABORTED",
-        11: "OUT_OF_RANGE",
-        12: "UNIMPLEMENTED",
-        13: "INTERNAL",
-        14: "UNAVAILABLE",
-        15: "DATA_LOSS",
-        16: "UNAUTHENTICATED",
-      };
-      return grpcCodeMap[e.code] ?? "UNKNOWN";
-    }
-    if (typeof e.code === "string") return e.code.toUpperCase();
-  }
-  return "UNKNOWN";
 }
