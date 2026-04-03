@@ -13,7 +13,7 @@
     "lint": "eslint modules examples scripts tests --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "NODE_ENV=test node --import tsx --test tests/**/*.test.ts",
-    "test:coverage": "c8 --reporter=text --reporter=lcov --reporter=json node --import tsx --test tests/**/*.test.ts",
+    "test:coverage": "NODE_ENV=test c8 --reporter=text --reporter=lcov --reporter=json node --import tsx --test tests/**/*.test.ts",
     "test:e2e": "NODE_ENV=test node --import tsx --test tests/**/*.e2e.ts",
     "examples": "NODE_ENV=test tsx scripts/run-all-examples.ts",
     "demo:adapters": "tsx scripts/adapter-projections-demo.ts",

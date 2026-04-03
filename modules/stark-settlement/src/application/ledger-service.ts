@@ -101,7 +101,7 @@ export class LedgerService {
       externalAddress: options.externalAddress,
       assetType: options.assetType,
       balance: options.initialBalance ?? 0n,
-      lastProofRoot: this.currentStateRoot.toString(),
+      lastProofRoot: this.currentStateRoot.toString().replace("0x", ""),
       createdAt: now,
       updatedAt: now,
       isActive: true,
@@ -277,6 +277,13 @@ export class LedgerService {
     // Update transaction status
     await this.ctx.ledgerStore.updateTransactionStatus(txId, "proved");
 
+    // Create updated transaction with correct status for return/events
+    const provedTransaction: LedgerTransaction = {
+      ...transaction,
+      status: "proved",
+      updatedAt: this.ctx.clock.now(),
+    };
+
     // Log audit record
     await this.ctx.auditLog.append({
       eventType: "transaction_submitted",
@@ -293,12 +300,15 @@ export class LedgerService {
       },
     });
 
-    // Emit event
-    this.ctx.events.emit({ type: "transaction:submitted", tx: transaction });
+    // Emit event with updated transaction
+    this.ctx.events.emit({
+      type: "transaction:submitted",
+      tx: provedTransaction,
+    });
     this.ctx.events.emit({ type: "proof:base:generated", proof: baseProof });
 
     return {
-      transaction,
+      transaction: provedTransaction,
       baseProof,
       isDuplicate: false,
     };

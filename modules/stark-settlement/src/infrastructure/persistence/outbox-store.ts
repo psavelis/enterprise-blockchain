@@ -20,7 +20,7 @@ export class InMemoryOutboxStore implements OutboxPort {
   private readonly entriesByAsset = new Map<AssetType, string[]>();
   private nextOffset = 0n;
 
-  async appendEntry(entry: OutboxEntry): Promise<void> {
+  async appendEntry(entry: OutboxEntry): Promise<OutboxEntry> {
     if (this.entries.has(entry.entryId)) {
       throw new Error(`Outbox entry ${entry.entryId} already exists`);
     }
@@ -40,6 +40,8 @@ export class InMemoryOutboxStore implements OutboxPort {
     // Index by asset type
     const assetEntries = this.entriesByAsset.get(entry.assetType) ?? [];
     this.entriesByAsset.set(entry.assetType, [...assetEntries, entry.entryId]);
+
+    return entryWithOffset;
   }
 
   async getPendingEntries(

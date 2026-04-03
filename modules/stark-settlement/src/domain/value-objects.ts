@@ -451,6 +451,11 @@ export class Amount {
    * Create from a decimal string (e.g., "1.5" SOL = 1500000000 lamports).
    */
   static fromDecimal(value: string, decimals: number): Amount {
+    // Reject negative values
+    if (value.startsWith("-")) {
+      throw new Error("Amount cannot be negative");
+    }
+
     const parts = value.split(".");
     const wholePart = BigInt(parts[0] || "0");
     const fracPart = parts[1] || "";

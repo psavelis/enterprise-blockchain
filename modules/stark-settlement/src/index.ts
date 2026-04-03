@@ -297,9 +297,11 @@ export interface CreateContextOptions {
  *   tier2BatchSize: 2,
  * });
  *
- * // Custom adapters
+ * // Custom adapters (clock must be passed to StarknetProofAdapter)
+ * const clock = new SystemClock();
  * const prodCtx = createDefaultContext({
- *   starkProver: new StarknetProofAdapter(),
+ *   clock,
+ *   starkProver: new StarknetProofAdapter(clock),
  *   ledgerStore: new PostgresLedgerStore(connectionString),
  * });
  * ```

@@ -271,14 +271,18 @@ export class AggregatorService {
         settledAt: null,
         settlementTxId: null,
         errorMessage: null,
-        offset: 0n, // Placeholder - outbox store always assigns sequential offsets
+        offset: 0n, // Placeholder - outbox store assigns the real sequential offset
       };
 
-      await this.ctx.outboxStore.appendEntry(entry);
-      entries.push(entry);
+      // Store entry and get back the entry with the real assigned offset
+      const storedEntry = await this.ctx.outboxStore.appendEntry(entry);
+      entries.push(storedEntry);
 
-      // Emit event
-      this.ctx.events.emit({ type: "settlement:initiated", entry });
+      // Emit event with the stored entry (which has the real offset)
+      this.ctx.events.emit({
+        type: "settlement:initiated",
+        entry: storedEntry,
+      });
     }
 
     return entries;

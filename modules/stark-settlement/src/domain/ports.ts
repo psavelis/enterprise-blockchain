@@ -232,8 +232,9 @@ export interface LedgerPersistencePort {
 export interface OutboxPort {
   /**
    * Append an entry to the outbox.
+   * Returns the stored entry with the assigned sequential offset.
    */
-  appendEntry(entry: OutboxEntry): Promise<void>;
+  appendEntry(entry: OutboxEntry): Promise<OutboxEntry>;
 
   /**
    * Get pending entries for an asset type.
