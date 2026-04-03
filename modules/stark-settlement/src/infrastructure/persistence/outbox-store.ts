@@ -25,10 +25,14 @@ export class InMemoryOutboxStore implements OutboxPort {
       throw new Error(`Outbox entry ${entry.entryId} already exists`);
     }
 
-    // Assign offset if not set
+    // Always assign offsets in the store to preserve append-order FIFO semantics.
+    // This ensures entries are correctly ordered regardless of what offset value was passed.
+    const offset = this.nextOffset;
+    this.nextOffset += 1n;
+
     const entryWithOffset: OutboxEntry = {
       ...entry,
-      offset: entry.offset ?? this.nextOffset++,
+      offset,
     };
 
     this.entries.set(entry.entryId, entryWithOffset);
@@ -53,8 +57,10 @@ export class InMemoryOutboxStore implements OutboxPort {
       }
     }
 
-    // Sort by offset for FIFO ordering
-    return pending.sort((a, b) => Number(a.offset - b.offset));
+    // Sort by offset for FIFO ordering (use direct bigint comparison to avoid overflow)
+    return pending.sort((a, b) =>
+      a.offset < b.offset ? -1 : a.offset > b.offset ? 1 : 0,
+    );
   }
 
   async getEntry(entryId: string): Promise<OutboxEntry | null> {
@@ -144,8 +150,10 @@ export class InMemoryOutboxStore implements OutboxPort {
       }
     }
 
-    // Sort by offset for FIFO ordering
-    return retryable.sort((a, b) => Number(a.offset - b.offset));
+    // Sort by offset for FIFO ordering (use direct bigint comparison to avoid overflow)
+    return retryable.sort((a, b) =>
+      a.offset < b.offset ? -1 : a.offset > b.offset ? 1 : 0,
+    );
   }
 
   // ─── Utilities ──────────────────────────────────────────────────────────

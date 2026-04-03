@@ -6,8 +6,8 @@
  * - Bitcoin (testnet): PSBT batched UTXO spends
  * - Fiat (mock): ISO 20022 pain.001 credit transfers
  *
- * Ensures exactly-once settlement via idempotency keys and
- * offset tracking in the outbox.
+ * Uses idempotency keys and outbox entry state transitions to coordinate
+ * settlement attempts and reduce duplicate processing.
  *
  * @see domain/ports.ts for settlement port interfaces
  */
@@ -169,10 +169,16 @@ export class SettlementService {
         },
       });
 
-      // Emit event
+      // Emit event with updated entry status
+      const settledEntry: OutboxEntry = {
+        ...entry,
+        status: "settled",
+        settledAt: this.ctx.clock.now(),
+        settlementTxId: this.getSettlementTxId(result),
+      };
       this.ctx.events.emit({
         type: "settlement:completed",
-        entry,
+        entry: settledEntry,
         result,
       });
 
@@ -199,10 +205,16 @@ export class SettlementService {
         },
       });
 
-      // Emit event
+      // Emit event with updated entry status
+      const failedEntry: OutboxEntry = {
+        ...entry,
+        status: "failed",
+        retryCount: entry.retryCount + 1,
+        errorMessage,
+      };
       this.ctx.events.emit({
         type: "settlement:failed",
-        entry,
+        entry: failedEntry,
         error: errorMessage,
       });
 

@@ -97,7 +97,7 @@ export class AggregatorService {
 
     // Step 1: Aggregate base proofs into Tier-1 proofs
     while (true) {
-      const baseProofs = await this.ctx.ledgerStore.getUnaggreatedBaseProofs(
+      const baseProofs = await this.ctx.ledgerStore.getUnaggregatedBaseProofs(
         this.config.tier1BatchSize,
       );
 
@@ -117,7 +117,7 @@ export class AggregatorService {
     }
 
     // Step 2: Aggregate Tier-1 proofs into a Tier-2 block proof
-    const tier1Proofs = await this.ctx.ledgerStore.getUnaggreatedTier1Proofs(
+    const tier1Proofs = await this.ctx.ledgerStore.getUnaggregatedTier1Proofs(
       this.config.tier2BatchSize,
     );
 
@@ -271,7 +271,7 @@ export class AggregatorService {
         settledAt: null,
         settlementTxId: null,
         errorMessage: null,
-        offset: 0n, // Will be assigned by outbox store
+        offset: 0n, // Placeholder - outbox store always assigns sequential offsets
       };
 
       await this.ctx.outboxStore.appendEntry(entry);
@@ -347,10 +347,10 @@ export class AggregatorService {
     latestBlockNumber: bigint | null;
     totalTxsPerBlock: number;
   }> {
-    const baseProofs = await this.ctx.ledgerStore.getUnaggreatedBaseProofs(
+    const baseProofs = await this.ctx.ledgerStore.getUnaggregatedBaseProofs(
       this.config.tier1BatchSize * this.config.tier2BatchSize,
     );
-    const tier1Proofs = await this.ctx.ledgerStore.getUnaggreatedTier1Proofs(
+    const tier1Proofs = await this.ctx.ledgerStore.getUnaggregatedTier1Proofs(
       this.config.tier2BatchSize,
     );
     const latestBlock = await this.ctx.ledgerStore.getLatestBlockProof();

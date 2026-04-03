@@ -183,7 +183,9 @@ export class InMemoryLedgerStore implements LedgerPersistencePort {
     return this.baseProofs.get(proofId) ?? null;
   }
 
-  async getUnaggreatedBaseProofs(limit: number): Promise<readonly BaseProof[]> {
+  async getUnaggregatedBaseProofs(
+    limit: number,
+  ): Promise<readonly BaseProof[]> {
     const proofs: BaseProof[] = [];
     for (const proof of this.baseProofs.values()) {
       if (!this.aggregatedBaseProofIds.has(proof.proofId)) {
@@ -220,7 +222,7 @@ export class InMemoryLedgerStore implements LedgerPersistencePort {
     return this.tier1Proofs.get(proofId) ?? null;
   }
 
-  async getUnaggreatedTier1Proofs(
+  async getUnaggregatedTier1Proofs(
     limit: number,
   ): Promise<readonly Tier1Proof[]> {
     const proofs: Tier1Proof[] = [];

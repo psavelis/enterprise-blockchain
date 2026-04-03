@@ -187,7 +187,7 @@ export interface LedgerPersistencePort {
   /**
    * Get base proofs that haven't been aggregated into Tier-1.
    */
-  getUnaggreatedBaseProofs(limit: number): Promise<readonly BaseProof[]>;
+  getUnaggregatedBaseProofs(limit: number): Promise<readonly BaseProof[]>;
 
   /**
    * Save a Tier-1 proof.
@@ -202,7 +202,7 @@ export interface LedgerPersistencePort {
   /**
    * Get Tier-1 proofs that haven't been aggregated into Tier-2.
    */
-  getUnaggreatedTier1Proofs(limit: number): Promise<readonly Tier1Proof[]>;
+  getUnaggregatedTier1Proofs(limit: number): Promise<readonly Tier1Proof[]>;
 
   /**
    * Save a Tier-2 block proof.

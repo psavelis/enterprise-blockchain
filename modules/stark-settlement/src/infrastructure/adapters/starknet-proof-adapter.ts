@@ -13,7 +13,7 @@
  * @see domain/ports.ts for StarkProofGeneratorPort interface
  */
 
-/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/require-await */
 
 import { createHash } from "node:crypto";
 import { hash } from "starknet";
@@ -229,15 +229,10 @@ export class StarknetProofAdapter implements StarkProofGeneratorPort {
     }
 
     // In production, this would verify the STARK proof against the verification key
-    // using starknet.js verification functions
+    // using starknet.js verification functions.
+    // TODO: Implement full proof verification when Cairo circuits are deployed.
     const publicInputs = blockProof.publicInputs.map((hex) =>
       FieldElement.fromHex(hex),
-    );
-
-    // Verify the proof commitment
-    const expectedCommitment = this.computeProofCommitment(
-      blockProof.finalProof,
-      blockProof.publicInputs,
     );
 
     // Check that the state root in public inputs matches

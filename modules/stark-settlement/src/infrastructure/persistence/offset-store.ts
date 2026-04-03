@@ -16,8 +16,10 @@ import type { OffsetTrackingPort } from "../../domain/ports";
  * In-memory implementation of the offset tracking port.
  */
 export class InMemoryOffsetStore implements OffsetTrackingPort {
-  // Key: "consumerId:assetType", Value: offset
+  // Key: "consumerId:assetType", Value: last committed offset
+  // Initial value is -1n so that offset 0n can be committed (0n > -1n)
   private readonly offsets = new Map<string, bigint>();
+  private static readonly INITIAL_OFFSET = -1n;
 
   private makeKey(consumerId: string, assetType: AssetType): string {
     return `${consumerId}:${assetType}`;
@@ -25,7 +27,7 @@ export class InMemoryOffsetStore implements OffsetTrackingPort {
 
   async getOffset(consumerId: string, assetType: AssetType): Promise<bigint> {
     const key = this.makeKey(consumerId, assetType);
-    return this.offsets.get(key) ?? 0n;
+    return this.offsets.get(key) ?? InMemoryOffsetStore.INITIAL_OFFSET;
   }
 
   async commitOffset(
@@ -34,9 +36,10 @@ export class InMemoryOffsetStore implements OffsetTrackingPort {
     offset: bigint,
   ): Promise<void> {
     const key = this.makeKey(consumerId, assetType);
-    const currentOffset = this.offsets.get(key) ?? 0n;
+    const currentOffset =
+      this.offsets.get(key) ?? InMemoryOffsetStore.INITIAL_OFFSET;
 
-    // Offset must be monotonically increasing
+    // Offset must be monotonically increasing (strictly greater than current)
     if (offset <= currentOffset) {
       throw new Error(
         `Cannot commit offset ${offset}: current offset is ${currentOffset}`,

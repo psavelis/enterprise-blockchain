@@ -199,9 +199,13 @@ export class LedgerService {
       );
     if (existingTxs.length > 0) {
       const existingTx = existingTxs[0]!;
-      const existingProof = await this.ctx.ledgerStore.getBaseProof(
-        `proof-${existingTx.txId}`,
-      );
+      // Look up proof using the proofId stored on the transaction (if present)
+      // or fall back to the deterministic proof ID pattern for backward compatibility
+      const txWithProofId = existingTx as LedgerTransaction & {
+        proofId?: string;
+      };
+      const proofId = txWithProofId.proofId ?? `proof-${existingTx.txId}`;
+      const existingProof = await this.ctx.ledgerStore.getBaseProof(proofId);
       if (existingProof) {
         return {
           transaction: existingTx,
@@ -434,7 +438,13 @@ export class LedgerService {
   }
 
   private async applyTransaction(tx: LedgerTransaction): Promise<void> {
-    const newProofRoot = this.currentStateRoot.toString().replace("0x", "");
+    // First, advance the state root to reflect the new transaction
+    this.currentStateRoot = this.currentStateRoot.hash(
+      new TextEncoder().encode(serializeWithBigInt(tx)),
+    );
+
+    // Use the post-transaction state root for account updates
+    const postTxStateRoot = this.currentStateRoot.toString().replace("0x", "");
 
     switch (tx.type) {
       case "deposit":
@@ -442,7 +452,7 @@ export class LedgerService {
           await this.ctx.ledgerStore.updateAccountBalance(
             tx.toAccountId,
             tx.amount,
-            newProofRoot,
+            postTxStateRoot,
           );
         }
         break;
@@ -452,7 +462,7 @@ export class LedgerService {
           await this.ctx.ledgerStore.updateAccountBalance(
             tx.fromAccountId,
             -tx.amount,
-            newProofRoot,
+            postTxStateRoot,
           );
         }
         break;
@@ -462,21 +472,16 @@ export class LedgerService {
           await this.ctx.ledgerStore.updateAccountBalance(
             tx.fromAccountId,
             -tx.amount,
-            newProofRoot,
+            postTxStateRoot,
           );
           await this.ctx.ledgerStore.updateAccountBalance(
             tx.toAccountId,
             tx.amount,
-            newProofRoot,
+            postTxStateRoot,
           );
         }
         break;
     }
-
-    // Update state root
-    this.currentStateRoot = this.currentStateRoot.hash(
-      new TextEncoder().encode(serializeWithBigInt(tx)),
-    );
   }
 }
 
