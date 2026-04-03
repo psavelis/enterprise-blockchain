@@ -213,6 +213,10 @@ export class LedgerService {
           isDuplicate: true,
         };
       }
+      // Transaction exists but proof not found - refuse to create duplicate
+      throw new Error(
+        `Idempotency violation: transaction with key "${idempotencyKey}" already exists (txId: ${existingTx.txId}), but proof could not be found. Refusing to create duplicate.`,
+      );
     }
 
     // Validate transaction

@@ -48,6 +48,8 @@ export class InMemoryOutboxStore implements OutboxPort {
     assetType: AssetType,
     limit: number,
   ): Promise<readonly OutboxEntry[]> {
+    if (limit <= 0) return [];
+
     const entryIds = this.entriesByAsset.get(assetType) ?? [];
     const pending: OutboxEntry[] = [];
 
@@ -137,6 +139,8 @@ export class InMemoryOutboxStore implements OutboxPort {
     assetType: AssetType,
     limit: number,
   ): Promise<readonly OutboxEntry[]> {
+    if (limit <= 0) return [];
+
     const entryIds = this.entriesByAsset.get(assetType) ?? [];
     const retryable: OutboxEntry[] = [];
 

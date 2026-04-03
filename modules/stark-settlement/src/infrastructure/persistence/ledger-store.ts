@@ -141,6 +141,8 @@ export class InMemoryLedgerStore implements LedgerPersistencePort {
   async getPendingTransactions(
     limit: number,
   ): Promise<readonly LedgerTransaction[]> {
+    if (limit <= 0) return [];
+
     const pending: LedgerTransaction[] = [];
     for (const tx of this.transactions.values()) {
       if (tx.status === "pending") {
@@ -186,6 +188,8 @@ export class InMemoryLedgerStore implements LedgerPersistencePort {
   async getUnaggregatedBaseProofs(
     limit: number,
   ): Promise<readonly BaseProof[]> {
+    if (limit <= 0) return [];
+
     const proofs: BaseProof[] = [];
     for (const proof of this.baseProofs.values()) {
       if (!this.aggregatedBaseProofIds.has(proof.proofId)) {
@@ -225,6 +229,8 @@ export class InMemoryLedgerStore implements LedgerPersistencePort {
   async getUnaggregatedTier1Proofs(
     limit: number,
   ): Promise<readonly Tier1Proof[]> {
+    if (limit <= 0) return [];
+
     const proofs: Tier1Proof[] = [];
     for (const proof of this.tier1Proofs.values()) {
       if (!this.aggregatedTier1ProofIds.has(proof.proofId)) {

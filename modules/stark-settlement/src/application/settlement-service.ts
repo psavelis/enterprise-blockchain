@@ -55,8 +55,6 @@ export interface SettleAllRailsResult {
  * Settlement service configuration.
  */
 export interface SettlementServiceConfig {
-  /** Maximum retries per settlement attempt (default: 3) */
-  maxRetries?: number;
   /** Delay between retries in ms (default: 1000) */
   retryDelayMs?: number;
 }
@@ -75,7 +73,6 @@ export class SettlementService {
     config?: SettlementServiceConfig,
   ) {
     this.config = {
-      maxRetries: config?.maxRetries ?? 3,
       retryDelayMs: config?.retryDelayMs ?? 1000,
     };
   }
