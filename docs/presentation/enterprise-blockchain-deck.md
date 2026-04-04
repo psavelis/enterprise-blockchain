@@ -504,15 +504,15 @@ const result = await withSpan("submitTransaction", async (span) => {
 
 # Example Commands
 
-| Category     | Commands                                                                                                   |
-| ------------ | ---------------------------------------------------------------------------------------------------------- |
-| Case studies | `example:food-recall`, `example:order-sharing`, `example:staffing-clearance`, `example:aid-reconciliation` |
-| Protocol     | `example:fabric-projection`, `example:besu-projection`, `example:corda-projection`                         |
-| Integration  | `example:fabric-gateway`, `example:besu-ethers`, `example:corda-rest`                                      |
-| MPC          | `example:mpc-auction`, `example:mpc-risk-analysis`, `example:quantum-key-sharing`                          |
-| HSM          | `example:hsm-tx-signing`, `example:hsm-key-ceremony`, `example:hsm-envelope-encryption`                    |
-| PQC          | `example:kyber-kem`, `example:hybrid-kem`, `example:quantum-safe-payment`                                  |
-| STARK        | `example:stark-settlement`                                                                                 |
+| Category     | Commands                                                                                                              |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Case studies | `example:food-recall`, `example:order-sharing`, `example:staffing-clearance`, `example:aid-reconciliation`            |
+| Protocol     | `example:fabric-projection`, `example:besu-projection`, `example:corda-projection`                                    |
+| Integration  | `example:fabric-gateway`, `example:besu-ethers`, `example:corda-rest`                                                 |
+| MPC          | `example:mpc-auction`, `example:mpc-risk-analysis`, `example:quantum-key-sharing`                                     |
+| HSM          | `example:hsm-tx-signing`, `example:hsm-key-ceremony`, `example:hsm-envelope-encryption`                               |
+| PQC          | `example:kyber-kem`, `example:hybrid-kem`, `example:quantum-safe-payment`, `example:quantum-safe-merkle-root-payment` |
+| STARK        | `example:stark-settlement`                                                                                            |
 
 ---
 
@@ -555,7 +555,7 @@ npm test -- tests/hsm.property.test.ts
 - **4** case studies (traceability, privacy, credentials, settlement)
 - **3** protocol adapters (Fabric, Besu, Corda)
 - **3** integration clients (Gateway, ethers, REST)
-- **10** cryptographic examples (3 MPC + 3 HSM + 3 PQC + 1 STARK)
+- **11** cryptographic examples (3 MPC + 3 HSM + 4 PQC + 1 STARK)
 - **OpenTelemetry** observability with Jaeger and Prometheus
 - **Property tests** for cryptographic correctness
 - **E2E tests** with live Besu nodes

@@ -39,11 +39,12 @@ These examples show the transaction shapes a team might hand to a real platform 
 
 NIST FIPS 203/204 compliant implementations demonstrating quantum-resistant patterns.
 
-| Example                  | Technique                                                                      |
-| ------------------------ | ------------------------------------------------------------------------------ |
-| `kyber-kem-key-exchange` | ML-KEM-768 key encapsulation for quantum-resistant key establishment           |
-| `hybrid-kem-settlement`  | X25519 + ML-KEM-768 hybrid KEM for defense-in-depth key exchange               |
-| `quantum-safe-payment`   | End-to-end quantum-safe payment flow using hybrid KEM and ML-DSA-65 signatures |
+| Example                            | Technique                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------ |
+| `kyber-kem-key-exchange`           | ML-KEM-768 key encapsulation for quantum-resistant key establishment           |
+| `hybrid-kem-settlement`            | X25519 + ML-KEM-768 hybrid KEM for defense-in-depth key exchange               |
+| `quantum-safe-payment`             | End-to-end quantum-safe payment flow using hybrid KEM and ML-DSA-65 signatures |
+| `quantum-safe-merkle-root-payment` | BIP-360-inspired Pay-to-Merkle-Root with post-quantum commitments              |
 
 ## STARK Settlement
 
@@ -95,6 +96,7 @@ npm run example:hsm-envelope-encryption
 npm run example:kyber-kem
 npm run example:hybrid-kem
 npm run example:quantum-safe-payment
+npm run example:quantum-safe-merkle-root-payment
 
 # STARK settlement
 npm run example:stark-settlement

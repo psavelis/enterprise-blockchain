@@ -114,6 +114,7 @@ npm run example:hsm-envelope-encryption
 npm run example:kyber-kem
 npm run example:hybrid-kem
 npm run example:quantum-safe-payment
+npm run example:quantum-safe-merkle-root-payment
 npm run example:stark-settlement
 ```
 
