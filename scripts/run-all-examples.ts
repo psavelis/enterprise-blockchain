@@ -17,14 +17,15 @@ const examples = [
   ["kyber kem key exchange", "examples/kyber-kem-key-exchange/index.ts"],
   ["hybrid kem settlement", "examples/hybrid-kem-settlement/index.ts"],
   ["quantum safe payment", "examples/quantum-safe-payment/index.ts"],
+  [
+    "stark cross-border settlement",
+    "examples/stark-cross-border-settlement/index.ts",
+  ],
 ] as const;
 
 for (const [label, path] of examples) {
   console.log(`\n=== ${label.toUpperCase()} ===`);
-  const result = spawnSync("npx", ["tsx", path], {
-    stdio: "inherit",
-    env: { ...process.env, NODE_ENV: process.env.NODE_ENV ?? "development" },
-  });
+  const result = spawnSync("npx", ["tsx", path], { stdio: "inherit" });
 
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
