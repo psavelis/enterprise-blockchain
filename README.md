@@ -61,6 +61,19 @@ Three examples demonstrate NIST-standardized post-quantum algorithms (FIPS 203/2
 2. `hybrid-kem-settlement`: X25519 + ML-KEM-768 hybrid KEM for defense-in-depth key exchange.
 3. `quantum-safe-payment`: End-to-end quantum-safe payment flow using hybrid KEM and ML-DSA-65 signatures.
 
+## STARK Settlement Layer
+
+The `stark-cross-border-settlement` example demonstrates a complete settlement layer built on recursive STARK proofs.
+
+**Key features:**
+
+- **3-tier proof aggregation**: Base proofs (per-transaction) → Tier-1 proofs (batch) → Tier-2 block proofs
+- **ML-DSA-65 signatures**: All transactions signed with NIST FIPS 204 post-quantum signatures
+- **Multi-rail settlement**: Parallel settlement across Solana (VersionedTransaction), Bitcoin (PSBT), and fiat (ISO 20022 pain.001)
+- **Hexagonal architecture**: Clean separation between domain logic, application services, and infrastructure adapters
+
+The module uses `starknet.js` for Pedersen hashing and proof utilities, with a mock prover for demonstrations.
+
 ## Quick Start
 
 ```bash
@@ -101,6 +114,7 @@ npm run example:hsm-envelope-encryption
 npm run example:kyber-kem
 npm run example:hybrid-kem
 npm run example:quantum-safe-payment
+npm run example:stark-settlement
 ```
 
 ## Infrastructure

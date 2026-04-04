@@ -45,6 +45,12 @@ NIST FIPS 203/204 compliant implementations demonstrating quantum-resistant patt
 | `hybrid-kem-settlement`  | X25519 + ML-KEM-768 hybrid KEM for defense-in-depth key exchange               |
 | `quantum-safe-payment`   | End-to-end quantum-safe payment flow using hybrid KEM and ML-DSA-65 signatures |
 
+## STARK Settlement
+
+| Example                         | Technique                                                                                       |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `stark-cross-border-settlement` | Recursive STARK proofs with ML-DSA-65 signatures, multi-rail settlement (Solana, Bitcoin, fiat) |
+
 ## Integration Sketches
 
 | Example                             | SDK                                             |
@@ -89,6 +95,9 @@ npm run example:hsm-envelope-encryption
 npm run example:kyber-kem
 npm run example:hybrid-kem
 npm run example:quantum-safe-payment
+
+# STARK settlement
+npm run example:stark-settlement
 
 # Integration sketches
 npm run example:fabric-gateway
