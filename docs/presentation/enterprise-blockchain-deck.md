@@ -68,7 +68,7 @@ TypeScript repository demonstrating enterprise blockchain patterns.
 | Folder       | Contents                                                  |
 | ------------ | --------------------------------------------------------- |
 | `modules/`   | Domain logic, protocol adapters, integration clients      |
-| `examples/`  | 20 runnable scenarios                                     |
+| `examples/`  | 21 runnable scenarios                                     |
 | `contracts/` | Solidity (Foundry), Fabric chaincode (TS), Corda (Kotlin) |
 | `docs/`      | Architecture guides, ADRs, this deck                      |
 | `skills/`    | AI skill files for assisted development                   |
@@ -294,6 +294,24 @@ Example: `quantum-safe-payment`
 
 <!-- _class: compact -->
 
+# STARK Settlement Layer
+
+**Recursive Proof Aggregation**
+
+| Tier   | Aggregation | Purpose                    |
+| ------ | ----------- | -------------------------- |
+| Base   | 1:1         | Per-transaction proof      |
+| Tier-1 | N:1         | Batch aggregation          |
+| Tier-2 | M:1         | Block proof for settlement |
+
+Multi-rail settlement: Solana, Bitcoin, fiat (ISO 20022)
+
+Example: `stark-cross-border-settlement`
+
+---
+
+<!-- _class: compact -->
+
 ![bg right:50% fit](./diagrams/11-consensus-comparison.png)
 
 # Consensus Comparison
@@ -486,14 +504,15 @@ const result = await withSpan("submitTransaction", async (span) => {
 
 # Example Commands
 
-| Category     | Commands                                                                                                   |
-| ------------ | ---------------------------------------------------------------------------------------------------------- |
-| Case studies | `example:food-recall`, `example:order-sharing`, `example:staffing-clearance`, `example:aid-reconciliation` |
-| Protocol     | `example:fabric-projection`, `example:besu-projection`, `example:corda-projection`                         |
-| Integration  | `example:fabric-gateway`, `example:besu-ethers`, `example:corda-rest`                                      |
-| MPC          | `example:mpc-auction`, `example:mpc-risk-analysis`, `example:quantum-key-sharing`                          |
-| HSM          | `example:hsm-tx-signing`, `example:hsm-key-ceremony`, `example:hsm-envelope-encryption`                    |
-| PQC          | `example:kyber-kem`, `example:hybrid-kem`, `example:quantum-safe-payment`                                  |
+| Category     | Commands                                                                                                              |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Case studies | `example:food-recall`, `example:order-sharing`, `example:staffing-clearance`, `example:aid-reconciliation`            |
+| Protocol     | `example:fabric-projection`, `example:besu-projection`, `example:corda-projection`                                    |
+| Integration  | `example:fabric-gateway`, `example:besu-ethers`, `example:corda-rest`                                                 |
+| MPC          | `example:mpc-auction`, `example:mpc-risk-analysis`, `example:quantum-key-sharing`                                     |
+| HSM          | `example:hsm-tx-signing`, `example:hsm-key-ceremony`, `example:hsm-envelope-encryption`                               |
+| PQC          | `example:kyber-kem`, `example:hybrid-kem`, `example:quantum-safe-payment`, `example:quantum-safe-merkle-root-payment` |
+| STARK        | `example:stark-settlement`                                                                                            |
 
 ---
 
@@ -536,9 +555,9 @@ npm test -- tests/hsm.property.test.ts
 - **4** case studies (traceability, privacy, credentials, settlement)
 - **3** protocol adapters (Fabric, Besu, Corda)
 - **3** integration clients (Gateway, ethers, REST)
-- **9** cryptographic examples (3 MPC + 3 HSM + 3 PQC)
+- **11** cryptographic examples (3 MPC + 3 HSM + 4 PQC + 1 STARK)
 - **OpenTelemetry** observability with Jaeger and Prometheus
 - **Property tests** for cryptographic correctness
-- **E2E tests** with live Besu nodes (15 tests)
+- **E2E tests** with live Besu nodes
 
 All pass `npm run verify` and run offline. E2E tests run with `npm run test:e2e`.
