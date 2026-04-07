@@ -25,10 +25,14 @@
  *
  * Run: npm run example:stark-settlement
  *      npx tsx examples/stark-cross-border-settlement/index.ts
+ *
+ * Options:
+ *   --real-prover  Use Stone prover for real STARK proofs (requires Docker)
  */
 
 import {
   createDefaultContext,
+  createProductionContext,
   LedgerService,
   AggregatorService,
   SettlementService,
@@ -44,10 +48,13 @@ import {
 // Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Use small batch sizes for demo (production: 128/64)
-const TIER1_BATCH_SIZE = 4; // Transactions per Tier-1 proof
-const TIER2_BATCH_SIZE = 2; // Tier-1 proofs per block
-const TOTAL_TXS_PER_BLOCK = TIER1_BATCH_SIZE * TIER2_BATCH_SIZE; // 8 for demo
+// Parse command-line arguments
+const USE_REAL_PROVER = process.argv.includes("--real-prover");
+
+// Batch sizes: production (128/64) for real prover, demo (4/2) otherwise
+const TIER1_BATCH_SIZE = USE_REAL_PROVER ? 128 : 4;
+const TIER2_BATCH_SIZE = USE_REAL_PROVER ? 64 : 2;
+const TOTAL_TXS_PER_BLOCK = TIER1_BATCH_SIZE * TIER2_BATCH_SIZE;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
@@ -67,11 +74,33 @@ async function main(): Promise<void> {
     "╚══════════════════════════════════════════════════════════════╝\n",
   );
 
-  // Initialize context with demo batch sizes
-  const ctx = createDefaultContext({
-    tier1BatchSize: TIER1_BATCH_SIZE,
-    tier2BatchSize: TIER2_BATCH_SIZE,
-  });
+  // Initialize context based on prover mode
+  const ctx = USE_REAL_PROVER
+    ? createProductionContext({
+        proverEndpoint: process.env.STONE_PROVER_ENDPOINT ?? "localhost:10000",
+        cairoArtifactsPath:
+          process.env.CAIRO_ARTIFACTS_PATH ?? "./cairo/artifacts",
+      })
+    : createDefaultContext({
+        tier1BatchSize: TIER1_BATCH_SIZE,
+        tier2BatchSize: TIER2_BATCH_SIZE,
+      });
+
+  if (USE_REAL_PROVER) {
+    console.log("Mode: PRODUCTION (Stone Prover)");
+    console.log(
+      `  Prover endpoint: ${process.env.STONE_PROVER_ENDPOINT ?? "localhost:10000"}`,
+    );
+    console.log(
+      `  Batch sizes: ${TIER1_BATCH_SIZE}/${TIER2_BATCH_SIZE} (${TOTAL_TXS_PER_BLOCK} txs/block)\n`,
+    );
+  } else {
+    console.log("Mode: DEMO (Mock Prover)");
+    console.log(
+      `  Batch sizes: ${TIER1_BATCH_SIZE}/${TIER2_BATCH_SIZE} (${TOTAL_TXS_PER_BLOCK} txs/block)`,
+    );
+    console.log("  Use --real-prover for production STARK proofs\n");
+  }
 
   // Initialize services
   const ledger = new LedgerService(ctx);
@@ -366,6 +395,9 @@ async function main(): Promise<void> {
   console.log(
     "  - Exactly-once: Idempotency keys propagated through all tiers",
   );
+  if (USE_REAL_PROVER) {
+    console.log("  - Stone prover: Real cryptographic proofs (not mocked)");
+  }
   console.log();
 
   // Output final JSON summary
@@ -395,6 +427,7 @@ async function main(): Promise<void> {
           })),
         },
         config: {
+          mode: USE_REAL_PROVER ? "production" : "demo",
           tier1BatchSize: TIER1_BATCH_SIZE,
           tier2BatchSize: TIER2_BATCH_SIZE,
           totalTxsPerBlock: TOTAL_TXS_PER_BLOCK,
