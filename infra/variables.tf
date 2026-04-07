@@ -53,3 +53,53 @@ variable "network_name" {
   type        = string
   default     = "enterprise-blockchain-net"
 }
+
+# ── Stone STARK Prover Variables ─────────────────────────────────────────
+
+variable "stone_prover_image" {
+  description = "Docker image for the Stone STARK prover"
+  type        = string
+  default     = "enterprise-blockchain/stone-prover:latest"
+}
+
+variable "stone_prover_grpc_port" {
+  description = "Host port for Stone prover gRPC API"
+  type        = number
+  default     = 10000
+}
+
+variable "stone_prover_metrics_port" {
+  description = "Host port for Stone prover Prometheus metrics"
+  type        = number
+  default     = 9100
+}
+
+variable "cairo_artifacts_path" {
+  description = "Host path to compiled Cairo circuit artifacts"
+  type        = string
+  default     = "./cairo/artifacts"
+}
+
+variable "proofs_output_path" {
+  description = "Host path for proof output files"
+  type        = string
+  default     = "./proofs"
+}
+
+variable "stone_prover_memory_limit" {
+  description = "Memory limit for Stone prover in MB"
+  type        = number
+  default     = 8192
+}
+
+variable "stone_prover_max_jobs" {
+  description = "Maximum concurrent proof generation jobs"
+  type        = number
+  default     = 4
+}
+
+variable "stone_prover_log_level" {
+  description = "Log level for Stone prover"
+  type        = string
+  default     = "info"
+}

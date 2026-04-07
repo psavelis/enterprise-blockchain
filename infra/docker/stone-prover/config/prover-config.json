@@ -1,0 +1,26 @@
+{
+  "prover": {
+    "log_level": "info",
+    "max_concurrent_jobs": 4,
+    "proof_timeout_seconds": 300,
+    "memory_limit_gb": 8
+  },
+  "cairo": {
+    "artifacts_path": "/app/cairo",
+    "supported_versions": ["2.6", "2.7", "2.8", "2.9"]
+  },
+  "grpc": {
+    "port": 10000,
+    "max_message_size_mb": 256,
+    "keepalive_time_seconds": 60,
+    "keepalive_timeout_seconds": 20
+  },
+  "metrics": {
+    "enabled": true,
+    "port": 9100
+  },
+  "security": {
+    "tls_enabled": false,
+    "rate_limit_per_minute": 100
+  }
+}

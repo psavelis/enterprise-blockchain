@@ -363,3 +363,46 @@ services:
         reservations:
           cpus: "0.1"
           memory: 64M
+
+  # ── Stone STARK Prover ─────────────────────────────────────────────────
+  # Production-grade STARK proof generation using StarkWare's Stone prover.
+  # Exposes gRPC API on port 10000 for proof generation and verification.
+  #
+  # The prover executes Cairo programs and generates cryptographically
+  # valid STARK proofs for the 3-tier recursive aggregation pipeline.
+  #
+  # Ref: https://github.com/starkware-libs/stone-prover
+  # Ref: https://github.com/Moonsong-Labs/madara-prover-api
+  stone-prover:
+    build:
+      context: ./infra/docker/stone-prover
+      dockerfile: Dockerfile
+    image: enterprise-blockchain/stone-prover:latest
+    container_name: stone-prover
+    networks:
+      - enterprise-blockchain
+    ports:
+      - "127.0.0.1:10000:10000" # gRPC API
+      - "127.0.0.1:9100:9100" # Prometheus metrics
+    volumes:
+      - ./cairo/artifacts:/app/cairo:ro
+      - ./proofs:/app/proofs
+    environment:
+      - RUST_LOG=info
+      - PROVER_MAX_JOBS=4
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=:10000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 8G
+        reservations:
+          cpus: "1.0"
+          memory: 2G

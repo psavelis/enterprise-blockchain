@@ -27,3 +27,18 @@ output "corda_container_names" {
   description = "Container names for all Corda nodes."
   value       = module.corda_nodes.container_names
 }
+
+output "stone_prover_grpc_endpoint" {
+  description = "gRPC endpoint for the Stone STARK prover."
+  value       = module.stone_prover.grpc_endpoint
+}
+
+output "stone_prover_metrics_endpoint" {
+  description = "Prometheus metrics endpoint for Stone prover."
+  value       = module.stone_prover.metrics_endpoint
+}
+
+output "stone_prover_container_name" {
+  description = "Container name for the Stone prover."
+  value       = module.stone_prover.container_name
+}
