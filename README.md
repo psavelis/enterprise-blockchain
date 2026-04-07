@@ -63,16 +63,34 @@ Three examples demonstrate NIST-standardized post-quantum algorithms (FIPS 203/2
 
 ## STARK Settlement Layer
 
-The `stark-cross-border-settlement` example demonstrates a complete settlement layer built on recursive STARK proofs.
+The `stark-cross-border-settlement` example demonstrates a complete settlement layer built on recursive STARK proofs using StarkWare's Stone prover.
 
 **Key features:**
 
-- **3-tier proof aggregation**: Base proofs (per-transaction) → Tier-1 proofs (batch) → Tier-2 block proofs
+- **3-tier proof aggregation**: Base proofs (per-transaction) → Tier-1 proofs (128 batch) → Tier-2 block proofs (8,192 transactions)
+- **Stone prover integration**: Production-grade STARK proof generation via Docker gRPC service
+- **Cairo circuits**: State transition, Tier-1 aggregator, and Tier-2 block circuits in Cairo
 - **ML-DSA-65 signatures**: All transactions signed with NIST FIPS 204 post-quantum signatures
 - **Multi-rail settlement**: Parallel settlement across Solana (VersionedTransaction), Bitcoin (PSBT), and fiat (ISO 20022 pain.001)
 - **Hexagonal architecture**: Clean separation between domain logic, application services, and infrastructure adapters
 
-The module uses `starknet.js` for Pedersen hashing and proof utilities, with a mock prover for demonstrations.
+**Proof adapters:**
+
+| Adapter                  | Use Case                          | Docker Required |
+| ------------------------ | --------------------------------- | --------------- |
+| StoneProofAdapter        | Production STARK proofs           | Yes (8GB+ RAM)  |
+| StarknetProofAdapter     | Pedersen hashing with starknet.js | No              |
+| FlexibleMockStarkAdapter | Fast demos and unit tests         | No              |
+
+**Running with Stone prover:**
+
+```bash
+# Start the Stone prover service
+docker compose up stone-prover -d
+
+# Run example with real STARK proofs
+npm run example:stark-settlement -- --real-prover
+```
 
 ## Quick Start
 

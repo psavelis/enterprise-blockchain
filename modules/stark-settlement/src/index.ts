@@ -167,6 +167,13 @@ export {
 } from "./infrastructure/adapters/starknet-proof-adapter";
 export type { StarknetProofAdapterConfig } from "./infrastructure/adapters/starknet-proof-adapter";
 
+// Stone Prover (Production)
+export {
+  StoneProofAdapter,
+  createStoneProofAdapter,
+} from "./infrastructure/adapters/stone-proof-adapter";
+export type { StoneProofAdapterConfig } from "./infrastructure/adapters/stone-proof-adapter";
+
 // External Chains
 export {
   SolanaDevnetAdapter,
@@ -230,6 +237,7 @@ import { InMemoryLedgerStore } from "./infrastructure/persistence/ledger-store";
 import { InMemoryOutboxStore } from "./infrastructure/persistence/outbox-store";
 import { InMemoryOffsetStore } from "./infrastructure/persistence/offset-store";
 import { FlexibleMockStarkAdapter } from "./infrastructure/adapters/mock-stark-adapter";
+import { StoneProofAdapter } from "./infrastructure/adapters/stone-proof-adapter";
 import { SystemClock } from "./infrastructure/adapters/clock-adapter";
 import { InMemoryEventEmitter } from "./infrastructure/adapters/event-emitter-adapter";
 import {
@@ -344,15 +352,55 @@ export function createDefaultContext(
 }
 
 /**
+ * Options specific to production context.
+ */
+export interface ProductionContextOptions extends Omit<
+  CreateContextOptions,
+  "tier1BatchSize" | "tier2BatchSize"
+> {
+  /** Stone prover gRPC endpoint (default: localhost:10000) */
+  proverEndpoint?: string;
+  /** Path to compiled Cairo artifacts (default: ./cairo/artifacts) */
+  cairoArtifactsPath?: string;
+  /** Use mock adapter instead of Stone prover (default: false) */
+  useMockProver?: boolean;
+}
+
+/**
  * Create a context for production with full batch sizes.
+ *
+ * By default, uses the StoneProofAdapter for real STARK proof generation.
+ * Set useMockProver: true to use the mock adapter for testing without Docker.
  *
  * Requires 128 * 64 = 8,192 transactions per block proof.
  */
 export function createProductionContext(
-  options: Omit<CreateContextOptions, "tier1BatchSize" | "tier2BatchSize"> = {},
+  options: ProductionContextOptions = {},
 ): SettlementContext {
+  const clock = options.clock ?? new SystemClock();
+
+  // Use Stone prover by default, mock if explicitly requested
+  let starkProver = options.starkProver;
+  if (!starkProver) {
+    if (options.useMockProver) {
+      starkProver = new FlexibleMockStarkAdapter(clock, {
+        tier1BatchSize: 128,
+        tier2BatchSize: 64,
+      });
+    } else {
+      starkProver = new StoneProofAdapter(clock, {
+        proverEndpoint: options.proverEndpoint ?? "localhost:10000",
+        cairoArtifactsPath: options.cairoArtifactsPath ?? "./cairo/artifacts",
+        tier1BatchSize: 128,
+        tier2BatchSize: 64,
+      });
+    }
+  }
+
   return createDefaultContext({
     ...options,
+    clock,
+    starkProver,
     tier1BatchSize: 128,
     tier2BatchSize: 64,
   });
