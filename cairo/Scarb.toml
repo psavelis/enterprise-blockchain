@@ -1,0 +1,14 @@
+[package]
+name = "stark_settlement"
+version = "1.0.0"
+edition = "2024_07"
+description = "Cairo circuits for STARK proof generation in the enterprise-blockchain settlement layer"
+readme = "README.md"
+license = "MIT"
+
+[dependencies]
+starknet = ">=2.9.0"
+
+[[target.starknet-contract]]
+sierra = true
+casm = true
