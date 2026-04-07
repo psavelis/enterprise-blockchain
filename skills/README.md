@@ -15,6 +15,7 @@ Structured knowledge files for AI coding agents. Each skill provides domain cont
 | Create quantum-safe outputs (BIP-360 style)  | [p2mr-quantum-safe](p2mr-quantum-safe.md)               |
 | Project order data per audience              | [selective-disclosure](selective-disclosure.md)         |
 | Track supply chain provenance                | [traceability-recall](traceability-recall.md)           |
+| Generate STARK proofs for settlement         | [stark-settlement](stark-settlement.md)                 |
 | Set up local dev infrastructure              | [infrastructure-reference](infrastructure-reference.md) |
 | Find example for use case                    | [examples-catalog](examples-catalog.md)                 |
 
@@ -76,6 +77,7 @@ Infrastructure    → SDK clients, database adapters, protocol adapters
 | [p2mr-quantum-safe](p2mr-quantum-safe.md)             | BIP-360 Merkle root outputs, ML-DSA-65    | `modules/p2mr/*`             |
 | [selective-disclosure](selective-disclosure.md)       | Audience projection, audit proofs         | `modules/privacy/*`          |
 | [traceability-recall](traceability-recall.md)         | Lot anchoring, recall assessment          | `modules/traceability/*`     |
+| [stark-settlement](stark-settlement.md)               | STARK proofs, recursive aggregation       | `modules/stark-settlement/*` |
 | [examples-catalog](examples-catalog.md)               | 20 runnable examples                      | `examples/*`                 |
 
 ## Skill Structure
