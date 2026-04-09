@@ -92,6 +92,65 @@ docker compose up stone-prover -d
 npm run example:stark-settlement -- --real-prover
 ```
 
+## Live Demo
+
+Interactive web application demonstrating STARK-based settlement with real-time proof generation, multi-rail settlement, and post-quantum cryptography.
+
+<table>
+<tr>
+<td width="33%">
+
+### Scenario Selection
+
+Choose from enterprise scenarios including food recall settlement, aid voucher reconciliation, cross-border FX, and MPC sealed-bid auctions. Select settlement rails (Solana, Bitcoin, or Fiat) and toggle between mock and real Stone prover.
+
+</td>
+<td width="33%">
+
+### Live Proof Generation
+
+Watch real-time 3-tier STARK proof aggregation with step-by-step progress visualization. Live logs stream proof commitments, state roots, and settlement rail confirmations as they happen.
+
+</td>
+<td width="33%">
+
+### Settlement Results
+
+View final block proof with verification status, multi-rail settlement confirmations, and security verification badges. Copy proof IDs and state roots for external verification.
+
+</td>
+</tr>
+<tr>
+<td>
+
+![Scenario Selection](docs/img/enterprise-blockchain-demo1.png)
+
+</td>
+<td>
+
+![Live Proof Generation](docs/img/enterprise-blockchain-demo2.png)
+
+</td>
+<td>
+
+![Settlement Results](docs/img/enterprise-blockchain-demo3.png)
+
+</td>
+</tr>
+</table>
+
+**Run the demo:**
+
+```bash
+cd demo
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to explore the interactive settlement flow.
+
+For production-grade STARK proofs with the Stone prover, see [demo/README.md](demo/README.md) for Docker setup and full infrastructure mode.
+
 ## Quick Start
 
 ```bash
