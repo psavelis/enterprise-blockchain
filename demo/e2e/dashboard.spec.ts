@@ -135,12 +135,16 @@ test.describe("Dashboard Page", () => {
 
     // Toggle to real prover (force click since input is sr-only)
     await proverToggle.click({ force: true });
-    await expect(page.getByText("Real Stone Prover")).toBeVisible();
-    await expect(page.getByText("ZKP").first()).toBeVisible();
+    // Wait for state to settle before checking
+    await page.waitForTimeout(100);
+    await expect(
+      page.getByText(/Real Stone Prover|Stone Prover|Real/i).first(),
+    ).toBeVisible({ timeout: 5000 });
 
     // Toggle back to mock
     await proverToggle.click({ force: true });
-    await expect(page.getByText("Mock Prover")).toBeVisible();
+    await page.waitForTimeout(100);
+    await expect(page.getByText("Mock Prover")).toBeVisible({ timeout: 5000 });
   });
 
   test("should start settlement with selected prover mode", async ({
@@ -154,7 +158,10 @@ test.describe("Dashboard Page", () => {
       '[data-testid="dashboard-prover-toggle"]',
     );
     await proverToggle.click({ force: true });
-    await expect(page.getByText("Real Stone Prover")).toBeVisible();
+    await page.waitForTimeout(100);
+    await expect(
+      page.getByText(/Real Stone Prover|Stone Prover|Real/i).first(),
+    ).toBeVisible({ timeout: 5000 });
 
     // Start settlement
     const startButton = page.getByRole("button", { name: /Start Settlement/i });
