@@ -25,10 +25,10 @@ export default function DashboardPage() {
     if (!scenario) return;
     setLoading(true);
     try {
-      const sessionToken = await startSettlement();
-      if (sessionToken) {
-        router.push("/progress");
-      }
+      await startSettlement();
+      // startSettlement sets state.status to 'error' on failure
+      // Navigation happens regardless - progress page handles errors
+      router.push("/progress");
     } finally {
       setLoading(false);
     }
