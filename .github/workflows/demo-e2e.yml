@@ -1,0 +1,304 @@
+name: Demo E2E Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "demo/**"
+      - ".github/workflows/demo-e2e.yml"
+  pull_request:
+    paths:
+      - "demo/**"
+      - ".github/workflows/demo-e2e.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: demo-e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: demo
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.14.0
+          cache: npm
+          cache-dependency-path: demo/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:run
+
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: demo/coverage/
+          retention-days: 7
+
+  lint-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.14.0
+          cache: npm
+          cache-dependency-path: demo/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build (includes TypeScript check)
+        run: npm run build
+
+  e2e-tests:
+    name: E2E Tests (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    needs: [unit-tests, lint-typecheck]
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - chromium
+          - firefox
+          - webkit
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.14.0
+          cache: npm
+          cache-dependency-path: demo/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps ${{ matrix.project }}
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run E2E tests
+        run: npx playwright test --project=${{ matrix.project }}
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: demo/playwright-report/
+          retention-days: 7
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.project }}
+          path: demo/e2e-results.json
+          retention-days: 7
+
+  e2e-mobile:
+    name: E2E Tests (Mobile)
+    runs-on: ubuntu-latest
+    needs: [unit-tests, lint-typecheck]
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - mobile-chrome
+          - mobile-safari
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.14.0
+          cache: npm
+          cache-dependency-path: demo/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: |
+          if [ "${{ matrix.project }}" = "mobile-chrome" ]; then
+            npx playwright install --with-deps chromium
+          else
+            npx playwright install --with-deps webkit
+          fi
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run E2E tests
+        run: npx playwright test --project=${{ matrix.project }}
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: demo/playwright-report/
+          retention-days: 7
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, lint-typecheck, e2e-tests, e2e-mobile]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.unit-tests.result }}" != "success" ]; then
+            echo "Unit tests failed"
+            exit 1
+          fi
+          if [ "${{ needs.lint-typecheck.result }}" != "success" ]; then
+            echo "Lint/Typecheck failed"
+            exit 1
+          fi
+          if [ "${{ needs.e2e-tests.result }}" != "success" ]; then
+            echo "E2E tests failed"
+            exit 1
+          fi
+          if [ "${{ needs.e2e-mobile.result }}" != "success" ]; then
+            echo "Mobile E2E tests failed"
+            exit 1
+          fi
+          echo "All tests passed!"
+
+  pr-comment:
+    name: PR Comment
+    runs-on: ubuntu-latest
+    needs: [unit-tests, lint-typecheck, e2e-tests, e2e-mobile]
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- demo-e2e-test-report -->';
+
+            const unitResult = '${{ needs.unit-tests.result }}';
+            const lintResult = '${{ needs.lint-typecheck.result }}';
+            const e2eResult = '${{ needs.e2e-tests.result }}';
+            const mobileResult = '${{ needs.e2e-mobile.result }}';
+
+            const allPassed = unitResult === 'success' &&
+                              lintResult === 'success' &&
+                              e2eResult === 'success' &&
+                              mobileResult === 'success';
+
+            const emoji = allPassed ? '✅' : '❌';
+            const status = allPassed ? 'PASS' : 'FAIL';
+
+            const statusEmoji = (result) => result === 'success' ? '✅' : '❌';
+
+            const body = [
+              marker,
+              '## Demo E2E Test Report',
+              '',
+              `${emoji} Overall: **${status}**`,
+              '',
+              '| Suite | Status |',
+              '|-------|--------|',
+              `| Unit Tests | ${statusEmoji(unitResult)} ${unitResult} |`,
+              `| Lint & Typecheck | ${statusEmoji(lintResult)} ${lintResult} |`,
+              `| E2E (Desktop) | ${statusEmoji(e2eResult)} ${e2eResult} |`,
+              `| E2E (Mobile) | ${statusEmoji(mobileResult)} ${mobileResult} |`,
+              '',
+              '<details>',
+              '<summary>Test Coverage</summary>',
+              '',
+              '**Desktop Browsers:**',
+              '- Chromium',
+              '- Firefox',
+              '- WebKit (Safari)',
+              '',
+              '**Mobile Viewports:**',
+              '- Mobile Chrome (Pixel 5)',
+              '- Mobile Safari (iPhone 12)',
+              '',
+              '**Test Suites:**',
+              '- Dashboard page tests',
+              '- Progress page tests (SSE streaming)',
+              '- Results page tests',
+              '- API route tests',
+              '- Full settlement flow E2E',
+              '- Accessibility tests',
+              '- Performance tests',
+              '</details>',
+            ].join('\n');
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+            });
+
+            const existing = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }

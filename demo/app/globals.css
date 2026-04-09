@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+/* Cyber-luxury dark theme */
+:root {
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #111111;
+  --card-foreground: #fafafa;
+  --primary: #14b8a6;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1f1f1f;
+  --secondary-foreground: #fafafa;
+  --muted: #171717;
+  --muted-foreground: #a3a3a3;
+  --accent: #0f766e;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+  --border: #262626;
+  --input: #262626;
+  --ring: #14b8a6;
+  --radius: 0.5rem;
+  --grid-color: rgba(20, 184, 166, 0.02);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  /* Subtle grid pattern */
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Utility classes */
+.glow-border {
+  box-shadow:
+    0 0 0 1px rgba(20, 184, 166, 0.3),
+    0 0 20px rgba(20, 184, 166, 0.1);
+}
+
+.glow-border-active {
+  box-shadow:
+    0 0 0 2px rgba(20, 184, 166, 0.5),
+    0 0 30px rgba(20, 184, 166, 0.2);
+}
+
+.terminal-bg {
+  background: linear-gradient(180deg, #0d0d0d 0%, #111111 100%);
+}
+
+.glass-panel {
+  background: rgba(17, 17, 17, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(38, 38, 38, 0.5);
+}
+
+/* Terminal text animation */
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.terminal-cursor::after {
+  content: "_";
+  animation: blink 1s step-end infinite;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}

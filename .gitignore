@@ -28,6 +28,9 @@ Thumbs.db
 # CI artifacts
 ci-results/
 
+# demo artifacts
+demo/e2e-results/proofs/
+
 # Environment files (secrets)
 .env
 *.env.local

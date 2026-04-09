@@ -42,11 +42,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Bazel for Stone prover build
-RUN curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor > /usr/share/keyrings/bazel-archive-keyring.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list \
-    && apt-get update && apt-get install -y bazel \
-    && rm -rf /var/lib/apt/lists/*
+# Install Bazelisk (handles Bazel version management automatically)
+RUN BAZELISK_VERSION=v1.19.0 \
+    && curl -fsSL -o /usr/local/bin/bazel \
+    "https://github.com/bazelbuild/bazelisk/releases/download/${BAZELISK_VERSION}/bazelisk-linux-amd64" \
+    && chmod +x /usr/local/bin/bazel
 
 # Install Rust for Madara Prover RPC
 ENV RUSTUP_HOME=/usr/local/rustup
@@ -61,8 +61,8 @@ FROM base AS stone-builder
 
 WORKDIR /build/stone
 
-# Clone Stone prover repository
-RUN git clone --depth 1 --branch v0.1.0 https://github.com/starkware-libs/stone-prover.git .
+# Clone Stone prover repository (main branch)
+RUN git clone --depth 1 https://github.com/starkware-libs/stone-prover.git .
 
 # Build cpu_air_prover and cpu_air_verifier
 RUN bazel build //... --jobs=4 \

@@ -1,0 +1,56 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+e2e-results
+playwright-report
+test-results
+*.spec.ts
+__tests__
+
+# Build outputs
+.next
+out
+build
+
+# Misc
+.DS_Store
+*.pem
+*.log
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+.env
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+
+# Editor
+.vscode
+.idea
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Config files not needed in container
+playwright.config.ts
+vitest.config.ts
+vitest.setup.ts
+tsconfig.tsbuildinfo
