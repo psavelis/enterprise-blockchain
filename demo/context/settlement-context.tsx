@@ -100,11 +100,11 @@ export function SettlementProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        const data = await response.json() as { error?: string };
+        const data = (await response.json()) as { error?: string };
         throw new Error(data.error || "Failed to start settlement");
       }
 
-      const { token } = await response.json() as { token: string };
+      const { token } = (await response.json()) as { token: string };
       setState((prev) => ({ ...prev, token }));
     } catch (err) {
       setState((prev) => ({

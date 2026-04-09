@@ -21,7 +21,7 @@ const Progress = forwardRef<HTMLDivElement, ProgressProps>(
         aria-valuemax={max}
         className={cn(
           "relative h-2 w-full overflow-hidden rounded-full bg-secondary",
-          className
+          className,
         )}
         {...props}
       >
@@ -31,7 +31,7 @@ const Progress = forwardRef<HTMLDivElement, ProgressProps>(
         />
       </div>
     );
-  }
+  },
 );
 Progress.displayName = "Progress";
 

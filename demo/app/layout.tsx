@@ -16,7 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Enterprise Blockchain Live Demo",
-  description: "Interactive demo showcasing STARK settlement with post-quantum cryptography and multi-rail settlement",
+  description:
+    "Interactive demo showcasing STARK settlement with post-quantum cryptography and multi-rail settlement",
 };
 
 export default function RootLayout({

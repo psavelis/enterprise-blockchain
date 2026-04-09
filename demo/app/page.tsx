@@ -46,7 +46,9 @@ export default function DashboardPage() {
               selected={scenario === "food-recall"}
               onSelect={() =>
                 selectScenario(
-                  scenario === "food-recall" ? null : ("food-recall" as Scenario)
+                  scenario === "food-recall"
+                    ? null
+                    : ("food-recall" as Scenario),
                 )
               }
             />
@@ -55,7 +57,9 @@ export default function DashboardPage() {
               selected={scenario === "aid-voucher"}
               onSelect={() =>
                 selectScenario(
-                  scenario === "aid-voucher" ? null : ("aid-voucher" as Scenario)
+                  scenario === "aid-voucher"
+                    ? null
+                    : ("aid-voucher" as Scenario),
                 )
               }
             />
@@ -64,7 +68,9 @@ export default function DashboardPage() {
               selected={scenario === "cross-border-fx"}
               onSelect={() =>
                 selectScenario(
-                  scenario === "cross-border-fx" ? null : ("cross-border-fx" as Scenario)
+                  scenario === "cross-border-fx"
+                    ? null
+                    : ("cross-border-fx" as Scenario),
                 )
               }
             />
@@ -73,7 +79,9 @@ export default function DashboardPage() {
               selected={scenario === "mpc-auction"}
               onSelect={() =>
                 selectScenario(
-                  scenario === "mpc-auction" ? null : ("mpc-auction" as Scenario)
+                  scenario === "mpc-auction"
+                    ? null
+                    : ("mpc-auction" as Scenario),
                 )
               }
             />

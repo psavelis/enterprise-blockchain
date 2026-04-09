@@ -14,10 +14,7 @@ export function RailSelector({ value, onValueChange }: RailSelectorProps) {
       <label className="text-sm font-medium text-foreground">
         Select Rail System
       </label>
-      <Select
-        value={value}
-        onValueChange={(v) => onValueChange(v as Rail)}
-      >
+      <Select value={value} onValueChange={(v) => onValueChange(v as Rail)}>
         <option value="solana">Solana (VersionedTransaction)</option>
         <option value="bitcoin">Bitcoin (PSBT)</option>
         <option value="fiat">Fiat (ISO 20022 pain.001)</option>

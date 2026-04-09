@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { SettlementProvider, useSettlement } from "@/context/settlement-context";
+import {
+  SettlementProvider,
+  useSettlement,
+} from "@/context/settlement-context";
 
 function TestComponent() {
   const {
@@ -37,7 +40,9 @@ function TestComponent() {
 
 describe("SettlementContext", () => {
   it("should throw error when used outside provider", () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     expect(() => {
       render(<TestComponent />);
@@ -50,7 +55,7 @@ describe("SettlementContext", () => {
     render(
       <SettlementProvider>
         <TestComponent />
-      </SettlementProvider>
+      </SettlementProvider>,
     );
 
     expect(screen.getByTestId("scenario")).toHaveTextContent("null");
@@ -64,7 +69,7 @@ describe("SettlementContext", () => {
     render(
       <SettlementProvider>
         <TestComponent />
-      </SettlementProvider>
+      </SettlementProvider>,
     );
 
     await user.click(screen.getByText("Select Food Recall"));
@@ -79,7 +84,7 @@ describe("SettlementContext", () => {
     render(
       <SettlementProvider>
         <TestComponent />
-      </SettlementProvider>
+      </SettlementProvider>,
     );
 
     await user.click(screen.getByText("Select Bitcoin"));
@@ -94,7 +99,7 @@ describe("SettlementContext", () => {
     render(
       <SettlementProvider>
         <TestComponent />
-      </SettlementProvider>
+      </SettlementProvider>,
     );
 
     expect(screen.getByTestId("useRealProver")).toHaveTextContent("false");
@@ -111,7 +116,7 @@ describe("SettlementContext", () => {
     render(
       <SettlementProvider>
         <TestComponent />
-      </SettlementProvider>
+      </SettlementProvider>,
     );
 
     await user.click(screen.getByText("Select Food Recall"));

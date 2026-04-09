@@ -55,7 +55,7 @@ app.post("/prove", async (req, res) => {
     const { program, input, layout } = req.body;
 
     console.log(
-      `[PROVE] Generating proof for program: ${program}, layout: ${layout || "plain"}`
+      `[PROVE] Generating proof for program: ${program}, layout: ${layout || "plain"}`,
     );
 
     // Simulate proof generation time

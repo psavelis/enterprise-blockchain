@@ -15,20 +15,20 @@ export function SecurityStatus({ pqVerified, mpcActive }: SecurityStatusProps) {
       <Card
         className={cn(
           "border",
-          pqVerified ? "border-green-500/30 bg-green-500/5" : "border-border"
+          pqVerified ? "border-green-500/30 bg-green-500/5" : "border-border",
         )}
       >
         <CardContent className="py-4 flex items-center gap-3">
           <div
             className={cn(
               "w-10 h-10 rounded-lg flex items-center justify-center",
-              pqVerified ? "bg-green-500/20" : "bg-secondary"
+              pqVerified ? "bg-green-500/20" : "bg-secondary",
             )}
           >
             <Shield
               className={cn(
                 "w-5 h-5",
-                pqVerified ? "text-green-400" : "text-muted-foreground"
+                pqVerified ? "text-green-400" : "text-muted-foreground",
               )}
             />
           </div>
@@ -37,7 +37,7 @@ export function SecurityStatus({ pqVerified, mpcActive }: SecurityStatusProps) {
             <p
               className={cn(
                 "text-xs flex items-center gap-1",
-                pqVerified ? "text-green-400" : "text-muted-foreground"
+                pqVerified ? "text-green-400" : "text-muted-foreground",
               )}
             >
               {pqVerified && <Check className="w-3 h-3" />}
@@ -50,20 +50,20 @@ export function SecurityStatus({ pqVerified, mpcActive }: SecurityStatusProps) {
       <Card
         className={cn(
           "border",
-          mpcActive ? "border-green-500/30 bg-green-500/5" : "border-border"
+          mpcActive ? "border-green-500/30 bg-green-500/5" : "border-border",
         )}
       >
         <CardContent className="py-4 flex items-center gap-3">
           <div
             className={cn(
               "w-10 h-10 rounded-lg flex items-center justify-center",
-              mpcActive ? "bg-green-500/20" : "bg-secondary"
+              mpcActive ? "bg-green-500/20" : "bg-secondary",
             )}
           >
             <Key
               className={cn(
                 "w-5 h-5",
-                mpcActive ? "text-green-400" : "text-muted-foreground"
+                mpcActive ? "text-green-400" : "text-muted-foreground",
               )}
             />
           </div>
@@ -72,7 +72,7 @@ export function SecurityStatus({ pqVerified, mpcActive }: SecurityStatusProps) {
             <p
               className={cn(
                 "text-xs flex items-center gap-1",
-                mpcActive ? "text-green-400" : "text-muted-foreground"
+                mpcActive ? "text-green-400" : "text-muted-foreground",
               )}
             >
               {mpcActive && <Check className="w-3 h-3" />}

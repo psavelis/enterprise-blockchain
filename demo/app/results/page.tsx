@@ -53,7 +53,10 @@ export default function ResultsPage() {
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="border-green-500/50 text-green-400">
+          <Badge
+            variant="outline"
+            className="border-green-500/50 text-green-400"
+          >
             Verified
           </Badge>
         </div>

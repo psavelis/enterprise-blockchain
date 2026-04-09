@@ -32,7 +32,7 @@ export function LogPanel({ title, logs, isActive }: LogPanelProps) {
     <Card
       className={cn(
         "terminal-bg overflow-hidden transition-all",
-        isActive && "border-primary/30"
+        isActive && "border-primary/30",
       )}
     >
       <CardHeader className="py-3 px-4 border-b border-border">
@@ -40,7 +40,7 @@ export function LogPanel({ title, logs, isActive }: LogPanelProps) {
           <span
             className={cn(
               "w-2 h-2 rounded-full",
-              isActive ? "bg-green-500 animate-pulse" : "bg-muted"
+              isActive ? "bg-green-500 animate-pulse" : "bg-muted",
             )}
           />
           {title}

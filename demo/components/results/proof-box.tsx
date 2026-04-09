@@ -1,6 +1,14 @@
 "use client";
 
-import { Copy, Check, Cpu, Zap, CheckCircle, XCircle, Clock } from "lucide-react";
+import {
+  Copy,
+  Check,
+  Cpu,
+  Zap,
+  CheckCircle,
+  XCircle,
+  Clock,
+} from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +77,9 @@ export function ProofBox({ proof, proofReport }: ProofBoxProps) {
         {proofReport && (
           <div
             className={`flex items-center justify-between p-3 rounded-md ${
-              isValid ? "bg-green-500/10 border border-green-500/20" : "bg-red-500/10 border border-red-500/20"
+              isValid
+                ? "bg-green-500/10 border border-green-500/20"
+                : "bg-red-500/10 border border-red-500/20"
             }`}
             data-testid="proof-verification-status"
           >
@@ -86,7 +96,9 @@ export function ProofBox({ proof, proofReport }: ProofBoxProps) {
             {proofReport.proverLatencyMs && (
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4" />
-                <span data-testid="proof-latency">{proofReport.proverLatencyMs}ms</span>
+                <span data-testid="proof-latency">
+                  {proofReport.proverLatencyMs}ms
+                </span>
               </div>
             )}
           </div>
@@ -98,21 +110,32 @@ export function ProofBox({ proof, proofReport }: ProofBoxProps) {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">Block Proof ID</p>
-            <p className="font-mono" data-testid="proof-id">{truncateHash(proof.id, 8)}</p>
+            <p className="font-mono" data-testid="proof-id">
+              {truncateHash(proof.id, 8)}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground">Transactions</p>
-            <p className="font-mono" data-testid="proof-tx-count">{proof.txCount}</p>
+            <p className="font-mono" data-testid="proof-tx-count">
+              {proof.txCount}
+            </p>
           </div>
           <div className="col-span-2">
             <p className="text-muted-foreground">State Root</p>
-            <p className="font-mono" data-testid="proof-state-root">{truncateHash(proof.stateRoot, 16)}</p>
+            <p className="font-mono" data-testid="proof-state-root">
+              {truncateHash(proof.stateRoot, 16)}
+            </p>
           </div>
           {proofReport && (
             <div className="col-span-2">
               <p className="text-muted-foreground">Prover Type</p>
-              <p className="font-mono capitalize" data-testid="proof-prover-type">
-                {proofReport.proverType === "stone" ? "Stone STARK Prover" : "Mock Prover"}
+              <p
+                className="font-mono capitalize"
+                data-testid="proof-prover-type"
+              >
+                {proofReport.proverType === "stone"
+                  ? "Stone STARK Prover"
+                  : "Mock Prover"}
               </p>
             </div>
           )}

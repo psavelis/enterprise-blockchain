@@ -1,7 +1,12 @@
 "use client";
 
 import { Shield, ShoppingCart, Globe, Gavel } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Scenario } from "@/services/types";
 
@@ -38,7 +43,11 @@ const scenarioConfig = {
   },
 };
 
-export function ScenarioCard({ scenario, selected, onSelect }: ScenarioCardProps) {
+export function ScenarioCard({
+  scenario,
+  selected,
+  onSelect,
+}: ScenarioCardProps) {
   const config = scenarioConfig[scenario];
   const { Icon } = config;
 
@@ -47,21 +56,25 @@ export function ScenarioCard({ scenario, selected, onSelect }: ScenarioCardProps
       onClick={onSelect}
       className={cn(
         "cursor-pointer transition-all duration-200 hover:border-primary/50",
-        selected && "glow-border-active border-primary"
+        selected && "glow-border-active border-primary",
       )}
     >
       <CardHeader className="space-y-4">
         <div
           className={cn(
             "w-12 h-12 rounded-lg flex items-center justify-center transition-colors",
-            selected ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
+            selected
+              ? "bg-primary/20 text-primary"
+              : "bg-secondary text-muted-foreground",
           )}
         >
           <Icon className="w-6 h-6" />
         </div>
         <div>
           <CardTitle className="text-xl">{config.title}</CardTitle>
-          <CardDescription className="mt-2">{config.description}</CardDescription>
+          <CardDescription className="mt-2">
+            {config.description}
+          </CardDescription>
         </div>
       </CardHeader>
     </Card>

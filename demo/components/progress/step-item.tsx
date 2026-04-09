@@ -28,7 +28,7 @@ export function StepItem({
         isActive && "border-primary bg-primary/5",
         isComplete && "border-green-500/30 bg-green-500/5",
         !isActive && !isComplete && "border-border bg-card",
-        isHighlighted && isActive && "glow-border-active"
+        isHighlighted && isActive && "glow-border-active",
       )}
     >
       <div className="flex items-center gap-3 mb-3">
@@ -37,7 +37,7 @@ export function StepItem({
             "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
             isComplete && "bg-green-500 text-white",
             isActive && !isComplete && "bg-primary text-primary-foreground",
-            !isActive && !isComplete && "bg-secondary text-muted-foreground"
+            !isActive && !isComplete && "bg-secondary text-muted-foreground",
           )}
         >
           {isComplete ? <Check className="w-4 h-4" /> : step + 1}
@@ -47,7 +47,7 @@ export function StepItem({
             className={cn(
               "font-medium",
               isActive && "text-primary",
-              isComplete && "text-green-400"
+              isComplete && "text-green-400",
             )}
           >
             {label}

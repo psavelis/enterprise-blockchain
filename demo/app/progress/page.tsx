@@ -43,7 +43,7 @@ export default function ProgressPage() {
     (event: SettlementEvent) => {
       handleEvent(event);
     },
-    [handleEvent]
+    [handleEvent],
   );
 
   const onError = useCallback(
@@ -51,7 +51,7 @@ export default function ProgressPage() {
       console.error("SSE Error:", error);
       handleEvent({ type: "error", error });
     },
-    [handleEvent]
+    [handleEvent],
   );
 
   useLiveLogs(token, onEvent, onError);
