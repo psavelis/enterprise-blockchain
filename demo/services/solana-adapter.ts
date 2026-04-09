@@ -1,10 +1,11 @@
 /**
- * Solana Devnet Adapter for Demo Settlement
+ * Solana Devnet Adapter for Demo Settlement (Mock Implementation)
  *
- * Provides real integration with Solana Devnet for proof commitment.
- * Uses the Memo program to embed STARK proof commitments on-chain.
+ * This is a MOCK adapter for demo purposes that simulates Solana Devnet integration.
+ * It generates realistic-looking transaction signatures without actual blockchain calls.
  *
  * In production, this would:
+ * - Use @solana/web3.js for real transaction submission
  * - Use proper key management (HSM/Keystore)
  * - Implement retry logic with backoff
  * - Add telemetry via OpenTelemetry
@@ -135,5 +136,5 @@ export async function getCurrentSlot(
   return generateMockSlot();
 }
 
-export { DEFAULT_CONFIG as SolanaConfig };
-export type { ProofCommitment, SolanaTransactionResult };
+export { DEFAULT_CONFIG as DEFAULT_SOLANA_CONFIG };
+export type { SolanaConfig, ProofCommitment, SolanaTransactionResult };

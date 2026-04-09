@@ -27,7 +27,7 @@ const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
 CardHeader.displayName = "CardHeader";
 
 const CardTitle = forwardRef<
-  HTMLParagraphElement,
+  HTMLHeadingElement,
   HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
   <h3

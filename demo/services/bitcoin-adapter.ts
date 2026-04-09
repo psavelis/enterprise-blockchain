@@ -1,14 +1,15 @@
 /**
- * Bitcoin Testnet Adapter for Demo Settlement
+ * Bitcoin Testnet Adapter for Demo Settlement (Mock Implementation)
  *
- * Provides integration with Bitcoin Testnet via Blockstream API.
- * Uses OP_RETURN to embed STARK proof commitments on-chain.
+ * This is a MOCK adapter for demo purposes that simulates Bitcoin Testnet integration.
+ * It generates realistic-looking transaction IDs without actual blockchain calls.
  *
  * In production, this would:
+ * - Use bitcoinjs-lib for real PSBT creation and signing
  * - Use proper key management (HSM/Keystore)
  * - Implement PSBT (Partially Signed Bitcoin Transaction) workflow
  * - Add multi-signature support for enterprise custody
- * - Integrate with real UTXO management
+ * - Integrate with real UTXO management via Blockstream API
  */
 
 interface BitcoinConfig {
@@ -151,8 +152,9 @@ export async function estimateFeeRate(
   return config.network === "testnet" ? 1 : 10;
 }
 
-export { DEFAULT_CONFIG as BitcoinConfig };
+export { DEFAULT_CONFIG as DEFAULT_BITCOIN_CONFIG };
 export type {
+  BitcoinConfig,
   ProofCommitment as BitcoinProofCommitment,
   BitcoinTransactionResult,
 };
