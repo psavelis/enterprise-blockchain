@@ -24,8 +24,14 @@ export default function DashboardPage() {
   const handleStart = async () => {
     if (!scenario) return;
     setLoading(true);
-    await startSettlement();
-    router.push("/progress");
+    try {
+      const sessionToken = await startSettlement();
+      if (sessionToken) {
+        router.push("/progress");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

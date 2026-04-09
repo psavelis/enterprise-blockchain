@@ -16,11 +16,11 @@ const Switch = forwardRef<HTMLInputElement, SwitchProps>(
       <label className="relative inline-flex cursor-pointer items-center">
         <input
           type="checkbox"
+          {...props}
           ref={ref}
           checked={checked}
           onChange={(e) => onCheckedChange?.(e.target.checked)}
           className="peer sr-only"
-          {...props}
         />
         <div
           className={cn(

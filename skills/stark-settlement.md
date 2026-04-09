@@ -45,7 +45,7 @@ Production-grade zero-knowledge proof generation for cross-border settlement usi
 - **Base Proof**: Single transaction state transition (8 field element public inputs)
 - **Tier-1 Proof**: Recursive aggregation of 128 base proofs with state continuity
 - **Tier-2 Block Proof**: Final proof over 64 Tier-1 proofs (8,192 transactions)
-- **Proof Commitment**: SHA-256 hash for on-chain anchoring (64 bytes)
+- **Proof Commitment**: SHA-256 hash for on-chain anchoring (32 bytes / 64 hex chars)
 
 ### Settlement Rails
 

@@ -82,11 +82,11 @@
     "typescript-eslint": "^8.57.0"
   },
   "lint-staged": {
-    "!(demo)/**/*.ts": [
+    "!(demo)/**/*.{ts,tsx}": [
       "prettier --write",
       "eslint --fix --max-warnings=0"
     ],
-    "*.ts": [
+    "*.{ts,tsx}": [
       "prettier --write"
     ],
     "*.{json,md,yml,yaml}": [
