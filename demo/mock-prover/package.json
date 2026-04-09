@@ -1,0 +1,12 @@
+{
+  "name": "mock-stone-prover",
+  "version": "1.0.0",
+  "description": "Mock Stone STARK prover for demo and testing",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.0.1"
+  }
+}

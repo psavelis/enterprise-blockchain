@@ -1,0 +1,142 @@
+# Demo application docker-compose stack.
+# Includes Next.js frontend and STARK prover for E2E testing.
+#
+# Usage:
+#   npm run docker:up      - Start all services (with mock prover)
+#   npm run docker:down    - Stop all services
+#   npm run docker:logs    - Tail logs
+#
+# Profiles:
+#   default: Uses mock prover (fast startup for dev/testing)
+#   real-prover: Uses actual Stone prover (requires building from source)
+#
+# Services:
+#   - demo-app: Next.js frontend (port 3000)
+#   - mock-prover: Mock STARK proof generator (port 10000) [default]
+#   - stone-prover: Real Stone prover (port 10000) [profile: real-prover]
+
+networks:
+  demo-network:
+    name: demo-network
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-security: &default-security
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+
+services:
+  # ── Next.js Demo Application ─────────────────────────────────────────
+  demo-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: enterprise-blockchain/demo:latest
+    container_name: demo-app
+    networks:
+      - demo-network
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - NODE_ENV=production
+      - STONE_PROVER_URL=http://mock-prover:10000
+      - ENABLE_REAL_PROVER=true
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      mock-prover:
+        condition: service_healthy
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+  # ── Mock STARK Prover (Default) ──────────────────────────────────────
+  # Lightweight mock prover for fast local development and testing.
+  # Simulates Stone prover API with realistic latency and proof format.
+  mock-prover:
+    build:
+      context: ./mock-prover
+      dockerfile: Dockerfile
+    image: enterprise-blockchain/mock-prover:latest
+    container_name: demo-mock-prover
+    networks:
+      - demo-network
+    ports:
+      - "127.0.0.1:10000:10000" # HTTP API
+      - "127.0.0.1:9100:9100" # Prometheus metrics
+    environment:
+      - PORT=10000
+      - METRICS_PORT=9100
+      - MIN_LATENCY_MS=500
+      - MAX_LATENCY_MS=2000
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:10000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  # ── Real Stone STARK Prover (Optional) ───────────────────────────────
+  # Production-grade STARK proof generation using StarkWare's Stone prover.
+  # Use with: docker compose --profile real-prover up
+  stone-prover:
+    profiles:
+      - real-prover
+    build:
+      context: ../infra/docker/stone-prover
+      dockerfile: Dockerfile
+    image: enterprise-blockchain/stone-prover:latest
+    container_name: demo-stone-prover
+    networks:
+      - demo-network
+    ports:
+      - "127.0.0.1:10001:10000" # Different port to avoid conflict
+      - "127.0.0.1:9101:9100" # Prometheus metrics
+    volumes:
+      - ../cairo/artifacts:/app/cairo:ro
+      - ./proofs:/app/proofs
+    environment:
+      - RUST_LOG=info
+      - PROVER_MAX_JOBS=4
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=:10000"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 8G
+        reservations:
+          cpus: "1.0"
+          memory: 2G

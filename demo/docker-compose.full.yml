@@ -1,0 +1,248 @@
+# Full-stack demo with real infrastructure.
+#
+# Includes:
+#   - Real Stone STARK prover (not mock)
+#   - Hyperledger Besu dev network (local EVM)
+#   - OpenTelemetry Collector → Jaeger + Prometheus
+#   - Solana Devnet + Bitcoin Testnet integration (external)
+#
+# Usage:
+#   npm run docker:full:build   - First time build (30-45 min for Stone prover)
+#   npm run docker:full         - Start all services
+#   npm run docker:full:down    - Stop all services
+#   npm run docker:full:logs    - Tail logs
+#
+# Resource Requirements:
+#   - RAM: 16GB minimum (8GB for Stone prover)
+#   - CPU: 4+ cores recommended
+#   - Disk: ~10GB for Docker images
+#   - Network: Internet for Solana Devnet & Bitcoin Testnet
+#
+# Observability URLs:
+#   - Demo App:    http://localhost:3000
+#   - Jaeger UI:   http://localhost:16686
+#   - Prometheus:  http://localhost:9090
+#   - Besu RPC:    http://localhost:8545
+
+networks:
+  demo-full-network:
+    name: demo-full-network
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-security: &default-security
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+
+services:
+  # ── Next.js Demo Application ─────────────────────────────────────────
+  demo-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: enterprise-blockchain/demo-full:latest
+    container_name: demo-app-full
+    networks:
+      - demo-full-network
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - NODE_ENV=production
+      - STONE_PROVER_URL=http://stone-prover:10000
+      - ENABLE_REAL_PROVER=true
+      - BESU_RPC_URL=http://besu:8545
+      - SOLANA_RPC_URL=https://api.devnet.solana.com
+      - BITCOIN_API_URL=https://blockstream.info/testnet/api
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=demo-app
+      - NEXT_PUBLIC_JAEGER_URL=http://localhost:16686
+      - NEXT_PUBLIC_PROMETHEUS_URL=http://localhost:9090
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      stone-prover:
+        condition: service_healthy
+      besu:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+  # ── Real Stone STARK Prover ──────────────────────────────────────────
+  # Production-grade STARK proof generation using StarkWare's Stone prover.
+  # First build takes 30-45 minutes (compiles Rust + Cairo).
+  stone-prover:
+    build:
+      context: ../infra/docker/stone-prover
+      dockerfile: Dockerfile
+    image: enterprise-blockchain/stone-prover:latest
+    container_name: demo-stone-prover-full
+    networks:
+      - demo-full-network
+    ports:
+      - "127.0.0.1:10000:10000" # HTTP API
+      - "127.0.0.1:9100:9100" # Prometheus metrics
+    volumes:
+      - ../cairo/artifacts:/app/cairo:ro
+      - ./proofs:/app/proofs
+    environment:
+      - RUST_LOG=info
+      - PROVER_MAX_JOBS=4
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=stone-prover
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:10000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 8G
+        reservations:
+          cpus: "1.0"
+          memory: 2G
+
+  # ── Hyperledger Besu (Local EVM) ─────────────────────────────────────
+  # Development network for settlement proof anchoring.
+  # Pre-funded accounts for testing.
+  besu:
+    image: hyperledger/besu:24.12.2
+    container_name: demo-besu
+    networks:
+      - demo-full-network
+    command:
+      - --network=dev
+      - --miner-enabled
+      - --miner-coinbase=0xfe3b557e8fb62b89f4916b721be55ceb828dbd73
+      - --rpc-http-enabled
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-port=8545
+      - --rpc-http-cors-origins=*
+      - --rpc-http-api=ETH,NET,WEB3,DEBUG,MINER,ADMIN,TXPOOL
+      - --host-allowlist=*
+      - --min-gas-price=0
+    ports:
+      - "127.0.0.1:8545:8545"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8545"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  # ── OpenTelemetry Collector ──────────────────────────────────────────
+  # Receives OTLP telemetry from all services, routes to Jaeger + Prometheus.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.149.0
+    container_name: demo-otel-collector
+    networks:
+      - demo-full-network
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ../infra/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "127.0.0.1:4317:4317" # OTLP gRPC
+      - "127.0.0.1:4318:4318" # OTLP HTTP
+      - "127.0.0.1:8889:8889" # Prometheus metrics export
+    depends_on:
+      - jaeger
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  # ── Jaeger (Distributed Tracing) ─────────────────────────────────────
+  # Trace visualization for settlement flows.
+  # UI: http://localhost:16686
+  jaeger:
+    image: jaegertracing/all-in-one:1.76.0
+    container_name: demo-jaeger
+    networks:
+      - demo-full-network
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "127.0.0.1:16686:16686" # UI
+      - "127.0.0.1:14268:14268" # Accept jaeger.thrift
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  # ── Prometheus (Metrics) ─────────────────────────────────────────────
+  # Metrics collection for proof generation, settlement latency.
+  # UI: http://localhost:9090
+  prometheus:
+    image: prom/prometheus:v3.10.0
+    container_name: demo-prometheus
+    networks:
+      - demo-full-network
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - ../infra/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - otel-collector
+    <<: *default-security
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+volumes:
+  prometheus-data:
