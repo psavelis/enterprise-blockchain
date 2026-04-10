@@ -37,9 +37,13 @@ export class InMemoryOutboxStore implements OutboxPort {
 
     this.entries.set(entry.entryId, entryWithOffset);
 
-    // Index by asset type
-    const assetEntries = this.entriesByAsset.get(entry.assetType) ?? [];
-    this.entriesByAsset.set(entry.assetType, [...assetEntries, entry.entryId]);
+    // Index by asset type - mutate existing array to avoid O(n) copies
+    let assetEntries = this.entriesByAsset.get(entry.assetType);
+    if (!assetEntries) {
+      assetEntries = [];
+      this.entriesByAsset.set(entry.assetType, assetEntries);
+    }
+    assetEntries.push(entry.entryId);
 
     return entryWithOffset;
   }
@@ -53,6 +57,7 @@ export class InMemoryOutboxStore implements OutboxPort {
     const entryIds = this.entriesByAsset.get(assetType) ?? [];
     const pending: OutboxEntry[] = [];
 
+    // entryIds are appended in FIFO order, so no sorting needed
     for (const entryId of entryIds) {
       const entry = this.entries.get(entryId);
       if (entry && entry.status === "pending") {
@@ -61,10 +66,7 @@ export class InMemoryOutboxStore implements OutboxPort {
       }
     }
 
-    // Sort by offset for FIFO ordering (use direct bigint comparison to avoid overflow)
-    return pending.sort((a, b) =>
-      a.offset < b.offset ? -1 : a.offset > b.offset ? 1 : 0,
-    );
+    return pending;
   }
 
   async getEntry(entryId: string): Promise<OutboxEntry | null> {
@@ -144,6 +146,7 @@ export class InMemoryOutboxStore implements OutboxPort {
     const entryIds = this.entriesByAsset.get(assetType) ?? [];
     const retryable: OutboxEntry[] = [];
 
+    // entryIds are appended in FIFO order, so no sorting needed
     for (const entryId of entryIds) {
       const entry = this.entries.get(entryId);
       if (
@@ -156,10 +159,7 @@ export class InMemoryOutboxStore implements OutboxPort {
       }
     }
 
-    // Sort by offset for FIFO ordering (use direct bigint comparison to avoid overflow)
-    return retryable.sort((a, b) =>
-      a.offset < b.offset ? -1 : a.offset > b.offset ? 1 : 0,
-    );
+    return retryable;
   }
 
   // ─── Utilities ──────────────────────────────────────────────────────────

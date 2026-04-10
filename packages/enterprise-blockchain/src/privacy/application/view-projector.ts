@@ -87,7 +87,10 @@ export class ViewProjector {
         timestamp,
       };
     } else {
-      auditProof = sha256hex(JSON.stringify(order));
+      // Use the same preimage-based hash as the signed path for consistency.
+      // This ensures auditProof is identical regardless of HSM availability,
+      // enabling verification and replay detection across configurations.
+      auditProof = hash;
     }
 
     return {

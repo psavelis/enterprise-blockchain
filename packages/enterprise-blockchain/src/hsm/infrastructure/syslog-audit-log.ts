@@ -179,20 +179,52 @@ export class SyslogAuditLog implements AuditLog {
     const procId = process.pid.toString();
     const msgId = `HSM_${entry.operation.toUpperCase()}`;
 
+    // Escape values per RFC 5424 §6.3.3 - SD-PARAM values must escape ", ], and \
+    const escapedOperation = this.escapeStructuredDataValue(entry.operation);
+    const escapedKeyLabel = this.escapeStructuredDataValue(entry.keyLabel);
+
+    // Sanitize message text to prevent log injection
+    const messageOperation = this.sanitizeMessageText(entry.operation);
+    const messageKeyLabel = this.sanitizeMessageText(entry.keyLabel);
+    const messageDetail = entry.detail
+      ? this.sanitizeMessageText(entry.detail)
+      : undefined;
+
     // Structured data with audit details
     const entryHash = this.computeEntryHash(entry);
     const structuredData =
-      `[hsm-audit@32473 operation="${entry.operation}" ` +
-      `keyLabel="${entry.keyLabel}" result="${entry.result}" ` +
+      `[hsm-audit@32473 operation="${escapedOperation}" ` +
+      `keyLabel="${escapedKeyLabel}" result="${entry.result}" ` +
       `sequence="${this.sequenceNumber}" hash="${entryHash.slice(0, 16)}"]`;
 
     // Human-readable message
-    const message = entry.detail
-      ? `${entry.operation} ${entry.keyLabel}: ${entry.result} - ${entry.detail}`
-      : `${entry.operation} ${entry.keyLabel}: ${entry.result}`;
+    const message = messageDetail
+      ? `${messageOperation} ${messageKeyLabel}: ${entry.result} - ${messageDetail}`
+      : `${messageOperation} ${messageKeyLabel}: ${entry.result}`;
 
     // RFC 5424 format: <PRI>VERSION TIMESTAMP HOSTNAME APP-NAME PROCID MSGID SD MSG
     return `<${priority}>1 ${timestamp} ${hostname} ${appName} ${procId} ${msgId} ${structuredData} ${message}`;
+  }
+
+  /**
+   * Escape structured-data parameter values per RFC 5424 §6.3.3.
+   * Must escape: " (double-quote), ] (right bracket), \ (backslash)
+   */
+  private escapeStructuredDataValue(value: string): string {
+    return value
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')
+      .replace(/]/g, "\\]");
+  }
+
+  /**
+   * Sanitize message text to prevent log injection.
+   * Removes control characters that could manipulate log parsing.
+   */
+  private sanitizeMessageText(value: string): string {
+    // Remove C0 control chars (0x00-0x1F) except tab/newline, and DEL (0x7F)
+    // eslint-disable-next-line no-control-regex
+    return value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, " ").trim();
   }
 
   private computeEntryHash(entry: HsmAuditEntry): string {
