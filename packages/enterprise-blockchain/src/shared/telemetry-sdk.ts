@@ -107,10 +107,8 @@ if (endpoint) {
   log.info(
     `OpenTelemetry SDK initialized: service=${serviceName}, endpoint=${endpoint}`,
   );
-} else {
-  log.info(
-    "OpenTelemetry SDK not initialized: OTEL_EXPORTER_OTLP_ENDPOINT not set",
-  );
 }
+// When endpoint is not set, telemetry is a no-op - stay completely silent.
+// This aligns with the module doc comment and prevents console noise in tests/apps.
 
 export { sdk };

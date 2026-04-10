@@ -100,6 +100,7 @@ const { output, tree } = createP2MROutput({
 | `@psavelis/enterprise-blockchain/protocols`            | Fabric/Besu/Corda adapter interfaces                  |
 | `@psavelis/enterprise-blockchain/integrations`         | SDK clients with circuit breaker patterns             |
 | `@psavelis/enterprise-blockchain/shared`               | Utilities, crypto, stores (no telemetry re-export)    |
+| `@psavelis/enterprise-blockchain/shared/telemetry`     | createTracer, createMeter, withSpan helpers           |
 | `@psavelis/enterprise-blockchain/shared/telemetry-sdk` | OpenTelemetry SDK initialization (side-effect import) |
 
 ## Architecture

@@ -10,4 +10,5 @@ export { ConsoleLogger, noopLogger } from "./logger.js";
 // NOTE: Telemetry is NOT re-exported here to preserve optional peer dependency.
 // @opentelemetry/api is an optional peer dep and importing telemetry.ts at the
 // top level would fail when OTEL is not installed. Import telemetry directly:
-//   import { createTracer, ... } from "@psavelis/enterprise-blockchain/shared/telemetry-sdk";
+//   import "@psavelis/enterprise-blockchain/shared/telemetry-sdk";  // SDK init (side-effect)
+//   import { createTracer, ... } from "@psavelis/enterprise-blockchain/shared/telemetry";

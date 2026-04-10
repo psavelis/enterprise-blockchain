@@ -80,6 +80,10 @@
     "./shared/telemetry-sdk": {
       "types": "./dist/shared/telemetry-sdk.d.ts",
       "import": "./dist/shared/telemetry-sdk.js"
+    },
+    "./shared/telemetry": {
+      "types": "./dist/shared/telemetry.d.ts",
+      "import": "./dist/shared/telemetry.js"
     }
   },
   "files": [

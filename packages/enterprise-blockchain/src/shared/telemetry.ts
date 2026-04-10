@@ -6,7 +6,11 @@
  * the configured collector; otherwise, telemetry is a no-op.
  *
  * Usage:
- *   import { createTracer, createMeter } from "@psavelis/enterprise-blockchain/shared/telemetry-sdk";
+ *   // First, initialize the SDK at application startup (side-effect import):
+ *   import "@psavelis/enterprise-blockchain/shared/telemetry-sdk";
+ *
+ *   // Then import helpers from this module:
+ *   import { createTracer, createMeter } from "@psavelis/enterprise-blockchain/shared/telemetry";
  *   const tracer = createTracer("my-service");
  *   const meter = createMeter("my-service");
  *
