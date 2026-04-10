@@ -12,6 +12,10 @@
  * - OTEL_TRACES_EXPORTER: Trace exporter type (default: "otlp" if endpoint set)
  * - OTEL_METRICS_EXPORTER: Metrics exporter type (default: "otlp" if endpoint set)
  *
+ * Additional configuration:
+ * - OTEL_LOG_LEVEL: Set to "silent" to suppress console output
+ * - OTEL_REGISTER_SIGNAL_HANDLERS: Set to "false" to disable SIGTERM/SIGINT handlers
+ *
  * If OTEL_EXPORTER_OTLP_ENDPOINT is not set, telemetry is disabled (no-op).
  *
  * Ref: https://opentelemetry.io/docs/languages/js/getting-started/nodejs/
@@ -26,6 +30,28 @@ import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 
 const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 const serviceName = process.env.OTEL_SERVICE_NAME ?? "enterprise-blockchain";
+
+// Configuration flags for library-friendly behavior
+const isSilent = process.env.OTEL_LOG_LEVEL === "silent";
+const registerSignalHandlers =
+  process.env.OTEL_REGISTER_SIGNAL_HANDLERS !== "false";
+
+/**
+ * Internal logger that respects OTEL_LOG_LEVEL=silent.
+ * This prevents unwanted console output in tests, serverless, or CLI environments.
+ */
+const log = {
+  info: (message: string): void => {
+    if (!isSilent) {
+      console.log(message);
+    }
+  },
+  error: (message: string, error?: unknown): void => {
+    if (!isSilent) {
+      console.error(message, error);
+    }
+  },
+};
 
 let sdk: NodeSDK | null = null;
 
@@ -58,29 +84,31 @@ if (endpoint) {
   try {
     sdk.start();
   } catch (err: unknown) {
-    console.error("OpenTelemetry SDK failed to start:", err);
+    log.error("OpenTelemetry SDK failed to start:", err);
   }
 
-  // Graceful shutdown handler
-  const shutdown = (): void => {
-    sdk
-      ?.shutdown()
-      .then(() => {
-        console.log("OpenTelemetry SDK shut down successfully");
-      })
-      .catch((err: unknown) => {
-        console.error("Error shutting down OpenTelemetry SDK:", err);
-      });
-  };
+  // Graceful shutdown handler - only register if enabled
+  if (registerSignalHandlers) {
+    const shutdown = (): void => {
+      sdk
+        ?.shutdown()
+        .then(() => {
+          log.info("OpenTelemetry SDK shut down successfully");
+        })
+        .catch((err: unknown) => {
+          log.error("Error shutting down OpenTelemetry SDK:", err);
+        });
+    };
 
-  process.on("SIGTERM", shutdown);
-  process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+    process.on("SIGINT", shutdown);
+  }
 
-  console.log(
+  log.info(
     `OpenTelemetry SDK initialized: service=${serviceName}, endpoint=${endpoint}`,
   );
 } else {
-  console.log(
+  log.info(
     "OpenTelemetry SDK not initialized: OTEL_EXPORTER_OTLP_ENDPOINT not set",
   );
 }

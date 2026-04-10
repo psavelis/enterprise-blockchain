@@ -1,5 +1,5 @@
 /**
- * @enterprise-blockchain/p2mr
+ * @psavelis/enterprise-blockchain/p2mr
  *
  * BIP-360-inspired Pay-to-Merkle-Root quantum-safe outputs.
  *
@@ -16,7 +16,7 @@
  *   createTimelockLeaf,
  *   buildSpendProof,
  *   verifySpendProofStructure,
- * } from "@enterprise-blockchain/p2mr";
+ * } from "@psavelis/enterprise-blockchain/p2mr";
  *
  * // Create an output with two spending paths
  * const { output, tree } = createP2MROutput({

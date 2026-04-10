@@ -7,12 +7,30 @@
  * @see domain/ports.ts for EventEmitterPort interface
  */
 
+import type { Logger } from "../../../shared/logger.js";
+import { noopLogger } from "../../../shared/logger.js";
 import type { SettlementEvent, EventEmitterPort } from "../../domain/ports.js";
 
 type EventHandler = (event: SettlementEvent) => void;
+type ErrorCallback = (error: unknown, event: SettlementEvent) => void;
+
+/**
+ * Configuration options for InMemoryEventEmitter.
+ */
+export interface EventEmitterOptions {
+  /** Maximum number of events to retain in history. Default: 1000 */
+  maxHistorySize?: number;
+  /** Logger for error reporting. Default: noopLogger (silent) */
+  logger?: Logger;
+  /** Optional callback for handler errors. Called instead of/in addition to logging. */
+  onHandlerError?: ErrorCallback;
+}
 
 /**
  * In-memory event emitter for domain events.
+ *
+ * Handler errors are routed through an injected Logger instead of console.error,
+ * allowing library consumers to control logging behavior.
  */
 export class InMemoryEventEmitter implements EventEmitterPort {
   private readonly handlers = new Set<EventHandler>();
@@ -22,9 +40,13 @@ export class InMemoryEventEmitter implements EventEmitterPort {
   >();
   private readonly eventHistory: SettlementEvent[] = [];
   private readonly maxHistorySize: number;
+  private readonly logger: Logger;
+  private readonly onHandlerError: ErrorCallback | undefined;
 
-  constructor(options: { maxHistorySize?: number } = {}) {
+  constructor(options: EventEmitterOptions = {}) {
     this.maxHistorySize = options.maxHistorySize ?? 1000;
+    this.logger = options.logger ?? noopLogger;
+    this.onHandlerError = options.onHandlerError;
   }
 
   emit(event: SettlementEvent): void {
@@ -36,22 +58,34 @@ export class InMemoryEventEmitter implements EventEmitterPort {
 
     // Notify general handlers
     for (const handler of this.handlers) {
-      try {
-        handler(event);
-      } catch (error) {
-        console.error("Event handler error:", error);
-      }
+      this.safeInvoke(handler, event);
     }
 
     // Notify type-specific handlers
     const typeSet = this.typeHandlers.get(event.type);
     if (typeSet) {
       for (const handler of typeSet) {
-        try {
-          handler(event);
-        } catch (error) {
-          console.error("Event handler error:", error);
-        }
+        this.safeInvoke(handler, event);
+      }
+    }
+  }
+
+  /**
+   * Safely invoke a handler, routing errors through logger/callback.
+   */
+  private safeInvoke(handler: EventHandler, event: SettlementEvent): void {
+    try {
+      handler(event);
+    } catch (error) {
+      // Route error through injected logger instead of console.error
+      this.logger.error("Event handler error", {
+        eventType: event.type,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      // Also invoke callback if provided
+      if (this.onHandlerError) {
+        this.onHandlerError(error, event);
       }
     }
   }
@@ -133,7 +167,20 @@ export class InMemoryEventEmitter implements EventEmitterPort {
 }
 
 /**
+ * Configuration options for AsyncEventEmitter.
+ */
+export interface AsyncEventEmitterOptions {
+  /** Logger for error reporting. Default: noopLogger (silent) */
+  logger?: Logger;
+  /** Optional callback for handler errors. */
+  onHandlerError?: ErrorCallback;
+}
+
+/**
  * Async event emitter that handles async handlers.
+ *
+ * Handler errors are routed through an injected Logger instead of console.error,
+ * allowing library consumers to control logging behavior.
  */
 export class AsyncEventEmitter implements EventEmitterPort {
   private readonly handlers = new Set<
@@ -143,11 +190,24 @@ export class AsyncEventEmitter implements EventEmitterPort {
     SettlementEvent["type"],
     Set<(event: SettlementEvent) => void | Promise<void>>
   >();
+  private readonly logger: Logger;
+  private readonly onHandlerError: ErrorCallback | undefined;
+
+  constructor(options: AsyncEventEmitterOptions = {}) {
+    this.logger = options.logger ?? noopLogger;
+    this.onHandlerError = options.onHandlerError;
+  }
 
   emit(event: SettlementEvent): void {
     // Fire and forget for async handlers
     this.emitAsync(event).catch((error) => {
-      console.error("Async event emission error:", error);
+      this.logger.error("Async event emission error", {
+        eventType: event.type,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      if (this.onHandlerError) {
+        this.onHandlerError(error, event);
+      }
     });
   }
 
@@ -198,5 +258,6 @@ export class AsyncEventEmitter implements EventEmitterPort {
 
 /**
  * Default event emitter instance.
+ * Uses noopLogger by default for library-friendly silent behavior.
  */
 export const defaultEventEmitter = new InMemoryEventEmitter();
