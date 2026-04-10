@@ -132,6 +132,9 @@ export * from "./privacy/index.js";
 export * from "./traceability/index.js";
 export * from "./aid-settlement/index.js";
 
-// Protocol adapters
+// Protocol adapters (types only - no runtime dependencies)
 export * from "./protocols/index.js";
-export * from "./integrations/index.js";
+
+// NOTE: Integrations are NOT re-exported from the package root to preserve
+// optional peer dependencies. Import them via their dedicated subpath:
+//   import { ... } from "@psavelis/enterprise-blockchain/integrations";

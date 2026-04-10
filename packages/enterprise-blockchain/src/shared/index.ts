@@ -7,17 +7,7 @@ export { CollectionStore } from "./collection-store.js";
 export type { Logger, LogFields } from "./logger.js";
 export { ConsoleLogger, noopLogger } from "./logger.js";
 
-// Telemetry
-export type { Tracer, Meter, Span, SpanOptions, Context } from "./telemetry.js";
-export {
-  createTracer,
-  createMeter,
-  withSpan,
-  withSpanSync,
-  isTelemetryEnabled,
-  TelemetryAttributes,
-  SpanStatusCode,
-  context,
-  propagation,
-  SERVICE_NAME,
-} from "./telemetry.js";
+// NOTE: Telemetry is NOT re-exported here to preserve optional peer dependency.
+// @opentelemetry/api is an optional peer dep and importing telemetry.ts at the
+// top level would fail when OTEL is not installed. Import telemetry directly:
+//   import { createTracer, ... } from "@psavelis/enterprise-blockchain/shared/telemetry-sdk";

@@ -18,10 +18,11 @@ npm install @psavelis/enterprise-blockchain
 ```typescript
 import { KyberKem } from "@psavelis/enterprise-blockchain/mpc";
 
-const kem = new KyberKem({ parameterSet: "ML-KEM-768" });
-const { publicKey, secretKey } = await kem.generateKeyPair();
-const { ciphertext, sharedSecret } = await kem.encapsulate(publicKey);
-const decapsulated = await kem.decapsulate(secretKey, ciphertext);
+const kem = new KyberKem();
+const params = "ml-kem-768";
+const { publicKey, secretKey } = kem.generateKeyPair(params);
+const { ciphertext, sharedSecret } = kem.encapsulate(publicKey, params);
+const decapsulated = kem.decapsulate(ciphertext, secretKey, params);
 ```
 
 ### Post-Quantum Signatures (ML-DSA-65)
@@ -58,10 +59,11 @@ const settler = new SettlementService(ctx);
 ```typescript
 import { HsmClient } from "@psavelis/enterprise-blockchain/hsm";
 
-const hsm = new HsmClient({ slotId: 1 });
-const keyLabel = await hsm.generateKeyPair("my-signing-key");
-const signature = await hsm.sign(keyLabel, message);
-const valid = await hsm.verify(keyLabel, message, signature);
+const hsm = new HsmClient();
+hsm.initialize({ slotId: "slot-1", label: "my-hsm" });
+const { label } = hsm.generateKeyPair("my-signing-key");
+const signature = hsm.sign(label, message);
+const valid = hsm.verify(label, message, signature);
 ```
 
 ### Pay-to-Merkle-Root (Quantum-Safe Bitcoin)

@@ -6,9 +6,12 @@
  * the configured collector; otherwise, telemetry is a no-op.
  *
  * Usage:
- *   import { createTracer, createMeter } from "@enterprise-blockchain/shared";
+ *   import { createTracer, createMeter } from "@psavelis/enterprise-blockchain/shared/telemetry-sdk";
  *   const tracer = createTracer("my-service");
  *   const meter = createMeter("my-service");
+ *
+ * NOTE: This module requires @opentelemetry/api as a peer dependency.
+ * It is NOT re-exported from the main shared index to preserve optional deps.
  *
  * Ref: OpenTelemetry Specification — https://opentelemetry.io/docs/specs/otel/
  */

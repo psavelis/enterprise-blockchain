@@ -84,6 +84,7 @@ function validateGatewayUrl(urlString: string): URL {
   }
 
   // Block private/internal IP ranges
+  // Note: URL.hostname returns IPv6 addresses WITHOUT brackets (e.g., "::1" not "[::1]")
   const hostname = url.hostname.toLowerCase();
   const privatePatterns = [
     /^localhost$/,
@@ -93,10 +94,10 @@ function validateGatewayUrl(urlString: string): URL {
     /^192\.168\./,
     /^169\.254\./, // link-local
     /^0\./, // current network
-    /^\[::1\]$/, // IPv6 localhost
-    /^\[fc/, // IPv6 unique local
-    /^\[fd/, // IPv6 unique local
-    /^\[fe80:/, // IPv6 link-local
+    /^::1$/, // IPv6 localhost (no brackets in URL.hostname)
+    /^fc/, // IPv6 unique local (no brackets in URL.hostname)
+    /^fd/, // IPv6 unique local (no brackets in URL.hostname)
+    /^fe80:/, // IPv6 link-local (no brackets in URL.hostname)
   ];
 
   for (const pattern of privatePatterns) {

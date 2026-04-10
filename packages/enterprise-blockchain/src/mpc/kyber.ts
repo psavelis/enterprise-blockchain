@@ -110,9 +110,14 @@ export interface KemEncapsulation {
    */
   sharedSecret: Uint8Array;
   /**
-   * SHA-256 hex digest of the ciphertext.  Suitable for on-chain commitments
-   * or audit logs — proves a specific ciphertext was used without revealing
-   * the shared secret.
+   * SHA-256 hex digest of the ciphertext's hex encoding.
+   *
+   * Computed as: sha256hex(Buffer.from(ciphertext).toString("hex"))
+   *
+   * This means the hash is over the hex-encoded string representation of the
+   * ciphertext bytes, not the raw bytes directly. Suitable for on-chain
+   * commitments or audit logs — proves a specific ciphertext was used without
+   * revealing the shared secret.
    */
   auditCommitment: string;
 }

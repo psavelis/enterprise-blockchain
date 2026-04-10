@@ -5,10 +5,15 @@
  * Provides proof generation and verification for spending P2MR outputs.
  *
  * Construction algorithm:
- * 1. Each leaf = SHA-256(canonicalJSON(ScriptLeaf))
- * 2. Internal nodes = SHA-256(left || right)
+ * 1. Each leaf = SHA-256(canonicalJSON(ScriptLeaf)) → 64-char hex string
+ * 2. Internal nodes = SHA-256(leftHex + rightHex) where + is string concatenation
+ *    (i.e., hashing the 128-char hex string, not raw 64 bytes)
  * 3. Odd leaf count: duplicate last leaf for balanced tree
  * 4. Root = final 32-byte hash (64 hex chars)
+ *
+ * NOTE: This implementation hashes hex-encoded strings, not raw bytes.
+ * For example, sha256hex("abc...def" + "012...345") hashes the 128-character
+ * hex string, producing deterministic results portable across platforms.
  */
 
 import { sha256hex } from "../shared/crypto.js";
