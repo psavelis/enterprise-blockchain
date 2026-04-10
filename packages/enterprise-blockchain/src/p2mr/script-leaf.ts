@@ -5,7 +5,7 @@
  * Each leaf type has specific requirements for its parameters.
  */
 
-import type { ScriptLeaf, ScriptLeafType } from "./types";
+import type { ScriptLeaf, ScriptLeafType } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Validation

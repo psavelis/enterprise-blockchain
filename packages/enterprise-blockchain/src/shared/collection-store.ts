@@ -1,4 +1,4 @@
-import { InMemoryStore } from "./store";
+import { InMemoryStore } from "./store.js";
 
 /**
  * Append-only collection store for grouping items by key.

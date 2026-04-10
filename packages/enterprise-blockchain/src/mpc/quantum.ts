@@ -1,12 +1,12 @@
 import { randomBytes } from "node:crypto";
 
-import { commitShare, sha256hex } from "./crypto";
+import { commitShare, sha256hex } from "./crypto.js";
 import {
   FieldArithmetic,
   getFieldConfig,
   type FieldConfig,
   type FieldMode,
-} from "./field";
+} from "./field.js";
 
 export interface ThresholdShare {
   partyId: string;

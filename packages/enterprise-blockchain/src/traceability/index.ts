@@ -1,29 +1,37 @@
 // Domain
-export type { ProductLot, Shipment, TelemetryReading } from "./domain/entities";
-export type { RecallRule, RecallAssessment } from "./domain/recall";
+export type {
+  ProductLot,
+  Shipment,
+  TelemetryReading,
+} from "./domain/entities.js";
+export type { RecallRule, RecallAssessment } from "./domain/recall.js";
 export type {
   TraceabilityRepository,
   TraceabilityWriter,
   TraceabilityStore,
-} from "./domain/ports";
+} from "./domain/ports.js";
 
 // Application
-export { RecallAssessor } from "./application/recall-assessor";
+export { RecallAssessor } from "./application/recall-assessor.js";
 
 // Infrastructure
-export { InMemoryTraceabilityStore } from "./infrastructure/in-memory-store";
+export { InMemoryTraceabilityStore } from "./infrastructure/in-memory-store.js";
 
 // ---------------------------------------------------------------------------
 // Facade — preserves the original public API so existing consumers,
 // examples, and tests continue to work without import changes.
 // ---------------------------------------------------------------------------
 
-import type { ProductLot, Shipment, TelemetryReading } from "./domain/entities";
-import type { RecallRule, RecallAssessment } from "./domain/recall";
-import type { TraceabilityStore } from "./domain/ports";
+import type {
+  ProductLot,
+  Shipment,
+  TelemetryReading,
+} from "./domain/entities.js";
+import type { RecallRule, RecallAssessment } from "./domain/recall.js";
+import type { TraceabilityStore } from "./domain/ports.js";
 import type { Logger } from "../shared/logger.js";
-import { InMemoryTraceabilityStore } from "./infrastructure/in-memory-store";
-import { RecallAssessor } from "./application/recall-assessor";
+import { InMemoryTraceabilityStore } from "./infrastructure/in-memory-store.js";
+import { RecallAssessor } from "./application/recall-assessor.js";
 
 export class TraceabilityLedger {
   private readonly store: TraceabilityStore;

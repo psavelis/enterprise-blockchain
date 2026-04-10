@@ -1,6 +1,6 @@
-import { InMemoryStore, CollectionStore } from "../../shared/index";
-import type { AidGrant, RedemptionClaim } from "../domain/entities";
-import type { AidSettlementRepository } from "../domain/ports";
+import { InMemoryStore, CollectionStore } from "../../shared/index.js";
+import type { AidGrant, RedemptionClaim } from "../domain/entities.js";
+import type { AidSettlementRepository } from "../domain/ports.js";
 
 export class InMemoryAidSettlementRepository implements AidSettlementRepository {
   readonly grants = new InMemoryStore<string, AidGrant>();

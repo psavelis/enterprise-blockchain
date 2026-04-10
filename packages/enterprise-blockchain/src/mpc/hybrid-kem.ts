@@ -34,8 +34,8 @@ import type { KeyObject } from "node:crypto";
 
 import { ml_kem768 } from "@noble/post-quantum/ml-kem.js";
 
-import { sha256hex } from "./crypto";
-import type { KyberKeyPair } from "./kyber";
+import { sha256hex } from "./crypto.js";
+import type { KyberKeyPair } from "./kyber.js";
 
 // ---------------------------------------------------------------------------
 // Interfaces

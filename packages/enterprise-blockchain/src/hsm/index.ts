@@ -7,36 +7,36 @@ export type {
   EncryptedRecord,
   EnvelopeEncryptionResult,
   HsmAuditEntry,
-} from "./domain/entities";
-export type { KeyStore, AuditLog } from "./domain/ports";
+} from "./domain/entities.js";
+export type { KeyStore, AuditLog } from "./domain/ports.js";
 
 // Application
-export { AsymmetricKeyService } from "./application/asymmetric-key-service";
-export { SymmetricKeyService } from "./application/symmetric-key-service";
-export { EnvelopeEncryptionService } from "./application/envelope-encryption-service";
+export { AsymmetricKeyService } from "./application/asymmetric-key-service.js";
+export { SymmetricKeyService } from "./application/symmetric-key-service.js";
+export { EnvelopeEncryptionService } from "./application/envelope-encryption-service.js";
 
 // Infrastructure
-export { InMemoryAuditLog } from "./infrastructure/audit-log";
-export { InMemoryKeyStore } from "./infrastructure/key-store";
-export { FileAuditLog } from "./infrastructure/file-audit-log";
-export type { ChainedAuditEntry } from "./infrastructure/file-audit-log";
+export { InMemoryAuditLog } from "./infrastructure/audit-log.js";
+export { InMemoryKeyStore } from "./infrastructure/key-store.js";
+export { FileAuditLog } from "./infrastructure/file-audit-log.js";
+export type { ChainedAuditEntry } from "./infrastructure/file-audit-log.js";
 export {
   SyslogAuditLog,
   DEFAULT_SYSLOG_CONFIG,
-} from "./infrastructure/syslog-audit-log";
+} from "./infrastructure/syslog-audit-log.js";
 export type {
   SyslogConfig,
   SyslogSeverity,
   SyslogFacility,
-} from "./infrastructure/syslog-audit-log";
+} from "./infrastructure/syslog-audit-log.js";
 export {
   AuditLogFactory,
   AUDIT_LOG_ENV,
-} from "./infrastructure/audit-log-factory";
+} from "./infrastructure/audit-log-factory.js";
 export type {
   AuditLogType,
   AuditLogFactoryConfig,
-} from "./infrastructure/audit-log-factory";
+} from "./infrastructure/audit-log-factory.js";
 
 // ---------------------------------------------------------------------------
 // Facade — preserves the original HsmClient API.
@@ -53,12 +53,12 @@ import type {
   EncryptedRecord,
   EnvelopeEncryptionResult,
   HsmAuditEntry,
-} from "./domain/entities";
-import { AsymmetricKeyService } from "./application/asymmetric-key-service";
-import { SymmetricKeyService } from "./application/symmetric-key-service";
-import { EnvelopeEncryptionService } from "./application/envelope-encryption-service";
-import { InMemoryAuditLog } from "./infrastructure/audit-log";
-import { InMemoryKeyStore } from "./infrastructure/key-store";
+} from "./domain/entities.js";
+import { AsymmetricKeyService } from "./application/asymmetric-key-service.js";
+import { SymmetricKeyService } from "./application/symmetric-key-service.js";
+import { EnvelopeEncryptionService } from "./application/envelope-encryption-service.js";
+import { InMemoryAuditLog } from "./infrastructure/audit-log.js";
+import { InMemoryKeyStore } from "./infrastructure/key-store.js";
 
 /**
  * Software simulation of a PKCS#11-style HSM.

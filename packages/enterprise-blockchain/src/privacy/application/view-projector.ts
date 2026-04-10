@@ -1,14 +1,14 @@
-import { sha256hex } from "../../shared/crypto";
+import { sha256hex } from "../../shared/crypto.js";
 import type {
   Audience,
   PurchaseOrder,
   SharedOrderView,
   SignedAuditProof,
-} from "../domain/entities";
-import type { OrderRepository } from "../domain/ports";
-import type { HsmClient } from "../../hsm/index";
-import type { Logger } from "../../shared/logger";
-import { noopLogger } from "../../shared/logger";
+} from "../domain/entities.js";
+import type { OrderRepository } from "../domain/ports.js";
+import type { HsmClient } from "../../hsm/index.js";
+import type { Logger } from "../../shared/logger.js";
+import { noopLogger } from "../../shared/logger.js";
 
 // Audience-specific field projection rules.
 // Ref: W3C Verifiable Credentials Data Model — selective disclosure

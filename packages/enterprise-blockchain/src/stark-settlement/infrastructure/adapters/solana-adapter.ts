@@ -22,9 +22,9 @@ import type {
   Tier2BlockProof,
   SolanaSettlementResult,
   DepositEvent,
-} from "../../domain/entities";
-import type { SolanaSettlementPort, ClockPort } from "../../domain/ports";
-import { ProofCommitment } from "../../domain/value-objects";
+} from "../../domain/entities.js";
+import type { SolanaSettlementPort, ClockPort } from "../../domain/ports.js";
+import { ProofCommitment } from "../../domain/value-objects.js";
 
 // Note: In production, these would come from @solana/web3.js
 // For now, we define stub types for the adapter interface

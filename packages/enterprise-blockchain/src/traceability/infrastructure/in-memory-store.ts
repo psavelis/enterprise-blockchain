@@ -1,10 +1,10 @@
-import { InMemoryStore, CollectionStore } from "../../shared/index";
+import { InMemoryStore, CollectionStore } from "../../shared/index.js";
 import type {
   ProductLot,
   Shipment,
   TelemetryReading,
-} from "../domain/entities";
-import type { TraceabilityStore } from "../domain/ports";
+} from "../domain/entities.js";
+import type { TraceabilityStore } from "../domain/ports.js";
 
 export class InMemoryTraceabilityStore implements TraceabilityStore {
   readonly lots = new InMemoryStore<string, ProductLot>();

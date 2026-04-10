@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
-import type { SymmetricKeyEntry, WrappedKey } from "../domain/entities";
-import type { AuditLog, KeyStore } from "../domain/ports";
+import type { SymmetricKeyEntry, WrappedKey } from "../domain/entities.js";
+import type { AuditLog, KeyStore } from "../domain/ports.js";
 
 /**
  * AES-256-GCM symmetric operations — key generation, wrapping, unwrapping.

@@ -18,7 +18,7 @@ import type {
   ICordaProfileFactory,
   ICordaRequestBuilder,
   ProviderClearancePayload,
-} from "./ports";
+} from "./ports.js";
 
 const tracer = createTracer("corda-gateway");
 
@@ -26,7 +26,7 @@ export type {
   CordaGatewayProfile,
   CordaGatewayRequest,
   ProviderClearancePayload,
-} from "./ports";
+} from "./ports.js";
 
 export class CordaProfileFactory implements ICordaProfileFactory {
   createProfileFromEnv(

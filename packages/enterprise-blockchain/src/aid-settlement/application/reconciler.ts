@@ -2,10 +2,10 @@ import type {
   AidGrant,
   RedemptionClaim,
   ReconciliationReport,
-} from "../domain/entities";
-import type { AidSettlementRepository } from "../domain/ports";
-import type { Logger } from "../../shared/logger";
-import { noopLogger } from "../../shared/logger";
+} from "../domain/entities.js";
+import type { AidSettlementRepository } from "../domain/ports.js";
+import type { Logger } from "../../shared/logger.js";
+import { noopLogger } from "../../shared/logger.js";
 
 export class Reconciler {
   private readonly logger: Logger;

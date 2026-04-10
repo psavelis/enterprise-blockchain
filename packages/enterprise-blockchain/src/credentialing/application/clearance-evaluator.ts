@@ -1,8 +1,11 @@
-import { daysUntil } from "../../shared/date";
-import type { ClearanceDecision, StaffingAssignment } from "../domain/entities";
-import type { CredentialRepository } from "../domain/ports";
-import type { Logger } from "../../shared/logger";
-import { noopLogger } from "../../shared/logger";
+import { daysUntil } from "../../shared/date.js";
+import type {
+  ClearanceDecision,
+  StaffingAssignment,
+} from "../domain/entities.js";
+import type { CredentialRepository } from "../domain/ports.js";
+import type { Logger } from "../../shared/logger.js";
+import { noopLogger } from "../../shared/logger.js";
 
 export class ClearanceEvaluator {
   private readonly logger: Logger;

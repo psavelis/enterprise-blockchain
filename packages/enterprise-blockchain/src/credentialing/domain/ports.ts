@@ -1,5 +1,5 @@
-import type { ReadonlyStore } from "../../shared/store";
-import type { ClinicalCredential, ProviderProfile } from "./entities";
+import type { ReadonlyStore } from "../../shared/store.js";
+import type { ClinicalCredential, ProviderProfile } from "./entities.js";
 
 export interface CredentialRepository {
   readonly providers: ReadonlyStore<string, ProviderProfile>;

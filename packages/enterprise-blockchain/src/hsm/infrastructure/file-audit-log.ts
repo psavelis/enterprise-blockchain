@@ -6,8 +6,8 @@ import {
   writeFileSync,
 } from "node:fs";
 
-import type { HsmAuditEntry } from "../domain/entities";
-import type { AuditLog } from "../domain/ports";
+import type { HsmAuditEntry } from "../domain/entities.js";
+import type { AuditLog } from "../domain/ports.js";
 
 /**
  * Chained audit entry with cryptographic integrity.

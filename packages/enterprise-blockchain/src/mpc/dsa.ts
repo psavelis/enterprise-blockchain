@@ -26,7 +26,7 @@
 
 import { ml_dsa44, ml_dsa65, ml_dsa87 } from "@noble/post-quantum/ml-dsa.js";
 
-import { sha256hex } from "./crypto";
+import { sha256hex } from "./crypto.js";
 
 // ---------------------------------------------------------------------------
 // Parameter sets

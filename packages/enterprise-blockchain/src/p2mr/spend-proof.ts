@@ -15,9 +15,9 @@ import type {
   MerkleProofNode,
   SpendVerificationResult,
   VerificationStep,
-} from "./types";
-import { MerkleTree, hashScriptLeaf } from "./merkle-tree";
-import { validateScriptLeaf } from "./script-leaf";
+} from "./types.js";
+import { MerkleTree, hashScriptLeaf } from "./merkle-tree.js";
+import { validateScriptLeaf } from "./script-leaf.js";
 
 // ---------------------------------------------------------------------------
 // Spend Proof Builder

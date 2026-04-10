@@ -1,5 +1,5 @@
-import type { HsmAuditEntry } from "../domain/entities";
-import type { AuditLog } from "../domain/ports";
+import type { HsmAuditEntry } from "../domain/entities.js";
+import type { AuditLog } from "../domain/ports.js";
 
 export class InMemoryAuditLog implements AuditLog {
   private readonly log: HsmAuditEntry[] = [];

@@ -7,13 +7,13 @@ import {
   randomBytes,
 } from "node:crypto";
 
-import { sha256hex } from "../../shared/crypto";
+import { sha256hex } from "../../shared/crypto.js";
 import type {
   AsymmetricKeyEntry,
   HsmKeyPair,
   HsmSignatureResult,
-} from "../domain/entities";
-import type { AuditLog, KeyStore } from "../domain/ports";
+} from "../domain/entities.js";
+import type { AuditLog, KeyStore } from "../domain/ports.js";
 
 /**
  * EC P-256 asymmetric operations — signing, verification, key export.

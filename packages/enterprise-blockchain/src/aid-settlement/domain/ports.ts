@@ -1,5 +1,5 @@
-import type { ReadonlyStore } from "../../shared/store";
-import type { AidGrant, RedemptionClaim } from "./entities";
+import type { ReadonlyStore } from "../../shared/store.js";
+import type { AidGrant, RedemptionClaim } from "./entities.js";
 
 export interface AidSettlementRepository {
   readonly grants: ReadonlyStore<string, AidGrant>;

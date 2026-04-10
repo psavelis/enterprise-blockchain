@@ -13,7 +13,7 @@ import type {
   SignatureVerificationPort,
   HashingPort,
   SignatureAlgorithm,
-} from "./ports";
+} from "./ports.js";
 
 /**
  * ML-DSA implementation of SignatureVerificationPort.

@@ -63,19 +63,19 @@ export type {
   SpendVerificationResult,
   VerificationStep,
   ScriptVerificationResult,
-} from "./types";
+} from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Merkle Tree
 // ---------------------------------------------------------------------------
 
-export { MerkleTree, canonicalJSON, hashScriptLeaf } from "./merkle-tree";
+export { MerkleTree, canonicalJSON, hashScriptLeaf } from "./merkle-tree.js";
 
 // ---------------------------------------------------------------------------
 // Script Leaf
 // ---------------------------------------------------------------------------
 
-export type { ValidationResult } from "./script-leaf";
+export type { ValidationResult } from "./script-leaf.js";
 
 export {
   validateScriptLeaf,
@@ -83,7 +83,7 @@ export {
   createTimelockLeaf,
   createMultisigLeaf,
   createHsmAttestedLeaf,
-} from "./script-leaf";
+} from "./script-leaf.js";
 
 // ---------------------------------------------------------------------------
 // P2MR Output
@@ -92,22 +92,22 @@ export {
 export type {
   CreateP2MROutputOptions,
   CreateP2MROutputResult,
-} from "./p2mr-output";
+} from "./p2mr-output.js";
 
-export { createP2MROutput, P2MROutputStore } from "./p2mr-output";
+export { createP2MROutput, P2MROutputStore } from "./p2mr-output.js";
 
 // ---------------------------------------------------------------------------
 // Spend Proof
 // ---------------------------------------------------------------------------
 
-export type { BuildSpendProofOptions } from "./spend-proof";
+export type { BuildSpendProofOptions } from "./spend-proof.js";
 
 export {
   buildSpendProof,
   validateSpendProofStructure,
   verifyMerkleProof,
   verifySpendProofStructure,
-} from "./spend-proof";
+} from "./spend-proof.js";
 
 // ---------------------------------------------------------------------------
 // Script Interpreter
@@ -116,14 +116,14 @@ export {
 export type {
   InterpretScriptOptions,
   InterpretScriptResult,
-} from "./script-interpreter";
+} from "./script-interpreter.js";
 
 export {
   interpretScript,
   hashPublicKey,
   configureInterpreter,
   resetInterpreter,
-} from "./script-interpreter";
+} from "./script-interpreter.js";
 
 // ---------------------------------------------------------------------------
 // Ports and Adapters (Hexagonal Architecture)
@@ -133,11 +133,11 @@ export type {
   SignatureVerificationPort,
   HashingPort,
   SignatureAlgorithm,
-} from "./ports";
+} from "./ports.js";
 
 export {
   MlDsaSignatureVerifier,
   Sha256Hasher,
   defaultSignatureVerifier,
   defaultHasher,
-} from "./adapters";
+} from "./adapters.js";

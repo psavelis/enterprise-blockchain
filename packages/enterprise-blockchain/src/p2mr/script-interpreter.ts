@@ -12,14 +12,14 @@
  * The interpreter returns a detailed audit trail for compliance.
  */
 
-import type { SignatureVerificationPort, HashingPort } from "./ports";
-import { defaultSignatureVerifier, defaultHasher } from "./adapters";
+import type { SignatureVerificationPort, HashingPort } from "./ports.js";
+import { defaultSignatureVerifier, defaultHasher } from "./adapters.js";
 import type {
   ScriptLeaf,
   SpendWitness,
   ScriptVerificationResult,
   VerificationStep,
-} from "./types";
+} from "./types.js";
 
 // Module-level default instances (can be overridden via createInterpreter)
 let signatureVerifier: SignatureVerificationPort = defaultSignatureVerifier;

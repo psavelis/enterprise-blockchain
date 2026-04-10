@@ -76,6 +76,10 @@
     "./integrations": {
       "types": "./dist/integrations/index.d.ts",
       "import": "./dist/integrations/index.js"
+    },
+    "./shared/telemetry-sdk": {
+      "types": "./dist/shared/telemetry-sdk.d.ts",
+      "import": "./dist/shared/telemetry-sdk.js"
     }
   },
   "files": [

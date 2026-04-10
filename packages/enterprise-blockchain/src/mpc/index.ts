@@ -1,8 +1,8 @@
-import type { RandomnessProvider, CommitmentProvider } from "./ports";
+import type { RandomnessProvider, CommitmentProvider } from "./ports.js";
 import {
   defaultRandomnessProvider,
   defaultCommitmentProvider,
-} from "./adapters";
+} from "./adapters.js";
 
 /** Estimated bytes per share entry for memory quota tracking */
 const BYTES_PER_SHARE = 200;
@@ -15,8 +15,8 @@ export {
   PRODUCTION_PRIME,
   demoField,
   productionField,
-} from "./field";
-export type { FieldConfig, FieldMode } from "./field";
+} from "./field.js";
+export type { FieldConfig, FieldMode } from "./field.js";
 
 export interface PartyConfig {
   id: string;
@@ -543,40 +543,40 @@ export class MPCEngine {
 }
 
 // Re-export ports and adapters for dependency injection
-export type { RandomnessProvider, CommitmentProvider } from "./ports";
+export type { RandomnessProvider, CommitmentProvider } from "./ports.js";
 export {
   NodeRandomnessProvider,
   NodeCommitmentProvider,
   defaultRandomnessProvider,
   defaultCommitmentProvider,
-} from "./adapters";
+} from "./adapters.js";
 
 // Re-export ML-KEM and Hybrid KEM so consumers can reach them via the module
 // root without needing to know the internal file layout.
-export { KyberKem, ML_KEM_SIZES } from "./kyber";
+export { KyberKem, ML_KEM_SIZES } from "./kyber.js";
 export type {
   KyberKeyPair,
   KemEncapsulation,
   KemAuditRecord,
   MlKemParams,
-} from "./kyber";
-export { HybridKem } from "./hybrid-kem";
+} from "./kyber.js";
+export { HybridKem } from "./hybrid-kem.js";
 export type {
   HybridKeyPairs,
   HybridEncapsulation,
   HybridDecapsulation,
-} from "./hybrid-kem";
-export { MlDsaSigner, ML_DSA_SIZES } from "./dsa";
+} from "./hybrid-kem.js";
+export { MlDsaSigner, ML_DSA_SIZES } from "./dsa.js";
 export type {
   DsaKeyPair,
   DsaSignatureResult,
   DsaAuditRecord,
   MlDsaParams,
-} from "./dsa";
-export { QuantumResistantVault } from "./quantum";
+} from "./dsa.js";
+export { QuantumResistantVault } from "./quantum.js";
 export type {
   ThresholdShare,
   HashLadderKey,
   QuantumResistantAnchor,
   VaultConfig,
-} from "./quantum";
+} from "./quantum.js";

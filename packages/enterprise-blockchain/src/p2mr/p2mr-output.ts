@@ -9,8 +9,8 @@
 import { randomUUID } from "node:crypto";
 import type { Store } from "../shared/store.js";
 import { InMemoryStore } from "../shared/store.js";
-import type { P2MROutput, ScriptLeaf } from "./types";
-import { MerkleTree } from "./merkle-tree";
+import type { P2MROutput, ScriptLeaf } from "./types.js";
+import { MerkleTree } from "./merkle-tree.js";
 
 /** Alias for the P2MR output store type (outputId -> P2MROutput). */
 type P2MRStore = Store<string, P2MROutput>;

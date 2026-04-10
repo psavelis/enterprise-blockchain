@@ -11,8 +11,8 @@ import {
   randomBytes as nodeRandomBytes,
   randomInt as nodeRandomInt,
 } from "node:crypto";
-import type { RandomnessProvider, CommitmentProvider } from "./ports";
-import { commitShare, sha256hex, timingSafeCompare } from "./crypto";
+import type { RandomnessProvider, CommitmentProvider } from "./ports.js";
+import { commitShare, sha256hex, timingSafeCompare } from "./crypto.js";
 
 /**
  * Node.js crypto implementation of RandomnessProvider.

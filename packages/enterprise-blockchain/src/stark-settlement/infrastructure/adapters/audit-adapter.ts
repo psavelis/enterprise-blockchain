@@ -11,8 +11,8 @@
 
 import { createHash, randomUUID } from "node:crypto";
 
-import type { AuditRecord } from "../../domain/entities";
-import type { AuditPort } from "../../domain/ports";
+import type { AuditRecord } from "../../domain/entities.js";
+import type { AuditPort } from "../../domain/ports.js";
 
 /**
  * In-memory audit log with chain integrity verification.

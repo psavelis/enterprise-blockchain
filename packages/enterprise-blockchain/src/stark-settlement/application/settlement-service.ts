@@ -20,13 +20,13 @@ import type {
   SolanaSettlementResult,
   BitcoinSettlementResult,
   FiatSettlementResult,
-} from "../domain/entities";
+} from "../domain/entities.js";
 import type {
   SolanaSettlementPort,
   BitcoinSettlementPort,
   FiatSettlementPort,
-} from "../domain/ports";
-import type { SettlementContext } from "../index";
+} from "../domain/ports.js";
+import type { SettlementContext } from "../index.js";
 
 /**
  * Result of settling a single rail.

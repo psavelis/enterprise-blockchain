@@ -18,8 +18,8 @@ import type {
   AssetType,
   OutboxEntry,
   NetTransfer,
-} from "../domain/entities";
-import type { SettlementContext } from "../index";
+} from "../domain/entities.js";
+import type { SettlementContext } from "../index.js";
 
 /**
  * Result of the aggregation process.

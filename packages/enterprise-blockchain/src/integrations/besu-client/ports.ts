@@ -8,7 +8,7 @@ import type {
 import type {
   PurchaseOrder,
   SharedOrderView,
-} from "../../privacy/domain/entities";
+} from "../../privacy/domain/entities.js";
 
 export interface BesuRpcProfile {
   rpcUrl: string;

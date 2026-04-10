@@ -12,7 +12,7 @@
  */
 
 import { sha256hex } from "../shared/crypto.js";
-import type { ScriptLeaf, MerkleProofNode } from "./types";
+import type { ScriptLeaf, MerkleProofNode } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Canonical JSON Serialization

@@ -18,7 +18,7 @@ import {
   createMeter,
   TelemetryAttributes,
   SpanStatusCode,
-} from "../../shared/telemetry";
+} from "../../shared/telemetry.js";
 
 const tracer = createTracer("retry-policy");
 const meter = createMeter("circuit-breaker");

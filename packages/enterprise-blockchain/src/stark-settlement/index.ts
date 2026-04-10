@@ -72,9 +72,9 @@ export type {
   RaftState,
   RaftNode,
   AuditRecord,
-} from "./domain/entities";
+} from "./domain/entities.js";
 
-export { ASSET_CONFIGS } from "./domain/entities";
+export { ASSET_CONFIGS } from "./domain/entities.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Value Objects
@@ -91,7 +91,7 @@ export {
   sha256,
   sha256Bytes,
   pedersenHash,
-} from "./domain/value-objects";
+} from "./domain/value-objects.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Port Interfaces
@@ -113,37 +113,37 @@ export type {
   ClockPort,
   SettlementEvent,
   EventEmitterPort,
-} from "./domain/ports";
+} from "./domain/ports.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Infrastructure Adapters
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Persistence
-export { InMemoryLedgerStore } from "./infrastructure/persistence/ledger-store";
-export { InMemoryOutboxStore } from "./infrastructure/persistence/outbox-store";
-export { InMemoryOffsetStore } from "./infrastructure/persistence/offset-store";
+export { InMemoryLedgerStore } from "./infrastructure/persistence/ledger-store.js";
+export { InMemoryOutboxStore } from "./infrastructure/persistence/outbox-store.js";
+export { InMemoryOffsetStore } from "./infrastructure/persistence/offset-store.js";
 
 // STARK Proofs
 export {
   MockStarkAdapter,
   FlexibleMockStarkAdapter,
-} from "./infrastructure/adapters/mock-stark-adapter";
-export type { MockStarkAdapterConfig } from "./infrastructure/adapters/mock-stark-adapter";
+} from "./infrastructure/adapters/mock-stark-adapter.js";
+export type { MockStarkAdapterConfig } from "./infrastructure/adapters/mock-stark-adapter.js";
 
 // Clock
 export {
   SystemClock,
   FixedClock,
   defaultClock,
-} from "./infrastructure/adapters/clock-adapter";
+} from "./infrastructure/adapters/clock-adapter.js";
 
 // Events
 export {
   InMemoryEventEmitter,
   AsyncEventEmitter,
   defaultEventEmitter,
-} from "./infrastructure/adapters/event-emitter-adapter";
+} from "./infrastructure/adapters/event-emitter-adapter.js";
 
 // Signing
 export {
@@ -152,70 +152,70 @@ export {
   MockDilithiumAdapter,
   defaultDilithiumAdapter,
   createTransactionSigningAdapter,
-} from "./infrastructure/adapters/dilithium-adapter";
+} from "./infrastructure/adapters/dilithium-adapter.js";
 
 // Audit
 export {
   InMemoryAuditLog,
   defaultAuditLog,
-} from "./infrastructure/adapters/audit-adapter";
+} from "./infrastructure/adapters/audit-adapter.js";
 
 // StarkNet
 export {
   StarknetProofAdapter,
   createStarknetProofAdapter,
-} from "./infrastructure/adapters/starknet-proof-adapter";
-export type { StarknetProofAdapterConfig } from "./infrastructure/adapters/starknet-proof-adapter";
+} from "./infrastructure/adapters/starknet-proof-adapter.js";
+export type { StarknetProofAdapterConfig } from "./infrastructure/adapters/starknet-proof-adapter.js";
 
 // Stone Prover (Production)
 export {
   StoneProofAdapter,
   createStoneProofAdapter,
-} from "./infrastructure/adapters/stone-proof-adapter";
-export type { StoneProofAdapterConfig } from "./infrastructure/adapters/stone-proof-adapter";
+} from "./infrastructure/adapters/stone-proof-adapter.js";
+export type { StoneProofAdapterConfig } from "./infrastructure/adapters/stone-proof-adapter.js";
 
 // External Chains
 export {
   SolanaDevnetAdapter,
   MockSolanaAdapter,
-} from "./infrastructure/adapters/solana-adapter";
-export type { SolanaAdapterConfig } from "./infrastructure/adapters/solana-adapter";
+} from "./infrastructure/adapters/solana-adapter.js";
+export type { SolanaAdapterConfig } from "./infrastructure/adapters/solana-adapter.js";
 
 export {
   BitcoinTestnetAdapter,
   MockBitcoinAdapter,
-} from "./infrastructure/adapters/bitcoin-adapter";
-export type { BitcoinAdapterConfig } from "./infrastructure/adapters/bitcoin-adapter";
+} from "./infrastructure/adapters/bitcoin-adapter.js";
+export type { BitcoinAdapterConfig } from "./infrastructure/adapters/bitcoin-adapter.js";
 
 export {
   FiatMockAdapter,
   MockFiatAdapter,
-} from "./infrastructure/adapters/fiat-adapter";
-export type { FiatAdapterConfig } from "./infrastructure/adapters/fiat-adapter";
+} from "./infrastructure/adapters/fiat-adapter.js";
+export type { FiatAdapterConfig } from "./infrastructure/adapters/fiat-adapter.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Application Services
 // ─────────────────────────────────────────────────────────────────────────────
 
-export { LedgerService } from "./application/ledger-service";
+export { LedgerService } from "./application/ledger-service.js";
 export type {
   CreateAccountOptions,
   SubmitTransactionOptions,
   SubmitTransactionResult,
-} from "./application/ledger-service";
+} from "./application/ledger-service.js";
 
-export { AggregatorService } from "./application/aggregator-service";
+export { AggregatorService } from "./application/aggregator-service.js";
 export type {
   AggregationResult,
   AggregatorConfig,
-} from "./application/aggregator-service";
+} from "./application/aggregator-service.js";
 
-export { SettlementService } from "./application/settlement-service";
+export { SettlementService } from "./application/settlement-service.js";
 export type {
   SettlementRailResult,
   SettleAllRailsResult,
   SettlementServiceConfig,
-} from "./application/settlement-service";
+} from "./application/settlement-service.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Service Context
@@ -231,20 +231,20 @@ import type {
   AuditPort,
   ClockPort,
   EventEmitterPort,
-} from "./domain/ports";
+} from "./domain/ports.js";
 
-import { InMemoryLedgerStore } from "./infrastructure/persistence/ledger-store";
-import { InMemoryOutboxStore } from "./infrastructure/persistence/outbox-store";
-import { InMemoryOffsetStore } from "./infrastructure/persistence/offset-store";
-import { FlexibleMockStarkAdapter } from "./infrastructure/adapters/mock-stark-adapter";
-import { StoneProofAdapter } from "./infrastructure/adapters/stone-proof-adapter";
-import { SystemClock } from "./infrastructure/adapters/clock-adapter";
-import { InMemoryEventEmitter } from "./infrastructure/adapters/event-emitter-adapter";
+import { InMemoryLedgerStore } from "./infrastructure/persistence/ledger-store.js";
+import { InMemoryOutboxStore } from "./infrastructure/persistence/outbox-store.js";
+import { InMemoryOffsetStore } from "./infrastructure/persistence/offset-store.js";
+import { FlexibleMockStarkAdapter } from "./infrastructure/adapters/mock-stark-adapter.js";
+import { StoneProofAdapter } from "./infrastructure/adapters/stone-proof-adapter.js";
+import { SystemClock } from "./infrastructure/adapters/clock-adapter.js";
+import { InMemoryEventEmitter } from "./infrastructure/adapters/event-emitter-adapter.js";
 import {
   DilithiumSigningAdapter,
   TransactionSigningAdapter,
-} from "./infrastructure/adapters/dilithium-adapter";
-import { InMemoryAuditLog } from "./infrastructure/adapters/audit-adapter";
+} from "./infrastructure/adapters/dilithium-adapter.js";
+import { InMemoryAuditLog } from "./infrastructure/adapters/audit-adapter.js";
 
 /**
  * Context containing all dependencies for the settlement layer.

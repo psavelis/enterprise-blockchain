@@ -1,5 +1,5 @@
-import type { KeyEntry } from "../domain/entities";
-import type { KeyStore } from "../domain/ports";
+import type { KeyEntry } from "../domain/entities.js";
+import type { KeyStore } from "../domain/ports.js";
 
 export class InMemoryKeyStore implements KeyStore {
   private readonly data = new Map<string, KeyEntry>();

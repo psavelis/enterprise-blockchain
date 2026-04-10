@@ -32,7 +32,7 @@ import {
   extractErrorCode,
   isInsufficientFunds,
   isNonceTooLow,
-} from "./error-mapper";
+} from "./error-mapper.js";
 import type {
   BesuPrivateTransactionRequest,
   BesuHealthStatus,
@@ -43,7 +43,7 @@ import type {
   IBesuProviderFactory,
   IBesuTransactionBuilder,
   IBesuTransactionSender,
-} from "./ports";
+} from "./ports.js";
 
 const tracer = createTracer("besu-client");
 
@@ -51,7 +51,7 @@ export type {
   BesuRpcProfile,
   BesuPrivateTransactionRequest,
   BesuHealthStatus,
-} from "./ports";
+} from "./ports.js";
 
 const consortiumInterface = new Interface(
   consortiumRegistryArtifact.abi as InterfaceAbi,

@@ -9,8 +9,8 @@
 
 /* eslint-disable @typescript-eslint/require-await */
 
-import type { AssetType, OutboxEntry } from "../../domain/entities";
-import type { OutboxPort } from "../../domain/ports";
+import type { AssetType, OutboxEntry } from "../../domain/entities.js";
+import type { OutboxPort } from "../../domain/ports.js";
 
 /**
  * In-memory implementation of the outbox port.

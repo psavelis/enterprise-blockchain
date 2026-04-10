@@ -9,8 +9,8 @@
 
 /* eslint-disable @typescript-eslint/require-await */
 
-import type { AssetType } from "../../domain/entities";
-import type { OffsetTrackingPort } from "../../domain/ports";
+import type { AssetType } from "../../domain/entities.js";
+import type { OffsetTrackingPort } from "../../domain/ports.js";
 
 /**
  * In-memory implementation of the offset tracking port.

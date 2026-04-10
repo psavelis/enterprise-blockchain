@@ -16,8 +16,8 @@ import type {
   BaseProof,
   Tier1Proof,
   Tier2BlockProof,
-} from "../../domain/entities";
-import type { LedgerPersistencePort } from "../../domain/ports";
+} from "../../domain/entities.js";
+import type { LedgerPersistencePort } from "../../domain/ports.js";
 
 /**
  * In-memory implementation of the ledger persistence port.

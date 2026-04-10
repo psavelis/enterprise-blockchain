@@ -1,5 +1,5 @@
-import type { ReadonlyStore } from "../../shared/store";
-import type { ProductLot, Shipment, TelemetryReading } from "./entities";
+import type { ReadonlyStore } from "../../shared/store.js";
+import type { ProductLot, Shipment, TelemetryReading } from "./entities.js";
 
 /**
  * Read-side port for traceability data.

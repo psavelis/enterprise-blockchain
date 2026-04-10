@@ -1,5 +1,5 @@
-import type { ReadonlyStore } from "../../shared/store";
-import type { PurchaseOrder } from "./entities";
+import type { ReadonlyStore } from "../../shared/store.js";
+import type { PurchaseOrder } from "./entities.js";
 
 export interface OrderRepository {
   readonly orders: ReadonlyStore<string, PurchaseOrder>;

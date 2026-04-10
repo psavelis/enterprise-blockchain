@@ -7,7 +7,7 @@
  * @see domain/ports.ts for EventEmitterPort interface
  */
 
-import type { SettlementEvent, EventEmitterPort } from "../../domain/ports";
+import type { SettlementEvent, EventEmitterPort } from "../../domain/ports.js";
 
 type EventHandler = (event: SettlementEvent) => void;
 

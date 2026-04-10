@@ -21,9 +21,9 @@ import type {
   TransactionPayload,
   TransactionType,
   BaseProof,
-} from "../domain/entities";
-import type { SettlementContext } from "../index";
-import { StateRoot } from "../domain/value-objects";
+} from "../domain/entities.js";
+import type { SettlementContext } from "../index.js";
+import { StateRoot } from "../domain/value-objects.js";
 
 /**
  * Options for creating a mirror account.

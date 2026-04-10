@@ -4,7 +4,7 @@
  * This module should be imported at application startup BEFORE any other
  * imports to ensure proper instrumentation:
  *
- *   import "@enterprise-blockchain/shared/telemetry-sdk";
+ *   import "@psavelis/enterprise-blockchain/shared/telemetry-sdk";
  *
  * The SDK is configured via standard OpenTelemetry environment variables:
  * - OTEL_SERVICE_NAME: Service name (default: "enterprise-blockchain")

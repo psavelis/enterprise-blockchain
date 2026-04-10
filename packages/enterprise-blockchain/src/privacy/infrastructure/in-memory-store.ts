@@ -1,6 +1,6 @@
-import { InMemoryStore } from "../../shared/store";
-import type { PurchaseOrder } from "../domain/entities";
-import type { OrderRepository } from "../domain/ports";
+import { InMemoryStore } from "../../shared/store.js";
+import type { PurchaseOrder } from "../domain/entities.js";
+import type { OrderRepository } from "../domain/ports.js";
 
 export class InMemoryOrderRepository implements OrderRepository {
   readonly orders = new InMemoryStore<string, PurchaseOrder>();

@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import * as dgram from "node:dgram";
 
-import type { HsmAuditEntry } from "../domain/entities";
-import type { AuditLog } from "../domain/ports";
+import type { HsmAuditEntry } from "../domain/entities.js";
+import type { AuditLog } from "../domain/ports.js";
 
 /**
  * Syslog severity levels per RFC 5424.

@@ -10,7 +10,7 @@
  * "harvest now, decrypt later" threat.
  */
 
-import type { P2MROutput, SpendProof } from "../p2mr/types";
+import type { P2MROutput, SpendProof } from "../p2mr/types.js";
 
 // ---------------------------------------------------------------------------
 // Result Types

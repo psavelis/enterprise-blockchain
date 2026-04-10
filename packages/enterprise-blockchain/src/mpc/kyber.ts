@@ -29,7 +29,7 @@ import {
   ml_kem768,
 } from "@noble/post-quantum/ml-kem.js";
 
-import { sha256hex } from "./crypto";
+import { sha256hex } from "./crypto.js";
 
 // ---------------------------------------------------------------------------
 // Parameter sets

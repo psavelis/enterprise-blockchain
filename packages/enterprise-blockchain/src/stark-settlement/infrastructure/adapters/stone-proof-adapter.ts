@@ -34,9 +34,9 @@ import type {
   BaseProof,
   Tier1Proof,
   Tier2BlockProof,
-} from "../../domain/entities";
-import type { StarkProofGeneratorPort, ClockPort } from "../../domain/ports";
-import { FieldElement, STARK_PRIME } from "../../domain/value-objects";
+} from "../../domain/entities.js";
+import type { StarkProofGeneratorPort, ClockPort } from "../../domain/ports.js";
+import { FieldElement, STARK_PRIME } from "../../domain/value-objects.js";
 
 /**
  * Configuration for the Stone proof adapter.

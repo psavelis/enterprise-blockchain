@@ -9,7 +9,7 @@
 
 import { randomUUID } from "node:crypto";
 
-import type { ClockPort } from "../../domain/ports";
+import type { ClockPort } from "../../domain/ports.js";
 
 /**
  * Real clock adapter using system time.

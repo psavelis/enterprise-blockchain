@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 
-import { sha256hex } from "./crypto";
+import { sha256hex } from "./crypto.js";
 
 /**
  * Create a cryptographic commitment for a secret share.

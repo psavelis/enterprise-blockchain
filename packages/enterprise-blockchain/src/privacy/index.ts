@@ -4,14 +4,14 @@ export type {
   Audience,
   SharedOrderView,
   SignedAuditProof,
-} from "./domain/entities";
-export type { OrderRepository } from "./domain/ports";
+} from "./domain/entities.js";
+export type { OrderRepository } from "./domain/ports.js";
 
 // Application
-export { ViewProjector } from "./application/view-projector";
+export { ViewProjector } from "./application/view-projector.js";
 
 // Infrastructure
-export { InMemoryOrderRepository } from "./infrastructure/in-memory-store";
+export { InMemoryOrderRepository } from "./infrastructure/in-memory-store.js";
 
 // ---------------------------------------------------------------------------
 // Facade — preserves the original public API.
@@ -21,10 +21,10 @@ import type {
   Audience,
   PurchaseOrder,
   SharedOrderView,
-} from "./domain/entities";
-import type { OrderRepository } from "./domain/ports";
-import { InMemoryOrderRepository } from "./infrastructure/in-memory-store";
-import { ViewProjector } from "./application/view-projector";
+} from "./domain/entities.js";
+import type { OrderRepository } from "./domain/ports.js";
+import { InMemoryOrderRepository } from "./infrastructure/in-memory-store.js";
+import { ViewProjector } from "./application/view-projector.js";
 import type { HsmClient } from "../hsm/index.js";
 import type { Logger } from "../shared/logger.js";
 

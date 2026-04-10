@@ -1,7 +1,7 @@
-import type { RecallAssessment, RecallRule } from "../domain/recall";
-import type { TraceabilityRepository } from "../domain/ports";
-import type { Logger } from "../../shared/logger";
-import { noopLogger } from "../../shared/logger";
+import type { RecallAssessment, RecallRule } from "../domain/recall.js";
+import type { TraceabilityRepository } from "../domain/ports.js";
+import type { Logger } from "../../shared/logger.js";
+import { noopLogger } from "../../shared/logger.js";
 
 export class RecallAssessor {
   private readonly logger: Logger;

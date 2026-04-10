@@ -1,14 +1,14 @@
-export { sha256hex } from "./crypto";
-export { commitShare, timingSafeCompare } from "./commit";
-export { daysUntil } from "./date";
-export type { ReadonlyStore, Store } from "./store";
-export { InMemoryStore } from "./store";
-export { CollectionStore } from "./collection-store";
-export type { Logger, LogFields } from "./logger";
-export { ConsoleLogger, noopLogger } from "./logger";
+export { sha256hex } from "./crypto.js";
+export { commitShare, timingSafeCompare } from "./commit.js";
+export { daysUntil } from "./date.js";
+export type { ReadonlyStore, Store } from "./store.js";
+export { InMemoryStore } from "./store.js";
+export { CollectionStore } from "./collection-store.js";
+export type { Logger, LogFields } from "./logger.js";
+export { ConsoleLogger, noopLogger } from "./logger.js";
 
 // Telemetry
-export type { Tracer, Meter, Span, SpanOptions, Context } from "./telemetry";
+export type { Tracer, Meter, Span, SpanOptions, Context } from "./telemetry.js";
 export {
   createTracer,
   createMeter,
@@ -20,4 +20,4 @@ export {
   context,
   propagation,
   SERVICE_NAME,
-} from "./telemetry";
+} from "./telemetry.js";

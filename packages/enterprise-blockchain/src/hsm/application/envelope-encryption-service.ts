@@ -4,9 +4,9 @@ import type {
   EncryptedRecord,
   EnvelopeEncryptionResult,
   WrappedKey,
-} from "../domain/entities";
-import type { AuditLog } from "../domain/ports";
-import type { SymmetricKeyService } from "./symmetric-key-service";
+} from "../domain/entities.js";
+import type { AuditLog } from "../domain/ports.js";
+import type { SymmetricKeyService } from "./symmetric-key-service.js";
 
 /**
  * DEK/KEK envelope encryption — ephemeral DEK wrapped by a stored KEK.

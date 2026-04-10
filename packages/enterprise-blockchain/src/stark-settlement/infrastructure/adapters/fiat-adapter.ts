@@ -20,9 +20,9 @@ import type {
   NetTransfer,
   Tier2BlockProof,
   FiatSettlementResult,
-} from "../../domain/entities";
-import type { FiatSettlementPort, ClockPort } from "../../domain/ports";
-import { ProofCommitment } from "../../domain/value-objects";
+} from "../../domain/entities.js";
+import type { FiatSettlementPort, ClockPort } from "../../domain/ports.js";
+import { ProofCommitment } from "../../domain/value-objects.js";
 
 /**
  * Configuration for Fiat adapter.

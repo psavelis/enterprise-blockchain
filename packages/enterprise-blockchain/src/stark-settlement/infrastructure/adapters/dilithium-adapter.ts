@@ -16,8 +16,8 @@ import { MlDsaSigner } from "../../../mpc/dsa.js";
 import type {
   DilithiumSigningPort,
   TransactionSigningPort,
-} from "../../domain/ports";
-import type { TransactionPayload } from "../../domain/entities";
+} from "../../domain/ports.js";
+import type { TransactionPayload } from "../../domain/entities.js";
 
 /**
  * Adapter for ML-DSA-65 signing operations.

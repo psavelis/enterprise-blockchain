@@ -4,14 +4,14 @@ export type {
   ProviderProfile,
   StaffingAssignment,
   ClearanceDecision,
-} from "./domain/entities";
-export type { CredentialRepository } from "./domain/ports";
+} from "./domain/entities.js";
+export type { CredentialRepository } from "./domain/ports.js";
 
 // Application
-export { ClearanceEvaluator } from "./application/clearance-evaluator";
+export { ClearanceEvaluator } from "./application/clearance-evaluator.js";
 
 // Infrastructure
-export { InMemoryCredentialRepository } from "./infrastructure/in-memory-store";
+export { InMemoryCredentialRepository } from "./infrastructure/in-memory-store.js";
 
 // ---------------------------------------------------------------------------
 // Facade — preserves the original public API.
@@ -22,11 +22,11 @@ import type {
   ClearanceDecision,
   ProviderProfile,
   StaffingAssignment,
-} from "./domain/entities";
-import type { CredentialRepository } from "./domain/ports";
+} from "./domain/entities.js";
+import type { CredentialRepository } from "./domain/ports.js";
 import type { Logger } from "../shared/logger.js";
-import { InMemoryCredentialRepository } from "./infrastructure/in-memory-store";
-import { ClearanceEvaluator } from "./application/clearance-evaluator";
+import { InMemoryCredentialRepository } from "./infrastructure/in-memory-store.js";
+import { ClearanceEvaluator } from "./application/clearance-evaluator.js";
 
 export class CredentialRegistry {
   private readonly repo: CredentialRepository;

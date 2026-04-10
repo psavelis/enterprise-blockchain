@@ -1,4 +1,4 @@
-import type { HsmAuditEntry, KeyEntry } from "./entities";
+import type { HsmAuditEntry, KeyEntry } from "./entities.js";
 
 /**
  * Port for the HSM key store — decouples domain services from storage.

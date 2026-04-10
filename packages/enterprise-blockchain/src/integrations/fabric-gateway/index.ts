@@ -32,11 +32,11 @@ import type {
   IFabricGatewayFactory,
   IFabricProfileFactory,
   IFabricProposalBuilder,
-} from "./ports";
+} from "./ports.js";
 
 const tracer = createTracer("fabric-gateway");
 
-export type { FabricGatewayProfile, FabricProposalPlan } from "./ports";
+export type { FabricGatewayProfile, FabricProposalPlan } from "./ports.js";
 
 export class FabricProfileFactory implements IFabricProfileFactory {
   createProfileFromEnv(

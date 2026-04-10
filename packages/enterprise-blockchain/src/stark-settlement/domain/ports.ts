@@ -28,7 +28,7 @@ import type {
   DepositEvent,
   AuditRecord,
   RaftNode,
-} from "./entities";
+} from "./entities.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STARK Proof Generation Port

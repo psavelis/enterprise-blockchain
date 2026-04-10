@@ -18,8 +18,8 @@ import type {
   BaseProof,
   Tier1Proof,
   Tier2BlockProof,
-} from "../../domain/entities";
-import type { StarkProofGeneratorPort, ClockPort } from "../../domain/ports";
+} from "../../domain/entities.js";
+import type { StarkProofGeneratorPort, ClockPort } from "../../domain/ports.js";
 
 /**
  * Configuration for the mock STARK adapter.

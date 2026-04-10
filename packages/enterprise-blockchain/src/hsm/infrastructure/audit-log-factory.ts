@@ -1,7 +1,7 @@
-import type { AuditLog } from "../domain/ports";
-import { InMemoryAuditLog } from "./audit-log";
-import { FileAuditLog } from "./file-audit-log";
-import { SyslogAuditLog, type SyslogConfig } from "./syslog-audit-log";
+import type { AuditLog } from "../domain/ports.js";
+import { InMemoryAuditLog } from "./audit-log.js";
+import { FileAuditLog } from "./file-audit-log.js";
+import { SyslogAuditLog, type SyslogConfig } from "./syslog-audit-log.js";
 
 /**
  * Audit log adapter types supported by the factory.
