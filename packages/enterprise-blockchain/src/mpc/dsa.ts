@@ -80,7 +80,12 @@ export interface DsaSignatureResult {
   /** The raw ML-DSA signature bytes to send alongside the message. */
   signature: Uint8Array;
   /**
-   * SHA-256 hex digest of the signature bytes.  Suitable for on-chain
+   * SHA-256 hex digest of the signature's hex encoding.
+   *
+   * Computed as: sha256hex(Buffer.from(signature).toString("hex"))
+   *
+   * This means the hash is over the hex-encoded string representation of the
+   * signature bytes, not the raw bytes directly. Suitable for on-chain
    * commitments or audit logs.
    */
   auditCommitment: string;
@@ -88,11 +93,20 @@ export interface DsaSignatureResult {
 
 export interface DsaAuditRecord {
   params: MlDsaParams;
-  /** SHA-256 of the public key — stable identifier for the signer's keypair. */
+  /**
+   * SHA-256 of the public key's hex encoding — stable identifier for the signer's keypair.
+   * Computed as: sha256hex(Buffer.from(publicKey).toString("hex"))
+   */
   publicKeyHash: string;
-  /** SHA-256 of the signature — unique per signing event. */
+  /**
+   * SHA-256 of the signature's hex encoding — unique per signing event.
+   * Same as auditCommitment from DsaSignatureResult.
+   */
   signatureHash: string;
-  /** SHA-256 of the message — proves which message was signed. */
+  /**
+   * SHA-256 of the message's hex encoding — proves which message was signed.
+   * Computed as: sha256hex(Buffer.from(message).toString("hex"))
+   */
   messageHash: string;
   /** ISO-8601 timestamp of the signing event. */
   timestamp: string;

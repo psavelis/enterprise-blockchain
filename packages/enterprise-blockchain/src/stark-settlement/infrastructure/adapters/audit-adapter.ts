@@ -19,6 +19,7 @@ import type { AuditPort } from "../../domain/ports.js";
  */
 export class InMemoryAuditLog implements AuditPort {
   private readonly records: AuditRecord[] = [];
+  private readonly recordsById = new Map<string, AuditRecord>(); // recordId -> AuditRecord (O(1) lookup)
   private readonly recordsByEntity = new Map<string, string[]>(); // entityId -> recordIds
   private lastHash = "0".repeat(64); // Genesis hash
 
@@ -50,6 +51,7 @@ export class InMemoryAuditLog implements AuditPort {
     };
 
     this.records.push(fullRecord);
+    this.recordsById.set(recordId, fullRecord); // O(1) lookup index
     this.lastHash = recordHash;
 
     // Index by entity
@@ -63,8 +65,9 @@ export class InMemoryAuditLog implements AuditPort {
     const recordIds = this.recordsByEntity.get(entityId) ?? [];
     const records: AuditRecord[] = [];
 
+    // Use recordsById Map for O(1) lookup instead of O(n) find()
     for (const recordId of recordIds) {
-      const record = this.records.find((r) => r.recordId === recordId);
+      const record = this.recordsById.get(recordId);
       if (record) {
         records.push(record);
       }
@@ -182,6 +185,7 @@ export class InMemoryAuditLog implements AuditPort {
    */
   clear(): void {
     this.records.length = 0;
+    this.recordsById.clear();
     this.recordsByEntity.clear();
     this.lastHash = "0".repeat(64);
   }

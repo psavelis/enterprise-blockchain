@@ -66,7 +66,14 @@ export interface HybridEncapsulation {
    * Do not transmit; derive it independently on each side.
    */
   combinedKey: Buffer;
-  /** SHA-256 of (x25519EphemeralPublicKeyDer || kyberCiphertext) for auditing. */
+  /**
+   * SHA-256 of the concatenated hex encodings for auditing.
+   *
+   * Computed as: sha256hex(ephemeralPubDer.toString("hex") + kyberCiphertext.toString("hex"))
+   *
+   * This hashes the hex-encoded string concatenation, not the raw bytes.
+   * Suitable for on-chain commitments or audit logs.
+   */
   auditCommitment: string;
 }
 
