@@ -85,7 +85,8 @@ export class SolanaDevnetAdapter implements SolanaSettlementPort {
 
     // For now, simulate the settlement
     const signature = this.generateMockSignature(proofCommitment.toString());
-    const slot = Math.floor(Date.now() / 400); // ~400ms per slot
+    // Use injected clock for deterministic testing with FixedClock (~400ms per slot)
+    const slot = Math.floor(this.clock.now() / 400);
 
     // Calculate fee based on transfer count
     const baseFee = 5000n; // 5000 lamports base
@@ -128,7 +129,8 @@ export class SolanaDevnetAdapter implements SolanaSettlementPort {
 
   async getHealth(): Promise<{ healthy: boolean; slot: number }> {
     // In production, this would call getSlot() RPC method
-    const slot = Math.floor(Date.now() / 400);
+    // Use injected clock for deterministic testing with FixedClock
+    const slot = Math.floor(this.clock.now() / 400);
     return { healthy: true, slot };
   }
 

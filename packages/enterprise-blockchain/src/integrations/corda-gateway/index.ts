@@ -67,13 +67,71 @@ export class CordaRequestBuilder implements ICordaRequestBuilder {
   }
 }
 
+import { lookup } from "node:dns/promises";
+
+/**
+ * Check if an IP address is in a private/reserved range.
+ * Covers IPv4 private ranges, loopback, link-local, and IPv6 equivalents.
+ */
+function isPrivateIP(ip: string): boolean {
+  // IPv4 private/reserved patterns
+  const ipv4PrivatePatterns = [
+    /^127\./, // loopback
+    /^10\./, // Class A private
+    /^172\.(1[6-9]|2\d|3[01])\./, // Class B private
+    /^192\.168\./, // Class C private
+    /^169\.254\./, // link-local
+    /^0\./, // current network
+    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./, // carrier-grade NAT
+    /^192\.0\.0\./, // IETF protocol assignments
+    /^192\.0\.2\./, // TEST-NET-1
+    /^198\.51\.100\./, // TEST-NET-2
+    /^203\.0\.113\./, // TEST-NET-3
+    /^224\./, // multicast
+    /^240\./, // reserved
+    /^255\.255\.255\.255$/, // broadcast
+  ];
+
+  // IPv6 private/reserved patterns
+  const ipv6PrivatePatterns = [
+    /^::1$/, // loopback
+    /^::$/, // unspecified
+    /^::ffff:127\./, // IPv4-mapped loopback
+    /^::ffff:10\./, // IPv4-mapped Class A
+    /^::ffff:172\.(1[6-9]|2\d|3[01])\./, // IPv4-mapped Class B
+    /^::ffff:192\.168\./, // IPv4-mapped Class C
+    /^fc/, // unique local (fc00::/7)
+    /^fd/, // unique local (fc00::/7)
+    /^fe80:/, // link-local
+    /^ff/, // multicast
+  ];
+
+  const lowerIp = ip.toLowerCase();
+
+  for (const pattern of ipv4PrivatePatterns) {
+    if (pattern.test(lowerIp)) return true;
+  }
+
+  for (const pattern of ipv6PrivatePatterns) {
+    if (pattern.test(lowerIp)) return true;
+  }
+
+  return false;
+}
+
 /**
  * Validates that a URL is safe to fetch (SSRF protection).
  * - Must be HTTPS protocol
- * - Must not target private/internal IP ranges
+ * - Must not resolve to private/internal IP addresses (prevents DNS rebinding)
+ * - Uses explicit allowlist approach for gateway hosts in production
+ *
+ * IMPORTANT: This performs DNS resolution to prevent DNS rebinding attacks where
+ * an attacker-controlled DNS name initially resolves to a public IP but later
+ * resolves to a private IP (e.g., 127.0.0.1, 10.x.x.x, etc.)
+ *
  * @throws Error if URL fails validation
  */
-function validateGatewayUrl(urlString: string): URL {
+async function validateGatewayUrl(urlString: string): Promise<URL> {
   const url = new URL(urlString);
 
   // Require HTTPS for production gateway connections
@@ -83,29 +141,56 @@ function validateGatewayUrl(urlString: string): URL {
     );
   }
 
-  // Block private/internal IP ranges
-  // Note: URL.hostname returns IPv6 addresses WITHOUT brackets (e.g., "::1" not "[::1]")
   const hostname = url.hostname.toLowerCase();
-  const privatePatterns = [
-    /^localhost$/,
-    /^127\./,
-    /^10\./,
-    /^172\.(1[6-9]|2\d|3[01])\./,
-    /^192\.168\./,
-    /^169\.254\./, // link-local
-    /^0\./, // current network
-    /^::1$/, // IPv6 localhost (no brackets in URL.hostname)
-    /^fc/, // IPv6 unique local (no brackets in URL.hostname)
-    /^fd/, // IPv6 unique local (no brackets in URL.hostname)
-    /^fe80:/, // IPv6 link-local (no brackets in URL.hostname)
-  ];
 
-  for (const pattern of privatePatterns) {
-    if (pattern.test(hostname)) {
+  // Quick check: block obviously private hostnames before DNS lookup
+  if (hostname === "localhost") {
+    throw new Error(
+      `SSRF protection: Corda gateway URL must not target private networks`,
+    );
+  }
+
+  // Resolve hostname to IP address(es) and check each one
+  // This prevents DNS rebinding attacks where a hostname initially resolves
+  // to a public IP but later resolves to a private IP
+  try {
+    // Resolve both IPv4 and IPv6 addresses
+    const results = await Promise.allSettled([
+      lookup(hostname, { family: 4 }),
+      lookup(hostname, { family: 6 }),
+    ]);
+
+    // Collect all resolved addresses
+    const addresses: string[] = [];
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        addresses.push(result.value.address);
+      }
+    }
+
+    // If no addresses resolved, the hostname is invalid
+    if (addresses.length === 0) {
       throw new Error(
-        `SSRF protection: Corda gateway URL must not target private networks`,
+        `SSRF protection: Could not resolve hostname ${hostname}`,
       );
     }
+
+    // Check all resolved IPs against private ranges
+    for (const ip of addresses) {
+      if (isPrivateIP(ip)) {
+        throw new Error(
+          `SSRF protection: Corda gateway URL must not target private networks (resolved to ${ip})`,
+        );
+      }
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("SSRF protection:")) {
+      throw err;
+    }
+    throw new Error(
+      `SSRF protection: DNS resolution failed for ${hostname}: ${err instanceof Error ? err.message : String(err)}`,
+      { cause: err },
+    );
   }
 
   return url;
@@ -119,7 +204,8 @@ export class CordaFlowInvoker implements ICordaFlowInvoker {
       span.setAttribute("corda.timeout_ms", request.timeoutMs);
 
       // Validate URL before making the request (SSRF protection)
-      const validatedUrl = validateGatewayUrl(request.url);
+      // This performs DNS resolution to prevent DNS rebinding attacks
+      const validatedUrl = await validateGatewayUrl(request.url);
 
       try {
         const response = await fetch(validatedUrl.toString(), {

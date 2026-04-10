@@ -241,12 +241,16 @@ export class AsyncEventEmitter implements EventEmitterPort {
 
   on<T extends SettlementEvent["type"]>(
     eventType: T,
-    handler: (event: Extract<SettlementEvent, { type: T }>) => void,
+    handler: (
+      event: Extract<SettlementEvent, { type: T }>,
+    ) => void | Promise<void>,
   ): { unsubscribe: () => void } {
     if (!this.typeHandlers.has(eventType)) {
       this.typeHandlers.set(eventType, new Set());
     }
-    const wrappedHandler = handler as (event: SettlementEvent) => void;
+    const wrappedHandler = handler as (
+      event: SettlementEvent,
+    ) => void | Promise<void>;
     this.typeHandlers.get(eventType)!.add(wrappedHandler);
     return {
       unsubscribe: () => {
