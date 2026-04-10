@@ -171,13 +171,23 @@ export class MerkleTree {
     // Traverse from leaves up to (but not including) the root
     for (let level = 0; level < this.#levels.length - 1; level++) {
       const currentLevel = this.#levels[level]!;
-      const siblingIdx = idx % 2 === 0 ? idx + 1 : idx - 1;
+      const isLeftChild = idx % 2 === 0;
+      const siblingIdx = isLeftChild ? idx + 1 : idx - 1;
 
-      // Handle case where sibling doesn't exist (odd number of nodes)
+      // When sibling doesn't exist (odd number at this level), the tree builder
+      // duplicates the last node to pair with itself. We must include this
+      // self-sibling in the proof for verification to work correctly.
       if (siblingIdx < currentLevel.length) {
         proof.push({
           hash: currentLevel[siblingIdx]!,
-          position: idx % 2 === 0 ? "right" : "left",
+          position: isLeftChild ? "right" : "left",
+        });
+      } else {
+        // Sibling is out of bounds - this node was duplicated as its own pair
+        // Include the self-hash as the sibling
+        proof.push({
+          hash: currentLevel[idx]!,
+          position: "right",
         });
       }
 
