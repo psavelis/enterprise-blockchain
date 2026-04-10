@@ -2,11 +2,12 @@
  * Finite field arithmetic for Shamir Secret Sharing.
  *
  * Two field sizes are supported:
- * - **Demo mode** (default): 2^31 - 1 (Mersenne prime, fast, fits in JS Number)
- * - **Production mode**: 2^256 - 2^32 - 977 (secp256k1 order, cryptographically secure)
+ * - **Demo mode**: 2^31 - 1 (Mersenne prime, fast, fits in JS Number)
+ * - **Production mode** (default): 2^256 - 2^32 - 977 (secp256k1 order, cryptographically secure)
  *
  * WARNING: Demo mode is NOT secure for production use.
  * The small field allows brute-force enumeration in seconds.
+ * Demo mode is only allowed when NODE_ENV is "development" or "test".
  *
  * @see skills/mpc-secret-sharing.md for security guidance
  * @see docs/adr/ADR-0004-field-arithmetic-for-mpc.md for design rationale
@@ -47,15 +48,18 @@ export interface FieldConfig {
  * Get field configuration from environment or explicit parameter.
  *
  * Environment variable: MPC_FIELD_MODE ("demo" | "production")
- * Default: "demo" for backward compatibility
+ * Default: "production" (secure by default)
  *
- * SECURITY WARNING: Using demo mode in production is insecure!
- * The 31-bit field can be brute-forced in seconds.
- * Set MPC_FIELD_MODE=production for cryptographic security.
+ * Demo mode requires NODE_ENV to be "development" or "test".
+ * This prevents accidental deployment with insecure field size.
+ *
+ * @param mode - Explicit mode override (optional)
+ * @returns Field configuration with prime and mode
+ * @throws Error if demo mode is requested outside dev/test environment
  */
 export function getFieldConfig(mode?: FieldMode): FieldConfig {
   const envMode = process.env.MPC_FIELD_MODE;
-  const rawMode = mode ?? envMode ?? "demo";
+  const rawMode = mode ?? envMode ?? "production";
 
   // Validate the mode is one of the allowed values
   if (rawMode !== "demo" && rawMode !== "production") {
@@ -230,13 +234,24 @@ export class FieldArithmetic {
 }
 
 /**
- * Singleton instances for common use cases.
+ * Production field singleton for common use cases.
+ * This is the recommended default for all production code.
  */
-export const demoField = new FieldArithmetic({
-  mode: "demo",
-  prime: DEMO_PRIME,
-});
 export const productionField = new FieldArithmetic({
   mode: "production",
   prime: PRODUCTION_PRIME,
 });
+
+/**
+ * Demo field singleton - INTERNAL USE ONLY.
+ * Not exported to prevent accidental use in production code.
+ * Use `new FieldArithmetic({ mode: "demo", prime: DEMO_PRIME })` explicitly
+ * in development/test contexts only.
+ */
+const _demoField = new FieldArithmetic({
+  mode: "demo",
+  prime: DEMO_PRIME,
+});
+
+// Export for internal test usage only (not re-exported from index.ts)
+export { _demoField as demoField };

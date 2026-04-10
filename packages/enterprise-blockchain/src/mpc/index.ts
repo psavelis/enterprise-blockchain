@@ -8,12 +8,13 @@ import {
 const BYTES_PER_SHARE = 200;
 
 // Re-export field arithmetic for advanced use cases
+// Note: demoField is intentionally NOT exported to prevent accidental use in production.
+// Use `new FieldArithmetic({ mode: "demo", prime: DEMO_PRIME })` explicitly in tests.
 export {
   FieldArithmetic,
   getFieldConfig,
   DEMO_PRIME,
   PRODUCTION_PRIME,
-  demoField,
   productionField,
 } from "./field.js";
 export type { FieldConfig, FieldMode } from "./field.js";

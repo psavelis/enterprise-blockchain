@@ -15,6 +15,11 @@ package prover;
 option go_package = "github.com/enterprise-blockchain/prover";
 
 // ProverService provides STARK proof generation and verification.
+//
+// Note: This service includes a custom Health RPC for application-level health info
+// (active jobs, memory, version). For Kubernetes liveness/readiness probes,
+// containers should also implement the standard grpc.health.v1.Health service
+// which is checked by grpc_health_probe.
 service ProverService {
   // ExecuteAndProve runs a Cairo program and generates a STARK proof.
   rpc ExecuteAndProve(ExecuteAndProveRequest) returns (ExecuteAndProveResponse);
@@ -22,8 +27,10 @@ service ProverService {
   // Verify checks the validity of a STARK proof.
   rpc Verify(VerifyRequest) returns (VerifyResponse);
 
-  // Health returns the prover service health status.
-  rpc Health(HealthRequest) returns (HealthResponse);
+  // GetProverHealth returns detailed prover health status including job counts,
+  // memory usage, and version info. This is for application-level monitoring.
+  // For K8s probes, use the standard grpc.health.v1.Health service.
+  rpc GetProverHealth(HealthRequest) returns (HealthResponse);
 
   // GetCapabilities returns prover capabilities and configuration.
   rpc GetCapabilities(CapabilitiesRequest) returns (CapabilitiesResponse);

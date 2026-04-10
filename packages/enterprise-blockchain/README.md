@@ -87,19 +87,20 @@ const { output, tree } = createP2MROutput({
 
 ## Subpath Exports
 
-| Import Path                                        | Description                                           |
-| -------------------------------------------------- | ----------------------------------------------------- |
-| `@psavelis/enterprise-blockchain/mpc`              | MPC engine, ML-KEM, ML-DSA, Hybrid KEM, Shamir SSS    |
-| `@psavelis/enterprise-blockchain/hsm`              | PKCS#11 HSM simulator, envelope encryption            |
-| `@psavelis/enterprise-blockchain/p2mr`             | Pay-to-Merkle-Root quantum-safe Bitcoin outputs       |
-| `@psavelis/enterprise-blockchain/stark-settlement` | 3-tier STARK proof aggregation, multi-rail settlement |
-| `@psavelis/enterprise-blockchain/credentialing`    | Clinical credential verification                      |
-| `@psavelis/enterprise-blockchain/privacy`          | Selective disclosure ledger                           |
-| `@psavelis/enterprise-blockchain/traceability`     | Supply-chain traceability                             |
-| `@psavelis/enterprise-blockchain/aid-settlement`   | Aid voucher reconciliation                            |
-| `@psavelis/enterprise-blockchain/protocols`        | Fabric/Besu/Corda adapter interfaces                  |
-| `@psavelis/enterprise-blockchain/integrations`     | SDK clients with circuit breaker patterns             |
-| `@psavelis/enterprise-blockchain/shared`           | Utilities, crypto, telemetry, stores                  |
+| Import Path                                            | Description                                           |
+| ------------------------------------------------------ | ----------------------------------------------------- |
+| `@psavelis/enterprise-blockchain/mpc`                  | MPC engine, ML-KEM, ML-DSA, Hybrid KEM, Shamir SSS    |
+| `@psavelis/enterprise-blockchain/hsm`                  | PKCS#11 HSM simulator, envelope encryption            |
+| `@psavelis/enterprise-blockchain/p2mr`                 | Pay-to-Merkle-Root quantum-safe Bitcoin outputs       |
+| `@psavelis/enterprise-blockchain/stark-settlement`     | 3-tier STARK proof aggregation, multi-rail settlement |
+| `@psavelis/enterprise-blockchain/credentialing`        | Clinical credential verification                      |
+| `@psavelis/enterprise-blockchain/privacy`              | Selective disclosure ledger                           |
+| `@psavelis/enterprise-blockchain/traceability`         | Supply-chain traceability                             |
+| `@psavelis/enterprise-blockchain/aid-settlement`       | Aid voucher reconciliation                            |
+| `@psavelis/enterprise-blockchain/protocols`            | Fabric/Besu/Corda adapter interfaces                  |
+| `@psavelis/enterprise-blockchain/integrations`         | SDK clients with circuit breaker patterns             |
+| `@psavelis/enterprise-blockchain/shared`               | Utilities, crypto, stores (no telemetry re-export)    |
+| `@psavelis/enterprise-blockchain/shared/telemetry-sdk` | OpenTelemetry SDK initialization (side-effect import) |
 
 ## Architecture
 

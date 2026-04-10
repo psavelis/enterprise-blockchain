@@ -53,7 +53,13 @@ if (endpoint) {
     metricReader,
   });
 
-  sdk.start();
+  // Start the SDK. NodeSDK.start() is synchronous and returns void.
+  // Errors during startup will throw, so we wrap in try-catch for safety.
+  try {
+    sdk.start();
+  } catch (err: unknown) {
+    console.error("OpenTelemetry SDK failed to start:", err);
+  }
 
   // Graceful shutdown handler
   const shutdown = (): void => {
