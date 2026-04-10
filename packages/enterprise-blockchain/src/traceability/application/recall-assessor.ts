@@ -60,14 +60,18 @@ export class RecallAssessor {
     lotIds: Set<string>,
     reasons: Set<string>,
   ): void {
+    // Convert arrays to Sets for O(1) lookups instead of O(n) includes()
+    const flaggedLotIdSet = new Set(rule.flaggedLotIds);
+    const suspectSupplierSet = new Set(rule.suspectSuppliers);
+
     for (const lot of this.repo.lots.values()) {
-      if (rule.flaggedLotIds.includes(lot.id)) {
+      if (flaggedLotIdSet.has(lot.id)) {
         lotIds.add(lot.id);
         reasons.add(
           `Lot ${lot.id} was explicitly flagged by quality assurance.`,
         );
       }
-      if (rule.suspectSuppliers.includes(lot.supplier)) {
+      if (suspectSupplierSet.has(lot.supplier)) {
         lotIds.add(lot.id);
         reasons.add(`Supplier ${lot.supplier} was placed under investigation.`);
       }

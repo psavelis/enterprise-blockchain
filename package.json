@@ -16,7 +16,7 @@
     "publish:lib": "npm publish -w @psavelis/enterprise-blockchain --access public",
     "format": "prettier . --write --ignore-unknown",
     "format:check": "prettier . --check --ignore-unknown",
-    "lint": "eslint modules examples scripts tests --max-warnings=0",
+    "lint": "eslint modules examples packages scripts tests --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "NODE_ENV=test node --import tsx --test tests/**/*.test.ts",
     "test:coverage": "NODE_ENV=test c8 --reporter=text --reporter=lcov --reporter=json node --import tsx --test tests/**/*.test.ts",

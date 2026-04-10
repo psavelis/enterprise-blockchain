@@ -84,9 +84,7 @@
   },
   "files": [
     "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "README.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

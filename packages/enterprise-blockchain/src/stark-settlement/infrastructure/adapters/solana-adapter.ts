@@ -95,11 +95,8 @@ export class SolanaDevnetAdapter implements SolanaSettlementPort {
     // Estimate compute units
     const computeUnits = 50000 + transfers.length * 5000;
 
-    console.log(
-      `[Solana] Settled ${transfers.length} transfers in slot ${slot}`,
-    );
-    console.log(`[Solana] Signature: ${signature}`);
-    console.log(`[Solana] Proof commitment: ${proofCommitment.toString()}`);
+    // Note: console.log removed to avoid noisy output for library consumers.
+    // In production, use a Logger port or verbose flag for operational output.
 
     return {
       signature,
@@ -122,14 +119,9 @@ export class SolanaDevnetAdapter implements SolanaSettlementPort {
       callback,
     });
 
-    console.log(
-      `[Solana] Subscribed to deposits for ${addresses.length} addresses`,
-    );
-
     return {
       unsubscribe: () => {
         this.subscriptions.delete(subscriptionId);
-        console.log(`[Solana] Unsubscribed from deposits (${subscriptionId})`);
       },
     };
   }

@@ -29,9 +29,15 @@ export class InMemoryAuditLog implements AuditPort {
     const previousHash = this.lastHash;
 
     // Compute record hash (includes previous hash for chain integrity)
+    // IMPORTANT: Use explicit property order for deterministic hashing
     const hashInput = JSON.stringify({
       recordId,
-      ...record,
+      eventType: record.eventType,
+      entityId: record.entityId,
+      entityType: record.entityType,
+      actor: record.actor,
+      timestamp: record.timestamp,
+      data: record.data,
       previousHash,
     });
     const recordHash = createHash("sha256").update(hashInput).digest("hex");

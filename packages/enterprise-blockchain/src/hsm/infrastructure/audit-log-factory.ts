@@ -102,7 +102,18 @@ export class AuditLogFactory {
       }
       const port = env[AUDIT_LOG_ENV.SYSLOG_PORT];
       if (port) {
-        syslogConfig.port = parseInt(port, 10);
+        const parsedPort = parseInt(port, 10);
+        if (
+          !Number.isFinite(parsedPort) ||
+          !Number.isInteger(parsedPort) ||
+          parsedPort < 1 ||
+          parsedPort > 65535
+        ) {
+          throw new Error(
+            `AuditLogFactory: invalid ${AUDIT_LOG_ENV.SYSLOG_PORT} value '${port}'. Expected an integer between 1 and 65535`,
+          );
+        }
+        syslogConfig.port = parsedPort;
       }
       const facility = env[AUDIT_LOG_ENV.SYSLOG_FACILITY];
       if (facility) {

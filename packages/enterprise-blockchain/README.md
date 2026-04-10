@@ -61,9 +61,9 @@ import { HsmClient } from "@psavelis/enterprise-blockchain/hsm";
 
 const hsm = new HsmClient();
 hsm.initialize({ slotId: "slot-1", label: "my-hsm" });
-const { label } = hsm.generateKeyPair("my-signing-key");
-const signature = hsm.sign(label, message);
-const valid = hsm.verify(label, message, signature);
+const { keyLabel } = hsm.generateKeyPair("my-signing-key");
+const signResult = hsm.sign(keyLabel, message);
+const valid = hsm.verify(keyLabel, message, signResult.signature);
 ```
 
 ### Pay-to-Merkle-Root (Quantum-Safe Bitcoin)
