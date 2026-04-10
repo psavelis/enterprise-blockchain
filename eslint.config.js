@@ -9,6 +9,7 @@ export default tseslint.config(
       "ci-results/**",
       "contracts/**",
       "dist/**",
+      "**/dist/**",
       "node_modules/**",
       "eslint.config.js",
       "commitlint.config.js",
