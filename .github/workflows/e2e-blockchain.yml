@@ -185,7 +185,7 @@ jobs:
 
       - name: Post PR comment with results
         if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const total = '${{ steps.e2e_tests.outputs.total }}' || '0';
