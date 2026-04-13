@@ -80,7 +80,6 @@
     "eslint-config-prettier": "^10.1.8",
     "fast-check": "^4.6.0",
     "globals": "^17.5.0",
-    "graphene-pk11": "^2.3.6",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.2",
@@ -100,6 +99,9 @@
     "*.{json,md,yml,yaml}": [
       "prettier --write"
     ]
+  },
+  "optionalDependencies": {
+    "graphene-pk11": "^2.3.6"
   },
   "overrides": {
     "picomatch": "^4.0.4"

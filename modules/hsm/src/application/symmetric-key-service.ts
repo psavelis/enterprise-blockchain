@@ -78,9 +78,12 @@ export class SymmetricKeyService {
     const kek = this.requireSymmetric(kekLabel);
     const kekBuffer = Buffer.from(kek.keyBytes);
     const iv = randomBytes(12);
+    // Select algorithm based on key size
+    const algorithm =
+      kek.keyBits === 128 ? "aes-128-gcm" : ("aes-256-gcm" as const);
 
     try {
-      const cipher = createCipheriv("aes-256-gcm", kekBuffer, iv);
+      const cipher = createCipheriv(algorithm, kekBuffer, iv);
       const wrappedDek = Buffer.concat([
         cipher.update(plaintextDek),
         cipher.final(),
@@ -90,7 +93,7 @@ export class SymmetricKeyService {
       this.audit.record("wrapKey", kekLabel, "success");
 
       return {
-        algorithm: "aes-256-gcm",
+        algorithm,
         wrappedDek: wrappedDek.toString("hex"),
         iv: iv.toString("hex"),
         authTag: authTag.toString("hex"),
@@ -117,9 +120,11 @@ export class SymmetricKeyService {
     const iv = Buffer.from(wrapped.iv, "hex");
     const authTag = Buffer.from(wrapped.authTag, "hex");
     const wrappedBuf = Buffer.from(wrapped.wrappedDek, "hex");
+    // Use algorithm from wrapped key metadata
+    const algorithm = wrapped.algorithm;
 
     try {
-      const decipher = createDecipheriv("aes-256-gcm", kekBuffer, iv);
+      const decipher = createDecipheriv(algorithm, kekBuffer, iv);
       decipher.setAuthTag(authTag);
       const plaintext = Buffer.concat([
         decipher.update(wrappedBuf),
