@@ -1,15 +1,28 @@
 # @psavelis/enterprise-blockchain
 
-Production-grade enterprise blockchain modules: MPC, HSM, STARK settlement, post-quantum cryptography, and protocol adapters.
+Production-grade TypeScript modules for recursive STARK settlement, post-quantum cryptography (ML-KEM/ML-DSA), MPC, HSM, and multi-rail (Solana + Bitcoin + fiat) infrastructure.
 
 [![npm version](https://img.shields.io/npm/v/@psavelis/enterprise-blockchain)](https://www.npmjs.com/package/@psavelis/enterprise-blockchain)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../../LICENSE)
 
-## Installation
+## Install in 10 Seconds
 
 ```bash
 npm install @psavelis/enterprise-blockchain
 ```
+
+```typescript
+import { KyberKem } from "@psavelis/enterprise-blockchain/mpc";
+
+// Post-quantum key exchange (NIST FIPS 203)
+const kem = new KyberKem();
+const { publicKey, secretKey } = kem.generateKeyPair("ml-kem-768");
+const { ciphertext, sharedSecret } = kem.encapsulate(publicKey, "ml-kem-768");
+const decrypted = kem.decapsulate(ciphertext, secretKey, "ml-kem-768");
+// sharedSecret === decrypted ✓
+```
+
+---
 
 ## Quick Start
 

@@ -1,7 +1,7 @@
 {
   "name": "@psavelis/enterprise-blockchain",
-  "version": "1.1.0",
-  "description": "Production-grade enterprise blockchain modules: MPC, HSM, STARK settlement, post-quantum cryptography, and protocol adapters.",
+  "version": "1.1.1",
+  "description": "Production-grade TypeScript modules for recursive STARK settlement, post-quantum cryptography (ML-KEM/ML-DSA), MPC, HSM, and multi-rail (Solana + Bitcoin + fiat) infrastructure.",
   "type": "module",
   "license": "Apache-2.0",
   "author": "Paulo Savelis",
@@ -13,14 +13,16 @@
   "keywords": [
     "enterprise-blockchain",
     "stark",
-    "mpc",
-    "hsm",
+    "stone-prover",
     "post-quantum",
     "ml-kem",
     "ml-dsa",
-    "fabric",
-    "besu",
-    "corda"
+    "mpc",
+    "hsm",
+    "multi-rail-settlement",
+    "recursive-stark",
+    "quantum-safe",
+    "typescript-blockchain"
   ],
   "engines": {
     "node": ">=22.14.0"
