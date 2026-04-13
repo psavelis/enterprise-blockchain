@@ -1,0 +1,154 @@
+{
+  "name": "@psavelis/enterprise-blockchain",
+  "version": "0.1.0",
+  "description": "Production-grade enterprise blockchain modules: MPC, HSM, STARK settlement, post-quantum cryptography, and protocol adapters.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "Paulo Savelis",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/psavelis/enterprise-blockchain.git",
+    "directory": "packages/enterprise-blockchain"
+  },
+  "keywords": [
+    "enterprise-blockchain",
+    "stark",
+    "mpc",
+    "hsm",
+    "post-quantum",
+    "ml-kem",
+    "ml-dsa",
+    "fabric",
+    "besu",
+    "corda"
+  ],
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./shared": {
+      "types": "./dist/shared/index.d.ts",
+      "import": "./dist/shared/index.js"
+    },
+    "./mpc": {
+      "types": "./dist/mpc/index.d.ts",
+      "import": "./dist/mpc/index.js"
+    },
+    "./hsm": {
+      "types": "./dist/hsm/index.d.ts",
+      "import": "./dist/hsm/index.js"
+    },
+    "./p2mr": {
+      "types": "./dist/p2mr/index.d.ts",
+      "import": "./dist/p2mr/index.js"
+    },
+    "./stark-settlement": {
+      "types": "./dist/stark-settlement/index.d.ts",
+      "import": "./dist/stark-settlement/index.js"
+    },
+    "./credentialing": {
+      "types": "./dist/credentialing/index.d.ts",
+      "import": "./dist/credentialing/index.js"
+    },
+    "./privacy": {
+      "types": "./dist/privacy/index.d.ts",
+      "import": "./dist/privacy/index.js"
+    },
+    "./traceability": {
+      "types": "./dist/traceability/index.d.ts",
+      "import": "./dist/traceability/index.js"
+    },
+    "./aid-settlement": {
+      "types": "./dist/aid-settlement/index.d.ts",
+      "import": "./dist/aid-settlement/index.js"
+    },
+    "./protocols": {
+      "types": "./dist/protocols/index.d.ts",
+      "import": "./dist/protocols/index.js"
+    },
+    "./integrations": {
+      "types": "./dist/integrations/index.d.ts",
+      "import": "./dist/integrations/index.js"
+    },
+    "./shared/telemetry-sdk": {
+      "types": "./dist/shared/telemetry-sdk.d.ts",
+      "import": "./dist/shared/telemetry-sdk.js"
+    },
+    "./shared/telemetry": {
+      "types": "./dist/shared/telemetry.d.ts",
+      "import": "./dist/shared/telemetry.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@noble/post-quantum": "^0.5.4"
+  },
+  "peerDependencies": {
+    "@grpc/grpc-js": "^1.14.0",
+    "@grpc/proto-loader": "^0.8.0",
+    "@hyperledger/fabric-gateway": "^1.10.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.214.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
+    "@opentelemetry/resources": "^2.0.0",
+    "@opentelemetry/sdk-metrics": "^2.0.0",
+    "@opentelemetry/sdk-node": "^0.214.0",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
+    "ethers": "^6.16.0",
+    "starknet": "^9.4.0"
+  },
+  "peerDependenciesMeta": {
+    "@grpc/grpc-js": {
+      "optional": true
+    },
+    "@grpc/proto-loader": {
+      "optional": true
+    },
+    "@hyperledger/fabric-gateway": {
+      "optional": true
+    },
+    "@opentelemetry/api": {
+      "optional": true
+    },
+    "@opentelemetry/exporter-metrics-otlp-http": {
+      "optional": true
+    },
+    "@opentelemetry/exporter-trace-otlp-http": {
+      "optional": true
+    },
+    "@opentelemetry/resources": {
+      "optional": true
+    },
+    "@opentelemetry/sdk-metrics": {
+      "optional": true
+    },
+    "@opentelemetry/sdk-node": {
+      "optional": true
+    },
+    "@opentelemetry/semantic-conventions": {
+      "optional": true
+    },
+    "ethers": {
+      "optional": true
+    },
+    "starknet": {
+      "optional": true
+    }
+  }
+}
