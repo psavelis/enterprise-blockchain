@@ -97,7 +97,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@noble/post-quantum": "^0.5.4"
+    "@noble/post-quantum": "^0.6.1"
   },
   "peerDependencies": {
     "@grpc/grpc-js": "^1.14.0",
