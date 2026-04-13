@@ -4,6 +4,7 @@
 
 # Enterprise Blockchain Case Studies
 
+[![npm version](https://img.shields.io/npm/v/@psavelis/enterprise-blockchain)](https://www.npmjs.com/package/@psavelis/enterprise-blockchain)
 [![Awesome](https://awesome.re/badge.svg)]()
 [![CI](https://github.com/psavelis/enterprise-blockchain/actions/workflows/ci.yml/badge.svg)](https://github.com/psavelis/enterprise-blockchain/actions/workflows/ci.yml)
 [![Known Vulnerabilities](https://snyk.io/test/github/psavelis/enterprise-blockchain/badge.svg)](https://snyk.io/test/github/psavelis/enterprise-blockchain)
@@ -11,6 +12,54 @@
 ![Node.js](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen)
 
 TypeScript repository for enterprise blockchain case studies, protocol mappings, and integration patterns.
+
+## npm Package
+
+The production-grade modules are published as **`@psavelis/enterprise-blockchain`**:
+
+```bash
+npm install @psavelis/enterprise-blockchain
+```
+
+**Quick usage:**
+
+```typescript
+// Post-quantum key exchange (ML-KEM-768)
+import { KyberKem } from "@psavelis/enterprise-blockchain/mpc";
+
+const kem = new KyberKem();
+const { publicKey, secretKey } = kem.generateKeyPair("ml-kem-768");
+const { ciphertext, sharedSecret } = kem.encapsulate(publicKey, "ml-kem-768");
+
+// STARK settlement layer
+import {
+  createDefaultContext,
+  LedgerService,
+} from "@psavelis/enterprise-blockchain/stark-settlement";
+
+const ctx = createDefaultContext();
+const ledger = new LedgerService(ctx);
+
+// HSM key management
+import { HsmClient } from "@psavelis/enterprise-blockchain/hsm";
+
+const hsm = new HsmClient();
+hsm.initialize({ slotId: "slot-1", label: "my-hsm" });
+```
+
+**Available subpath exports:**
+
+| Export              | Description                                               |
+| ------------------- | --------------------------------------------------------- |
+| `/mpc`              | MPC engine, ML-KEM-768, ML-DSA-65, Hybrid KEM, Shamir SSS |
+| `/hsm`              | PKCS#11 HSM simulator, envelope encryption                |
+| `/p2mr`             | Pay-to-Merkle-Root quantum-safe Bitcoin outputs           |
+| `/stark-settlement` | 3-tier STARK aggregation, multi-rail settlement           |
+| `/protocols`        | Fabric, Besu, Corda adapter interfaces                    |
+| `/integrations`     | SDK clients with circuit breakers                         |
+| `/shared/telemetry` | OpenTelemetry tracing and metrics                         |
+
+See [packages/enterprise-blockchain/README.md](packages/enterprise-blockchain/README.md) for full API documentation.
 
 The repository is organized around reusable domain modules and runnable examples. The focus is operational design: traceability, selective disclosure, credential verification, and reconciliation.
 

@@ -2,6 +2,16 @@
 
 Repository documentation and reference material for enterprise blockchain patterns.
 
+## npm Package
+
+The production-grade modules are published as `@psavelis/enterprise-blockchain`:
+
+```bash
+npm install @psavelis/enterprise-blockchain
+```
+
+See [packages/enterprise-blockchain/README.md](../packages/enterprise-blockchain/README.md) for API documentation and usage examples.
+
 ## Quick Navigation
 
 | Resource                         | Description                                  |

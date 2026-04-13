@@ -78,6 +78,62 @@ TypeScript repository demonstrating enterprise blockchain patterns.
 
 <!-- _class: compact -->
 
+# npm Package
+
+**`@psavelis/enterprise-blockchain`** — Production-grade modules on npm
+
+```bash
+npm install @psavelis/enterprise-blockchain
+```
+
+| Subpath Export      | Description                                   |
+| ------------------- | --------------------------------------------- |
+| `/mpc`              | MPC engine, ML-KEM-768, ML-DSA-65, Hybrid KEM |
+| `/hsm`              | PKCS#11 HSM simulator, envelope encryption    |
+| `/p2mr`             | Pay-to-Merkle-Root quantum-safe Bitcoin       |
+| `/stark-settlement` | 3-tier STARK aggregation, multi-rail settle   |
+| `/protocols`        | Fabric, Besu, Corda adapter interfaces        |
+| `/integrations`     | SDK clients with circuit breakers             |
+| `/shared/telemetry` | OpenTelemetry tracing and metrics             |
+
+---
+
+<!-- _class: compact -->
+
+# npm Usage Examples
+
+**Post-Quantum Key Exchange (ML-KEM-768)**
+
+```typescript
+import { KyberKem } from "@psavelis/enterprise-blockchain/mpc";
+const kem = new KyberKem();
+const { publicKey, secretKey } = kem.generateKeyPair("ml-kem-768");
+const { ciphertext, sharedSecret } = kem.encapsulate(publicKey, "ml-kem-768");
+```
+
+**STARK Settlement**
+
+```typescript
+import {
+  createDefaultContext,
+  LedgerService,
+} from "@psavelis/enterprise-blockchain/stark-settlement";
+const ctx = createDefaultContext();
+const ledger = new LedgerService(ctx);
+```
+
+**HSM Key Management**
+
+```typescript
+import { HsmClient } from "@psavelis/enterprise-blockchain/hsm";
+const hsm = new HsmClient();
+hsm.initialize({ slotId: "slot-1", label: "my-hsm" });
+```
+
+---
+
+<!-- _class: compact -->
+
 # Case Studies
 
 | Scenario           | Domain Problem                                   | Protocol Fit               |
@@ -552,6 +608,7 @@ npm test -- tests/hsm.property.test.ts
 
 # Summary
 
+- **npm package**: `@psavelis/enterprise-blockchain` with 7 subpath exports
 - **4** case studies (traceability, privacy, credentials, settlement)
 - **3** protocol adapters (Fabric, Besu, Corda)
 - **3** integration clients (Gateway, ethers, REST)
@@ -561,3 +618,5 @@ npm test -- tests/hsm.property.test.ts
 - **E2E tests** with live Besu nodes
 
 All pass `npm run verify` and run offline. E2E tests run with `npm run test:e2e`.
+
+Install: `npm install @psavelis/enterprise-blockchain`
