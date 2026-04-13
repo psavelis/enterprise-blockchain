@@ -1,6 +1,6 @@
 {
   "name": "@psavelis/enterprise-blockchain",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "description": "Production-grade enterprise blockchain modules: MPC, HSM, STARK settlement, post-quantum cryptography, and protocol adapters.",
   "type": "module",
   "license": "Apache-2.0",
@@ -92,12 +92,13 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
     "prepublishOnly": "npm run clean && npm run build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@noble/post-quantum": "^0.6.1"
+    "@noble/post-quantum": "^0.6.1",
+    "@psavelis/enterprise-blockchain": "file:"
   },
   "peerDependencies": {
     "@grpc/grpc-js": "^1.14.0",
