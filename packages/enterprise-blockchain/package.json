@@ -1,6 +1,6 @@
 {
   "name": "@psavelis/enterprise-blockchain",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Production-grade TypeScript modules for recursive STARK settlement, post-quantum cryptography (ML-KEM/ML-DSA), MPC, HSM, and multi-rail (Solana + Bitcoin + fiat) infrastructure.",
   "type": "module",
   "license": "Apache-2.0",
