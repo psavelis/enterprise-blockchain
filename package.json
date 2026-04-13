@@ -50,6 +50,7 @@
     "example:quantum-safe-payment": "tsx examples/quantum-safe-payment/index.ts",
     "example:quantum-safe-merkle-root-payment": "tsx examples/quantum-safe-merkle-root-payment/index.ts",
     "example:stark-settlement": "tsx examples/stark-cross-border-settlement/index.ts",
+    "example:hsm-pkcs11": "tsx examples/hsm-real-pkcs11/index.ts",
     "sbom": "cyclonedx-npm --output-file sbom.json --output-format JSON",
     "prepare": "husky"
   },
@@ -58,13 +59,13 @@
     "@grpc/proto-loader": "^0.8.0",
     "@hyperledger/fabric-gateway": "^1.10.1",
     "@noble/post-quantum": "^0.6.1",
-    "starknet": "^9.4.2",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.214.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
     "@opentelemetry/sdk-node": "^0.214.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "ethers": "^6.16.0"
+    "ethers": "^6.16.0",
+    "starknet": "^9.4.2"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
@@ -79,6 +80,7 @@
     "eslint-config-prettier": "^10.1.8",
     "fast-check": "^4.6.0",
     "globals": "^17.5.0",
+    "graphene-pk11": "^2.3.6",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.2",

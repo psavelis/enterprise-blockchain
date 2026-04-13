@@ -21,6 +21,7 @@ const examples = [
     "stark cross-border settlement",
     "examples/stark-cross-border-settlement/index.ts",
   ],
+  ["hsm real pkcs11", "examples/hsm-real-pkcs11/index.ts"],
 ] as const;
 
 for (const [label, path] of examples) {

@@ -1,0 +1,33 @@
+# SoftHSM2 Docker Compose for PKCS#11 Integration Testing
+#
+# Usage:
+#   docker compose up -d          # Start SoftHSM2
+#   docker compose down -v        # Stop and remove volumes
+#
+# The PKCS#11 library is available at:
+#   /usr/lib/softhsm/libsofthsm2.so (inside container)
+#
+# For Node.js with graphene-pk11, mount the library:
+#   docker compose exec softhsm2 softhsm2-util --show-slots
+
+services:
+  softhsm2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: softhsm2
+    volumes:
+      - softhsm2-tokens:/var/lib/softhsm/tokens
+      # Mount library for host access (optional, for local testing)
+      # - ./lib:/opt/softhsm2/lib
+    environment:
+      - SOFTHSM2_CONF=/etc/softhsm/softhsm2.conf
+    healthcheck:
+      test: ["CMD", "softhsm2-util", "--show-slots"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  softhsm2-tokens:
