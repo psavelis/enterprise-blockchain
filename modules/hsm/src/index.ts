@@ -119,8 +119,8 @@ import { SimulatorCryptoAdapter } from "./infrastructure/adapters";
  *   crypto: {
  *     type: "pkcs11",
  *     libraryPath: "/usr/lib/softhsm/libsofthsm2.so",
- *     slotId: 0,
- *     pin: "1234",
+ *     slotIndex: 0,
+ *     userPin: "1234",
  *   },
  * });
  * ```

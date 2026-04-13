@@ -207,6 +207,18 @@ export class AsymmetricKeyService {
     const namedCurve = options?.namedCurve ?? "P-256";
     const rsaBits = options?.rsaBits ?? 4096;
 
+    // Validate keyType + namedCurve combinations
+    if (keyType === "EC" && !["P-256", "P-384"].includes(namedCurve)) {
+      throw new Error(
+        `Invalid curve "${namedCurve}" for EC key type. Use "P-256" or "P-384".`,
+      );
+    }
+    if (keyType === "Ed" && namedCurve !== "Ed25519") {
+      throw new Error(
+        `Invalid curve "${namedCurve}" for Ed key type. Use "Ed25519".`,
+      );
+    }
+
     const createdAt = new Date().toISOString();
     let handle: string;
     let publicKeyPem: string;

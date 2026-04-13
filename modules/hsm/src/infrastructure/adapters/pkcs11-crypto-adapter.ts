@@ -609,16 +609,22 @@ export class Pkcs11CryptoAdapter implements HsmCryptoPort {
     publicKey: any,
     privateKeyHandle: Buffer,
   ): boolean {
-    // In PKCS#11, matching public/private keys typically share
-    // the same CKA_ID attribute. This is vendor-dependent.
+    // In PKCS#11, matching public/private keys should share
+    // the same CKA_ID attribute. Fail closed if we can't verify.
     try {
       const publicKeyId = publicKey.getAttribute({ id: null }).id;
       const privateKey = this.findKeyByHandle(privateKeyHandle);
       const privateKeyId = privateKey.getAttribute({ id: null }).id;
-      return publicKeyId && privateKeyId && publicKeyId.equals(privateKeyId);
+
+      // Require both IDs to be valid buffers
+      if (!Buffer.isBuffer(publicKeyId) || !Buffer.isBuffer(privateKeyId)) {
+        return false;
+      }
+
+      return publicKeyId.equals(privateKeyId);
     } catch {
-      // Fallback: just use any public key with matching type
-      return true;
+      // Fail closed: if we can't verify the match, reject it
+      return false;
     }
   }
 
@@ -643,19 +649,22 @@ export class Pkcs11CryptoAdapter implements HsmCryptoPort {
   private constructEcSpki(ecParams: Buffer, ecPoint: Buffer): Buffer {
     // Simplified SPKI construction for EC keys
     // In production, use a proper ASN.1 library
-    const algorithm = Buffer.from([
-      0x30,
-      0x13, // SEQUENCE
-      0x06,
-      0x07,
-      0x2a,
-      0x86,
-      0x48,
-      0xce,
-      0x3d,
-      0x02,
-      0x01, // OID: ecPublicKey
-      ...ecParams, // EC parameters (curve OID)
+
+    // ecPublicKey OID: 1.2.840.10045.2.1
+    const ecPublicKeyOid = Buffer.from([
+      0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01,
+    ]);
+
+    // AlgorithmIdentifier SEQUENCE contains: ecPublicKey OID + curve params
+    const algorithmContent = Buffer.concat([ecPublicKeyOid, ecParams]);
+    const algorithmSeqLen = algorithmContent.length;
+
+    // Build AlgorithmIdentifier SEQUENCE with computed length
+    const algorithm = Buffer.concat([
+      algorithmSeqLen < 128
+        ? Buffer.from([0x30, algorithmSeqLen])
+        : Buffer.from([0x30, 0x81, algorithmSeqLen]),
+      algorithmContent,
     ]);
 
     const bitString = Buffer.concat([

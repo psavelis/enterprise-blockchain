@@ -54,7 +54,7 @@ export interface HsmSignatureResult {
 }
 
 export interface WrappedKey {
-  algorithm: "aes-256-gcm";
+  algorithm: "aes-128-gcm" | "aes-256-gcm";
   wrappedDek: string;
   iv: string;
   authTag: string;
@@ -110,9 +110,10 @@ export interface AsymmetricKeyEntry {
   kind: "asymmetric";
   keyLabel: string;
   /**
-   * Opaque handle for the crypto adapter.
+   * Opaque adapter-specific identifier for the private key.
    * For simulator: internal ID like "sim:ec:1"
-   * For PKCS#11: hex-encoded object handle
+   * For PKCS#11: adapter-managed opaque string identifier (e.g., "pkcs11:ec:1");
+   * callers must not assume this is the raw PKCS#11 object handle.
    */
   handle: string;
   /**
@@ -135,9 +136,10 @@ export interface SymmetricKeyEntry {
   kind: "symmetric";
   keyLabel: string;
   /**
-   * Opaque handle for the crypto adapter.
+   * Opaque adapter-specific identifier for the symmetric key.
    * For simulator: internal ID like "sim:aes:1"
-   * For PKCS#11: hex-encoded object handle
+   * For PKCS#11: adapter-managed opaque string identifier;
+   * callers must not assume this is the raw PKCS#11 object handle.
    */
   handle: string;
   /**

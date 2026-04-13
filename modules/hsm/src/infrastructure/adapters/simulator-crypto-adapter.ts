@@ -374,9 +374,11 @@ export class SimulatorCryptoAdapter implements HsmCryptoPort {
 
     const kekBuffer = Buffer.from(entry.keyBytes);
     const iv = randomBytes(12);
+    // Select algorithm based on key size
+    const algorithm = entry.aesBits === 128 ? "aes-128-gcm" : "aes-256-gcm";
 
     try {
-      const cipher = createCipheriv("aes-256-gcm", kekBuffer, iv);
+      const cipher = createCipheriv(algorithm, kekBuffer, iv);
       const wrappedDek = Buffer.concat([
         cipher.update(dekBytes),
         cipher.final(),
@@ -406,9 +408,11 @@ export class SimulatorCryptoAdapter implements HsmCryptoPort {
     }
 
     const kekBuffer = Buffer.from(entry.keyBytes);
+    // Select algorithm based on key size
+    const algorithm = entry.aesBits === 128 ? "aes-128-gcm" : "aes-256-gcm";
 
     try {
-      const decipher = createDecipheriv("aes-256-gcm", kekBuffer, iv);
+      const decipher = createDecipheriv(algorithm, kekBuffer, iv);
       decipher.setAuthTag(authTag);
       return Buffer.concat([decipher.update(wrappedDek), decipher.final()]);
     } catch {

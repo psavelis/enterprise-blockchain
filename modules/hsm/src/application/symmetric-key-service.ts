@@ -202,6 +202,9 @@ export class SymmetricKeyService {
   ): Promise<WrappedKey> {
     const kek = this.requireSymmetric(kekLabel);
     const wrappedAt = new Date().toISOString();
+    // Select algorithm based on key size
+    const algorithm =
+      kek.keyBits === 128 ? "aes-128-gcm" : ("aes-256-gcm" as const);
 
     if (this.crypto) {
       // Use hardware HSM
@@ -210,7 +213,7 @@ export class SymmetricKeyService {
       this.audit.record("wrapKey", kekLabel, "success");
 
       return {
-        algorithm: "aes-256-gcm",
+        algorithm,
         wrappedDek: result.wrappedDek.toString("hex"),
         iv: result.iv.toString("hex"),
         authTag: result.authTag.toString("hex"),
@@ -224,7 +227,7 @@ export class SymmetricKeyService {
     const iv = randomBytes(12);
 
     try {
-      const cipher = createCipheriv("aes-256-gcm", kekBuffer, iv);
+      const cipher = createCipheriv(algorithm, kekBuffer, iv);
       const wrappedDek = Buffer.concat([
         cipher.update(plaintextDek),
         cipher.final(),
@@ -234,7 +237,7 @@ export class SymmetricKeyService {
       this.audit.record("wrapKey", kekLabel, "success");
 
       return {
-        algorithm: "aes-256-gcm",
+        algorithm,
         wrappedDek: wrappedDek.toString("hex"),
         iv: iv.toString("hex"),
         authTag: authTag.toString("hex"),
@@ -284,9 +287,11 @@ export class SymmetricKeyService {
 
     // Fall back to simulator (same as sync version)
     const kekBuffer = Buffer.from(kek.keyBytes);
+    // Select algorithm based on key size
+    const algorithm = kek.keyBits === 128 ? "aes-128-gcm" : "aes-256-gcm";
 
     try {
-      const decipher = createDecipheriv("aes-256-gcm", kekBuffer, iv);
+      const decipher = createDecipheriv(algorithm, kekBuffer, iv);
       decipher.setAuthTag(authTag);
       const plaintext = Buffer.concat([
         decipher.update(wrappedBuf),
