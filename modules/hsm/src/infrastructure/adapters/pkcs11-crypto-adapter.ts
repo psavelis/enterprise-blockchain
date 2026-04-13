@@ -32,7 +32,6 @@ import type {
   HsmCryptoConfig,
   HsmCryptoPort,
   KeyGenerationResult,
-  Pkcs11CryptoConfig,
   RsaKeySize,
   SigningAlgorithm,
   WrapKeyResult,
@@ -61,7 +60,6 @@ export class Pkcs11CryptoAdapter implements HsmCryptoPort {
   private mod: GrapheneModule | null = null;
   private slot: GrapheneSlot | null = null;
   private session: GrapheneSession | null = null;
-  private config: Pkcs11CryptoConfig | null = null;
   private initialized = false;
 
   // Map of key handles to PKCS#11 object handles
@@ -76,8 +74,6 @@ export class Pkcs11CryptoAdapter implements HsmCryptoPort {
     if (config.type !== "pkcs11") {
       throw new Error("Pkcs11CryptoAdapter requires type: 'pkcs11'");
     }
-
-    this.config = config;
 
     // Lazy load graphene-pk11
     try {

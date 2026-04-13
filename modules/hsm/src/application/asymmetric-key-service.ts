@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 import {
+  constants,
   createPrivateKey,
   createPublicKey,
   createSign,
@@ -488,14 +489,20 @@ export class AsymmetricKeyService {
         signer.update(data);
         signer.end();
         return signer
-          .sign({ key: privateKey, padding: 6, saltLength: 32 })
+          .sign({
+            key: privateKey,
+            padding: constants.RSA_PKCS1_PSS_PADDING,
+            saltLength: 32,
+          })
           .toString("hex");
       }
       case "rsa-pkcs1-sha256": {
         const signer = createSign("SHA256");
         signer.update(data);
         signer.end();
-        return signer.sign({ key: privateKey, padding: 1 }).toString("hex");
+        return signer
+          .sign({ key: privateKey, padding: constants.RSA_PKCS1_PADDING })
+          .toString("hex");
       }
       default:
         throw new Error(`Unsupported signing algorithm: ${algorithm}`);
@@ -533,7 +540,11 @@ export class AsymmetricKeyService {
         verifier.update(data);
         verifier.end();
         return verifier.verify(
-          { key: publicKey, padding: 6, saltLength: 32 },
+          {
+            key: publicKey,
+            padding: constants.RSA_PKCS1_PSS_PADDING,
+            saltLength: 32,
+          },
           sigBuffer,
         );
       }
@@ -541,7 +552,10 @@ export class AsymmetricKeyService {
         const verifier = createVerify("SHA256");
         verifier.update(data);
         verifier.end();
-        return verifier.verify({ key: publicKey, padding: 1 }, sigBuffer);
+        return verifier.verify(
+          { key: publicKey, padding: constants.RSA_PKCS1_PADDING },
+          sigBuffer,
+        );
       }
       default:
         throw new Error(`Unsupported verification algorithm: ${algorithm}`);

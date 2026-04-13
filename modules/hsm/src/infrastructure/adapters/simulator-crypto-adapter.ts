@@ -15,6 +15,7 @@
  */
 
 import {
+  constants,
   createCipheriv,
   createDecipheriv,
   createPrivateKey,
@@ -248,7 +249,7 @@ export class SimulatorCryptoAdapter implements HsmCryptoPort {
         signer.end();
         return signer.sign({
           key: privateKey,
-          padding: 6, // RSA_PKCS1_PSS_PADDING
+          padding: constants.RSA_PKCS1_PSS_PADDING,
           saltLength: 32,
         });
       }
@@ -260,7 +261,7 @@ export class SimulatorCryptoAdapter implements HsmCryptoPort {
         signer.end();
         return signer.sign({
           key: privateKey,
-          padding: 1, // RSA_PKCS1_PADDING
+          padding: constants.RSA_PKCS1_PADDING,
         });
       }
 
@@ -316,7 +317,7 @@ export class SimulatorCryptoAdapter implements HsmCryptoPort {
         return verifier.verify(
           {
             key: publicKey,
-            padding: 6, // RSA_PKCS1_PSS_PADDING
+            padding: constants.RSA_PKCS1_PSS_PADDING,
             saltLength: 32,
           },
           signature,
@@ -331,7 +332,7 @@ export class SimulatorCryptoAdapter implements HsmCryptoPort {
         return verifier.verify(
           {
             key: publicKey,
-            padding: 1, // RSA_PKCS1_PADDING
+            padding: constants.RSA_PKCS1_PADDING,
           },
           signature,
         );
