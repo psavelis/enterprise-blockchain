@@ -17,7 +17,8 @@ export interface SymmetricKeyGenOptions {
 }
 
 /**
- * AES-256-GCM symmetric operations — key generation, wrapping, unwrapping.
+ * AES-GCM symmetric operations — key generation, wrapping, unwrapping.
+ * Supports both AES-128 and AES-256 key sizes.
  *
  * The raw key is stored as Uint8Array in the domain entity to enable
  * explicit zeroization. In a production HSM the key never leaves

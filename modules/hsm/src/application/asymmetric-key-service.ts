@@ -130,6 +130,14 @@ export class AsymmetricKeyService {
     const entry = this.requireAsymmetric(keyLabel);
     const timestamp = new Date().toISOString();
 
+    // Guard: sync signing requires in-memory PEM material (simulator keys only)
+    if (!entry.privateKeyPem) {
+      throw new Error(
+        `Key "${keyLabel}" has no in-memory private key material. ` +
+          `Use signAsync() for hardware-backed keys.`,
+      );
+    }
+
     // Convert PEM back to KeyObject for signing
     const privateKey = createPrivateKey(entry.privateKeyPem);
 
