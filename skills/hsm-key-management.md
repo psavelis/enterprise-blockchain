@@ -152,4 +152,5 @@ HsmAuditEntry {
 - `examples/hsm-transaction-signing/index.ts`
 - `examples/hsm-key-ceremony/index.ts`
 - `examples/hsm-envelope-encryption/index.ts`
+- `examples/hsm-real-pkcs11/index.ts`
 - `docs/architecture/hsm-integration-patterns.md`

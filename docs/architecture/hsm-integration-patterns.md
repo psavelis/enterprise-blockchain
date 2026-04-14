@@ -6,7 +6,7 @@ How the `HsmClient` software simulation maps to real Hardware Security Module de
 
 ```
 Case Study Scenarios
-  └─ hsm-transaction-signing, hsm-key-ceremony, hsm-envelope-encryption
+  └─ hsm-transaction-signing, hsm-key-ceremony, hsm-envelope-encryption, hsm-real-pkcs11
 Domain Module
   └─ modules/hsm   (HsmClient)
 Shared Utilities
@@ -63,7 +63,7 @@ This pattern is the software equivalent of `CKM_AES_KEY_WRAP` (PKCS#11) or `kms:
 | `wrapKey`              | `C_WrapKey` + `CKM_AES_GCM`                 | Same                                             |
 | `unwrapKey`            | `C_UnwrapKey` + `CKM_AES_GCM`               | Same                                             |
 
-Production deployments use a PKCS#11 driver (e.g. `pkcs11js` npm package) rather than `node:crypto`. The `HsmClient` interface shape is designed to be a drop-in swap point.
+Production deployments use a PKCS#11 driver (e.g. `graphene-pk11` npm package) rather than `node:crypto`. The `HsmClient` facade and underlying services support both sync and async APIs — use `*Async()` methods for hardware HSM operations. See `examples/hsm-real-pkcs11` for a working implementation with SoftHSM2.
 
 ## Blockchain integration patterns
 
@@ -201,4 +201,5 @@ Use HSM-backed keys whenever:
 2. Read [examples/hsm-transaction-signing/index.ts](../../examples/hsm-transaction-signing/index.ts) — ECDSA signing for a trade order.
 3. Read [examples/hsm-key-ceremony/index.ts](../../examples/hsm-key-ceremony/index.ts) — HSM + Shamir secret sharing combined for a consortium onboarding ceremony.
 4. Read [examples/hsm-envelope-encryption/index.ts](../../examples/hsm-envelope-encryption/index.ts) — DEK/KEK envelope encryption for on-ledger document confidentiality.
-5. Cross-reference [architecture/mpc-quantum-resistance.md](./mpc-quantum-resistance.md) for the off-chain cryptographic counterpart (MPC, Shamir SSS, hash-ladder quantum resistance).
+5. Read [examples/hsm-real-pkcs11/index.ts](../../examples/hsm-real-pkcs11/index.ts) — Real PKCS#11 integration via `graphene-pk11` with SoftHSM2 and multi-algorithm support.
+6. Cross-reference [architecture/mpc-quantum-resistance.md](./mpc-quantum-resistance.md) for the off-chain cryptographic counterpart (MPC, Shamir SSS, hash-ladder quantum resistance).

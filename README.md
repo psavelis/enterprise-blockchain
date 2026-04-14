@@ -96,11 +96,12 @@ Three examples cover off-chain cryptographic techniques that complement the ledg
 
 ## HSM Key Management Examples
 
-Three examples show hardware security module patterns for production blockchain deployments.
+Four examples show hardware security module patterns for production blockchain deployments.
 
 1. `hsm-transaction-signing`: EC P-256 key generation and ECDSA-SHA256 signing of equity trade orders (Apex Capital scenario).
 2. `hsm-key-ceremony`: Root key ceremony combining HSM signing with 3-of-5 Shamir threshold custodianship (GlobalNet consortium).
 3. `hsm-envelope-encryption`: DEK/KEK envelope encryption for sensitive trade documents stored on a shared ledger (TradeFin platform).
+4. `hsm-real-pkcs11`: Real PKCS#11 HSM support via SoftHSM2/graphene-pk11 with multi-algorithm keys (EC, Ed25519, RSA) and simulator fallback.
 
 ## Post-Quantum Cryptography Examples
 

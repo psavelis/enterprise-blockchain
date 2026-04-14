@@ -34,6 +34,7 @@ These examples show the transaction shapes a team might hand to a real platform 
 | `hsm-transaction-signing` | EC P-256 key generation and ECDSA-SHA256 signing                                   |
 | `hsm-key-ceremony`        | Root key ceremony combining HSM signing with 3-of-5 Shamir threshold custodianship |
 | `hsm-envelope-encryption` | DEK/KEK envelope encryption for sensitive trade documents                          |
+| `hsm-real-pkcs11`         | Real PKCS#11 HSM support with SoftHSM2, multi-algorithm keys, simulator fallback   |
 
 ## Post-Quantum Cryptography
 
@@ -91,6 +92,7 @@ npm run example:quantum-key-sharing
 npm run example:hsm-tx-signing
 npm run example:hsm-key-ceremony
 npm run example:hsm-envelope-encryption
+npm run example:hsm-pkcs11
 
 # Post-quantum cryptography
 npm run example:kyber-kem
