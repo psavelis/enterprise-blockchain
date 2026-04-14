@@ -211,8 +211,9 @@ export class SymmetricKeyService {
     const algorithm =
       kek.keyBits === 128 ? "aes-128-gcm" : ("aes-256-gcm" as const);
 
-    if (this.crypto) {
-      // Use hardware HSM
+    // Use hardware HSM only if crypto port exists AND key is hardware-backed
+    // (keyBytes is empty for hardware keys, populated for simulator/sync keys)
+    if (this.crypto && kek.keyBytes.length === 0) {
       const result = await this.crypto.wrapKey(plaintextDek, kek.handle);
 
       this.audit.record("wrapKey", kekLabel, "success");
@@ -227,7 +228,7 @@ export class SymmetricKeyService {
       };
     }
 
-    // Fall back to simulator (same as sync version)
+    // Use software implementation for simulator/sync-created keys
     const kekBuffer = Buffer.from(kek.keyBytes);
     const iv = randomBytes(12);
 
@@ -268,8 +269,9 @@ export class SymmetricKeyService {
     const authTag = Buffer.from(wrapped.authTag, "hex");
     const wrappedBuf = Buffer.from(wrapped.wrappedDek, "hex");
 
-    if (this.crypto) {
-      // Use hardware HSM
+    // Use hardware HSM only if crypto port exists AND key is hardware-backed
+    // (keyBytes is empty for hardware keys, populated for simulator/sync keys)
+    if (this.crypto && kek.keyBytes.length === 0) {
       try {
         const plaintext = await this.crypto.unwrapKey(
           wrappedBuf,
@@ -290,7 +292,7 @@ export class SymmetricKeyService {
       }
     }
 
-    // Fall back to simulator (same as sync version)
+    // Use software implementation for simulator/sync-created keys
     const kekBuffer = Buffer.from(kek.keyBytes);
     // Select algorithm based on key size
     const algorithm = kek.keyBits === 128 ? "aes-128-gcm" : "aes-256-gcm";
