@@ -13,18 +13,40 @@ export interface HsmSlotConfig {
   label: string;
 }
 
+/**
+ * Key types supported by the HSM.
+ */
+export type HsmKeyType = "EC" | "Ed" | "RSA";
+
+/**
+ * Named curves for EC and Ed keys.
+ */
+export type HsmNamedCurve = "P-256" | "P-384" | "Ed25519";
+
 export interface HsmKeyPair {
   keyLabel: string;
-  keyType: "EC";
-  namedCurve: "P-256";
+  keyType: HsmKeyType;
+  namedCurve?: HsmNamedCurve;
+  /** RSA key size in bits (only for RSA keys) */
+  rsaBits?: 2048 | 4096;
   publicKeyPem: string;
   privateKeyHandle: string;
   createdAt: string;
 }
 
+/**
+ * Signature algorithms supported for HsmSignatureResult.
+ */
+export type HsmSignatureAlgorithm =
+  | "ecdsa-sha256"
+  | "ecdsa-sha384"
+  | "ed25519"
+  | "rsa-pss-sha256"
+  | "rsa-pkcs1-sha256";
+
 export interface HsmSignatureResult {
   keyLabel: string;
-  algorithm: "ecdsa-sha256";
+  algorithm: HsmSignatureAlgorithm;
   signature: string;
   publicKeyPem: string;
   timestamp: string;
@@ -32,7 +54,7 @@ export interface HsmSignatureResult {
 }
 
 export interface WrappedKey {
-  algorithm: "aes-256-gcm";
+  algorithm: "aes-128-gcm" | "aes-256-gcm";
   wrappedDek: string;
   iv: string;
   authTag: string;
@@ -80,15 +102,33 @@ export interface AsymmetricKeyHandle {
  * Uses PEM strings instead of KeyObject to keep domain types
  * infrastructure-agnostic. The infrastructure layer converts
  * to/from KeyObject as needed.
+ *
+ * For PKCS#11 backend, privateKeyPem is empty and handle references
+ * the key object on the HSM.
  */
 export interface AsymmetricKeyEntry {
   kind: "asymmetric";
   keyLabel: string;
-  /** PEM-encoded private key */
+  /**
+   * Opaque adapter-specific identifier for the private key.
+   * For simulator: internal ID like "sim:ec:1"
+   * For PKCS#11: adapter-managed opaque string identifier (e.g., "pkcs11:ec:1");
+   * callers must not assume this is the raw PKCS#11 object handle.
+   */
+  handle: string;
+  /**
+   * PEM-encoded private key (simulator only).
+   * Empty string for PKCS#11 where keys never leave hardware.
+   */
   privateKeyPem: string;
-  /** PEM-encoded public key */
+  /** PEM-encoded public key (SPKI format) */
   publicKeyPem: string;
-  namedCurve: "P-256";
+  /** Key type: EC, Ed, or RSA */
+  keyType: HsmKeyType;
+  /** Named curve for EC/Ed keys */
+  namedCurve?: HsmNamedCurve;
+  /** RSA key size in bits (only for RSA keys) */
+  rsaBits?: 2048 | 4096;
   createdAt: string;
 }
 
@@ -96,7 +136,14 @@ export interface SymmetricKeyEntry {
   kind: "symmetric";
   keyLabel: string;
   /**
-   * Raw key material as a byte array.
+   * Opaque adapter-specific identifier for the symmetric key.
+   * For simulator: internal ID like "sim:aes:1"
+   * For PKCS#11: adapter-managed opaque string identifier;
+   * callers must not assume this is the raw PKCS#11 object handle.
+   */
+  handle: string;
+  /**
+   * Raw key material as a byte array (simulator only).
    *
    * Using Uint8Array instead of a base64 string enables explicit zeroization
    * of in-memory key material. The infrastructure layer handles encoding/decoding
@@ -106,8 +153,12 @@ export interface SymmetricKeyEntry {
    * by the key store. Callers MUST NOT mutate or zeroize this buffer directly.
    * Instead, create an ephemeral copy (e.g. `const key = Buffer.from(entry.keyBytes);`)
    * for cryptographic operations, and securely zeroize that ephemeral copy after use.
+   *
+   * For PKCS#11: This will be an empty Uint8Array since keys never leave hardware.
    */
   keyBytes: Uint8Array;
+  /** Key size in bits */
+  keyBits: 128 | 256;
   createdAt: string;
 }
 

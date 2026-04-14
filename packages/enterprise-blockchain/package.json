@@ -114,7 +114,8 @@
     "@opentelemetry/sdk-node": "^0.214.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "ethers": "^6.16.0",
-    "starknet": "^9.4.0"
+    "starknet": "^9.4.0",
+    "graphene-pk11": "^2.3.0"
   },
   "peerDependenciesMeta": {
     "@grpc/grpc-js": {
@@ -151,6 +152,9 @@
       "optional": true
     },
     "starknet": {
+      "optional": true
+    },
+    "graphene-pk11": {
       "optional": true
     }
   }

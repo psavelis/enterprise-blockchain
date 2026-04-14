@@ -15,4 +15,8 @@ export class InMemoryKeyStore implements KeyStore {
   set(label: string, entry: KeyEntry): void {
     this.data.set(label, entry);
   }
+
+  delete(label: string): boolean {
+    return this.data.delete(label);
+  }
 }
